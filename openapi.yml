@@ -1,0 +1,1167 @@
+openapi: "3.0.3"
+info:
+  title: nft indexer api
+  version: "0.1"
+servers:
+  - url: https://indexer-api.bf.works
+    description: stage
+components:
+  schemas:
+    address:
+      type: string
+      description: contract address
+
+    ts:
+      type: integer
+      format: int32
+      description: unix timestamp
+
+    profile:
+      type: object
+      required:
+        - address
+        - name
+        - created
+      properties:
+        address:
+          $ref: '#/components/schemas/address'
+        created:
+          $ref: '#/components/schemas/ts'
+        name:
+          type: string
+          maxLength: 100
+        bio:
+          type: string
+        email:
+          type: string
+          maxLength: 100
+        site:
+          type: string
+          maxLength: 100
+        twitter:
+          type: string
+          maxLength: 100
+
+    price:
+      type: object
+      properties:
+        priceToken:
+          $ref: '#/components/schemas/address'
+        price:
+          type: string
+        usdPrice:
+          type: string
+      required:
+        - price
+        - priceToken
+
+    nftPrice:
+      type: object
+      properties:
+        price:
+          type: string
+        priceToken:
+          $ref: '#/components/schemas/address'
+        ts:
+          $ref: '#/components/schemas/ts'
+      required:
+        - price
+        - ts
+
+    auctionBid:
+      type: object
+      properties:
+        from:
+          $ref: '#/components/schemas/address'
+        auction:
+          $ref: '#/components/schemas/address'
+        nft:
+          $ref: '#/components/schemas/address'
+        price:
+          type: string
+        usdPrice:
+          type: string
+        createdAt:
+          $ref: '#/components/schemas/ts'
+        active:
+          type: boolean
+      required:
+        - from
+        - auction
+        - nft
+        - price
+        - createdAt
+
+    directBuy:
+      type: object
+      properties:
+        address:
+          $ref: '#/components/schemas/address'
+        buyer:
+          $ref: '#/components/schemas/address'
+        nft:
+          $ref: '#/components/schemas/address'
+        price:
+          $ref: '#/components/schemas/price'
+        createdAt:
+          $ref: '#/components/schemas/ts'
+        expiredAt:
+          $ref: '#/components/schemas/ts'
+        finishedAt:
+          $ref: '#/components/schemas/ts'
+        status:
+          $ref: '#/components/schemas/directBuyStatus'
+      required:
+        - address
+        - buyer
+        - nft
+        - price
+        - createdAt
+
+    directBuyStatus:
+      type: string
+      enum:
+      - create
+      - await_tokens
+      - active
+      - filled
+      - cancelled
+      - expired
+
+    directSell:
+      type: object
+      properties:
+        address:
+          $ref: '#/components/schemas/address'
+        buyer:
+          $ref: '#/components/schemas/address'
+        seller:
+          $ref: '#/components/schemas/address'
+        nft:
+          $ref: '#/components/schemas/address'
+        price:
+          $ref: '#/components/schemas/price'
+        createdAt:
+          $ref: '#/components/schemas/ts'
+        finishedAt:
+          $ref: '#/components/schemas/ts'
+        expiredAt:
+          $ref: '#/components/schemas/ts'
+        status:
+          $ref: '#/components/schemas/directSellStatus'
+      required:
+        - address
+        - seller
+        - nft
+        - price
+        - createdAt
+
+    directSellStatus:
+      type: string
+      enum:
+        - create
+        - await_nft
+        - active
+        - cancelled
+        - expired
+
+    auction:
+      type: object
+      properties:
+        address:
+          $ref: '#/components/schemas/address'
+        nft:
+          $ref: '#/components/schemas/address'
+        bidToken:
+          $ref: '#/components/schemas/address'
+        walletForBids:
+          $ref: '#/components/schemas/address'
+        startBid:
+          type: string
+        startUsdBid:
+          type: string
+        maxBid:
+          type: string
+        minBid:
+          type: string
+        maxUsdBid:
+          type: string
+        minUsdBid:
+          type: string
+        startTime:
+          $ref: '#/components/schemas/ts'
+        finishTime:
+          $ref: '#/components/schemas/ts'
+        status:
+          $ref: '#/components/schemas/auctionStatus'
+        lastBidFrom:
+          $ref: '#/components/schemas/address'
+        lastBidTime:
+          $ref: '#/components/schemas/ts'
+        lastBidValue:
+          type: string
+        lastBidUsdValue:
+          type: string
+      required:
+        - address
+        - nft
+        - bidToken
+
+    auctionStatus:
+      type: string
+      enum:
+      - active
+      - cancelled
+      - completed
+      - expired
+  
+    contract:
+      type: object
+      properties:
+        address:
+          $ref: '#/components/schemas/address'
+        name:
+          type: string
+        description:
+          type: string
+        owner:
+          $ref: '#/components/schemas/address'
+        verified:
+          type: boolean
+      required:
+        - address
+        - name
+        - owner
+
+    nft:
+      allOf:
+      - $ref: '#/components/schemas/contract'
+      - type: object
+        properties:
+          type:
+            type: string
+          image:
+            type: string
+            format: uri
+          mimetype:
+            type: string
+          collection:
+            $ref: '#/components/schemas/address'
+          attributes:
+            type: array
+            items:
+              type: object
+          currentPrice:
+            $ref: '#/components/schemas/price'
+          lastPrice:
+            $ref: '#/components/schemas/price'
+          auction:
+            $ref: '#/components/schemas/address'
+          forsale:
+            $ref: '#/components/schemas/address'
+          bestOffer:
+            $ref: '#/components/schemas/address'
+          manager:
+            $ref: '#/components/schemas/address'    
+        required:
+          - image
+          - collection
+          - attributes
+
+    collection:
+      allOf:
+      - $ref: '#/components/schemas/contract'
+      - type: object
+        properties:
+          verified:
+            type: boolean
+          createdAt:
+            $ref: '#/components/schemas/ts'        
+          wallpaper:
+            type: string
+            format: uri
+          logo:
+            type: string
+            format: uri
+          lowestPrice:
+            type: string
+          totalPrice:
+            type: string
+          ownersCount:
+            type: integer
+            format: int32
+          nftCount:
+            type: integer
+            format: int32
+        required:
+          - ownersCount
+          - createdAt
+
+    eventType:
+      type: string
+      enum:
+      - auction_deployed
+      - auction_created
+      - auction_root_ownership_transferred
+      - auction_active
+      - auction_declined
+      - auction_bid_placed
+      - auction_bid_declined
+      - auction_cancelled
+      - auction_complete
+      - direct_buy_deployed
+      - direct_buy_declined
+      - factory_direct_buy_ownership_transferred
+      - direct_buy_state_changed
+      - direct_sell_deployed
+      - direct_sell_declined
+      - factory_direct_sell_ownership_transferred
+      - direct_sell_state_changed
+      - nft_owner_changed
+      - nft_manager_changed
+      - collection_ownership_transferred
+      - nft_created
+      - nft_burned
+
+    eventCategory:
+      type: string
+      enum:
+      - auction
+      - direct_buy
+      - direct_sell
+
+    event:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        type:
+          $ref: '#/components/schemas/eventType'
+        cat:
+          $ref: '#/components/schemas/eventCategory'
+        address:
+          $ref: '#/components/schemas/address'
+        ts:
+          $ref: '#/components/schemas/ts'
+        args:
+          type: object
+      required:
+        - id
+        - type
+        - cat
+        - address
+        - ts
+
+
+paths:
+  /search:
+    post:
+      operationId: searchEverything
+      requestBody:
+        required: true
+        content:
+          'text/plain':
+            schema:
+              type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - address
+                        - contractType
+                      properties:
+                        image:
+                          type: string
+                          format: uri
+                        address:
+                          type: string
+                        contractType:
+                          type: string
+                          enum:
+                          - nft
+                          - collection
+                          - auction
+                          - directBuy
+                          - directSell
+
+
+  /collections:
+    post:
+      operationId: listCollections
+      requestBody:
+        required: false
+        content:
+          'application/json':
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                owners:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/address'
+                collections:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/address'     
+                verified:
+                  type: boolean
+                limit:
+                  type: integer
+                offset:
+                  type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  totalCount:
+                    type: integer
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/collection'
+                required:
+                  - totalCount
+                  - items
+
+  /nft/direct/buy:
+    post:
+      operationId: getNftDirectBuy
+      requestBody:
+        required: true
+        content:
+          'application/json':
+            schema:
+              type: object
+              properties:
+                nft:
+                  $ref: '#/components/schemas/address'
+                status:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/directBuyStatus'
+                limit:
+                  type: integer
+                  default: 100
+                offset:
+                  type: integer
+                  default: 0
+      responses:
+        '200':
+          description: OK
+          content:
+            'application/json':
+              schema:
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/directBuy'
+                  totalCount:
+                    type: integer
+                  nft:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/nft'
+                  collection:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/collection'
+
+  /nft/price-history:
+    post:
+      operationId: getNftPriceHistory
+      requestBody:
+        required: true
+        content:
+          'application/json':
+            schema:
+              type: object
+              properties:
+                nft:
+                  $ref: '#/components/schemas/address'
+                scale:
+                  description: periods by days/hours
+                  type: string
+                  default: d
+                  enum:
+                    - d
+                    - h
+                limit:
+                  type: integer
+                  default: 100
+                offset:
+                  type: integer
+                  default: 0
+      responses:
+        '200':
+          description: OK
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  totalCount:
+                    type: integer
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/nftPrice'
+                required:
+                  - totalCount
+                  - items
+
+  /nft/details:
+    post:
+      requestBody:
+        required: true
+        content:
+          'application/json':
+            schema:
+              type: object
+              properties:
+                nft:
+                  $ref: '#/components/schemas/address'
+      responses:
+        '200':
+          description: OK
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  nft:
+                    $ref: '#/components/schemas/nft'
+                  auction:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/auction'
+                  directSell:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/directSell'
+                  directBuy:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/directBuy'
+                  collection:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/collection'
+
+
+  /nft/reload-meta:
+    post:
+      requestBody:
+        required: true
+        content:
+          'application/json':
+            schema:
+              type: object
+              properties:
+                nft:
+                  $ref: '#/components/schemas/address'
+      responses:
+        '200':
+          description: OK
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/nft'
+
+
+  /collection/details:
+    post:
+      requestBody:
+        required: true
+        content:
+          'application/json':
+            schema:
+              type: object
+              properties:
+                collection:
+                  $ref: '#/components/schemas/address'
+      responses:
+        '200':
+          description: OK
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/collection'
+
+  /nfts/:
+    post:
+      operationId: listNFT
+      requestBody:
+        required: true
+        content:
+          'application/json':
+            schema:
+              type: object
+              properties:
+                owners:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/address'
+                collections:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/address'
+                priceToken:
+                  $ref: '#/components/schemas/address'
+                priceFrom:
+                  type: integer
+                  format: int64
+                priceTo:
+                  type: integer
+                  format: int64
+                forsale:
+                  type: boolean
+                auction:
+                  type: boolean
+                limit:
+                  type: integer
+                  default: 100
+                offset:
+                  type: integer
+                  default: 0
+
+      responses:
+        '200':
+          description: OK
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  totalCount:
+                    type: integer
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/nft'
+                  collection:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/collection'
+                  auction:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/auction'
+                  directSell:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/directSell'
+                  directBuy:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/directBuy'
+                required:
+                  - totalCount
+                  - items
+
+  /collections/by-owner:
+    post:
+      requestBody:
+        required: true
+        content:
+          'application/json':
+            schema:
+              type: object
+              properties:
+                owner:
+                  $ref: '#/components/schemas/address'
+                limit:
+                  type: integer
+                  default: 100
+                offset:
+                  type: integer
+                  default: 0
+      responses:
+        '200':
+          description: OK
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  totalCount:
+                    type: integer
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/collection'
+                required:
+                  - totalCount
+                  - items
+
+  /auction:
+    post:
+      operationId: getAuction
+      requestBody:
+        required: true
+        content:
+          'application/json':
+            schema:
+              type: object
+              properties:
+                auction:
+                  $ref: '#/components/schemas/address'
+      responses:
+        '200':
+          description: OK
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  auction:
+                    $ref: '#/components/schemas/auction'
+                  bid:
+                    $ref: '#/components/schemas/auctionBid'
+                  nft:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/nft'
+                  collection:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/collection'
+                required:
+                  - auction
+                  - nft
+
+  /auctions:
+    post:
+      operationId: listAuctions
+      requestBody:
+        required: true
+        content:
+          'application/json':
+            schema:
+              type: object
+              properties:
+                owners:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/address'
+                collections:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/address'
+                tokens:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/address'
+                sort:
+                  type: string
+                  default: start-date
+                  enum:
+                  - start-date
+                  - bids-count
+                  - average
+                  - average-in-hour
+                  - average-in-day
+                limit:
+                  type: integer
+                  default: 100
+                offset:
+                  type: integer
+                  default: 0
+
+      responses:
+        '200':
+          description: OK
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  totalCount:
+                    type: integer
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/auction'
+                  nft:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/nft'
+                  collection:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/collection'
+                required:
+                  - totalCount
+                  - items
+
+  /auction/bids:
+    post:
+      operationId: listAuctionBids
+      requestBody:
+        required: true
+        content:
+          'application/json':
+            schema:
+              type: object
+              properties:
+                auction:
+                  $ref: '#/components/schemas/address'
+                limit:
+                  type: integer
+                  default: 100
+                offset:
+                  type: integer
+                  default: 0
+  
+      responses:
+        '200':
+          description: OK
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  totalCount:
+                    type: integer
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/auctionBid'
+                  nft:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/nft'
+                  collection:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/collection'
+                  auction:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/auction'
+                required:
+                  - totalCount
+                  - items
+
+  /owner/bids-out:
+    post:
+      requestBody:
+        required: true
+        content:
+          'application/json':
+            schema:
+              type: object
+              properties:
+                owner:
+                  $ref: '#/components/schemas/address'
+                collections:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/address'
+                lastbid:
+                  type: boolean
+                limit:
+                  type: integer
+                  default: 100
+                offset:
+                  type: integer
+                  default: 0
+      responses:
+        '200':
+          description: OK
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  totalCount:
+                    type: integer
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/auctionBid'
+                  nft:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/nft'
+                  collection:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/collection'
+                  auction:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/auction'
+                required:
+                  - totalCount
+                  - items
+
+  /owner/bids-in:
+    post:
+      requestBody:
+        required: true
+        content:
+          'application/json':
+            schema:
+              type: object
+              properties:
+                owner:
+                  $ref: '#/components/schemas/address'
+                collections:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/address'
+                active:
+                  type: boolean
+                limit:
+                  type: integer
+                  default: 100
+                offset:
+                  type: integer
+                  default: 0
+      responses:
+        '200':
+          description: OK
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  totalCount:
+                    type: integer
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/auctionBid'
+                  nft:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/nft'
+                  collection:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/collection'
+                  auction:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/auction'
+                required:
+                  - totalCount
+                  - items
+
+  /owner/direct/buy:
+    post:
+      requestBody:
+        required: true
+        content:
+          'application/json':
+            schema:
+              type: object
+              properties:
+                owner:
+                  $ref: '#/components/schemas/address'
+                collections:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/address'
+                status:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/directBuyStatus'
+                limit:
+                  type: integer
+                  default: 100
+                offset:
+                  type: integer
+                  default: 0
+      responses:
+        '200':
+          description: OK
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  totalCount:
+                    type: integer
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/directBuy'
+                  nft:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/nft'
+                  collection:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/collection'
+                required:
+                  - totalCount
+                  - items
+
+  /owner/direct/buy-in:
+    post:
+      requestBody:
+        required: true
+        content:
+          'application/json':
+            schema:
+              type: object
+              properties:
+                owner:
+                  $ref: '#/components/schemas/address'
+                collections:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/address'
+                status:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/directBuyStatus'
+                limit:
+                  type: integer
+                  default: 100
+                offset:
+                  type: integer
+                  default: 0
+
+      responses:
+        '200':
+          description: OK
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  totalCount:
+                    type: integer
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/directBuy'
+                  nft:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/nft'
+                  collection:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/collection'
+                required:
+                  - totalCount
+                  - items
+
+  /owner/direct/sell:
+    post:
+      requestBody:
+        required: true
+        content:
+          'application/json':
+            schema:
+              type: object
+              properties:
+                owner:
+                  $ref: '#/components/schemas/address'
+                collections:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/address'
+                status:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/directBuyStatus'
+                limit:
+                  type: integer
+                  default: 100
+                offset:
+                  type: integer
+                  default: 0
+
+      responses:
+        '200':
+          description: OK
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  totalCount:
+                    type: integer
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/directSell'
+                  nft:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/nft'
+                  collection:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/collection'
+                required:
+                  - totalCount
+                  - items
+
+  /events:
+    post:
+      operationId: listEvents
+      requestBody:
+        required: true
+        content:
+          'application/json':
+            schema:
+              type: object
+              properties:
+                nft:
+                  $ref: '#/components/schemas/address'
+                collection:
+                  $ref: '#/components/schemas/address'
+                owner:
+                  $ref: '#/components/schemas/address'
+                type:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/eventType'
+                limit:
+                  type: integer
+                  default: 100
+                offset:
+                  type: integer
+                  default: 0
+      responses:
+        '200':
+          description: OK
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  totalCount:
+                    type: integer
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/event'
+                required:
+                  - totalCount
+                  - items
