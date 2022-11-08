@@ -34,6 +34,13 @@ pub async fn get_nft_handler(param: NFTParam, db: Queries) -> Result<Box<dyn war
                 Ok(m) => m,
             };
             let mut auction = HashMap::default();
+            if nft.auction.is_none() {
+                match db.get_nft_auction_by_nft(&nft.address.clone().unwrap_or_default()).await {
+                    Err(e) => return Ok(Box::from(warp::reply::with_status(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))),
+                    Ok(Some(a)) => nft.auction = a.address.clone(),
+                    _ => {},
+                }
+            };
             if let Some(ref auction_id) = nft.auction {
                 match db.get_nft_auction(auction_id).await {
                     Err(e) => return Ok(Box::from(warp::reply::with_status(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))),

@@ -2132,6 +2132,147 @@
     },
     "query": "\n        SELECT count(*)\n        FROM nft_collection\n        WHERE (owner = ANY($1) OR array_length($1::varchar[], 1) is null)\n        AND ($2::boolean is null OR verified = $2)\n        AND ($3::varchar is null OR name LIKE $3)\n        AND (address = ANY($4) OR array_length($4::varchar[], 1) is null)\n        "
   },
+  "cbe46264872d96e151c971cfd40be57ae25dcffa1eaf86220f13550fac729d38": {
+    "describe": {
+      "columns": [
+        {
+          "name": "address",
+          "ordinal": 0,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "nft",
+          "ordinal": 1,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "wallet_for_bids",
+          "ordinal": 2,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "price_token",
+          "ordinal": 3,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "start_price",
+          "ordinal": 4,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "max_bid",
+          "ordinal": 5,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "min_bid",
+          "ordinal": 6,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "status: _",
+          "ordinal": 7,
+          "type_info": {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "created",
+                  "active",
+                  "cancelled",
+                  "completed",
+                  "expired"
+                ]
+              },
+              "name": "auction_status"
+            }
+          }
+        },
+        {
+          "name": "created_at",
+          "ordinal": 8,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "finished_at",
+          "ordinal": 9,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "tx_lt",
+          "ordinal": 10,
+          "type_info": "Int8"
+        },
+        {
+          "name": "last_bid_from",
+          "ordinal": 11,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "bids_count",
+          "ordinal": 12,
+          "type_info": "Int8"
+        },
+        {
+          "name": "last_bid_value",
+          "ordinal": 13,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "last_bid_usd_value",
+          "ordinal": 14,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "last_bid_ts",
+          "ordinal": 15,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "start_usd_price",
+          "ordinal": 16,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "max_usd_bid",
+          "ordinal": 17,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "min_usd_bid",
+          "ordinal": 18,
+          "type_info": "Numeric"
+        }
+      ],
+      "nullable": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "\n        SELECT a.* FROM nft_auction_search a\n        WHERE a.nft = $1 and a.\"status: _\" in ('active', 'expired')\n        order by a.created_at DESC limit 1"
+  },
   "ccd9633765b43bdf31f726afeb1e34d585543f2d52c5be7e47e8137314cf524e": {
     "describe": {
       "columns": [

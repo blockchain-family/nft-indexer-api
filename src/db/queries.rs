@@ -15,12 +15,6 @@ impl Queries {
         Self { db, tokens }
     }
 
-    /*pub async fn get_nft(&self, address: &String) -> sqlx::Result<Option<Nft>> {
-        sqlx::query_as!(Nft, "SELECT * FROM nft WHERE nft.address = $1", Some(address))
-            .fetch_optional(self.db.as_ref())
-            .await
-    }*/
-
     pub async fn get_nft_details(&self, address: &String) -> sqlx::Result<Option<NftDetails>> {
         sqlx::query_as!(NftDetails, "
         SELECT *
@@ -311,6 +305,15 @@ impl Queries {
     pub async fn get_nft_auction(&self, address: &String) -> sqlx::Result<Option<NftAuction>> {
         sqlx::query_as!(NftAuction, "
         SELECT * FROM nft_auction_search WHERE address = $1", address)
+            .fetch_optional(self.db.as_ref())
+            .await
+    }
+
+    pub async fn get_nft_auction_by_nft(&self, nft: &String) -> sqlx::Result<Option<NftAuction>> {
+        sqlx::query_as!(NftAuction, "
+        SELECT a.* FROM nft_auction_search a
+        WHERE a.nft = $1 and a.\"status: _\" in ('active', 'expired')
+        order by a.created_at DESC limit 1", nft)
             .fetch_optional(self.db.as_ref())
             .await
     }
