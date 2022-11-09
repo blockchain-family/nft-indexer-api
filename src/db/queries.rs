@@ -253,20 +253,28 @@ impl Queries {
         offset: usize,
     ) -> sqlx::Result<Vec<NftDetails>> {
         sqlx::query_as!(NftDetails, "
-        SELECT *
-        FROM nft_details
+        SELECT n.*
+        FROM nft_details n
+        LEFT JOIN nft_auction a ON a.address = n.auction
+        LEFT JOIN nft_direct_sell s ON a.address = n.forsale
         WHERE
-        (owner = ANY($1) OR array_length($1::varchar[], 1) is null)
-        and (collection = ANY($2) OR array_length($2::varchar[], 1) is null)
+        (n.owner = ANY($1) OR array_length($1::varchar[], 1) is null)
+        and (n.collection = ANY($2) OR array_length($2::varchar[], 1) is null)
         and (($3::bool is null and $4::bool is null)
             or ($3::bool is not null and $4::bool is not null 
-                and (($4::bool and forsale is not null) or (not $4::bool and forsale is null)
-                or ($3::bool and auction is not null) or (not $3::bool and auction is null))
+                and (($4::bool and n.forsale is not null and s.state = 'active') or (not $4::bool and n.forsale is null)
+                or ($3::bool and n.auction is not null and a.status = 'active') or (not $3::bool and n.auction is null))
             )
-            or ($3::bool is null and (($4::bool and forsale is not null) or (not $4::bool and forsale is null)))
-            or ($4::bool is null and (($3::bool and auction is not null) or (not $3::bool and auction is null)))
+            or (
+                $3::bool is null 
+                and (($4::bool and n.forsale is not null and s.state = 'active') or (not $4::bool and n.forsale is null))
+            )
+            or (
+                $4::bool is null
+                and (($3::bool and n.auction is not null and a.status = 'active') or (not $3::bool and n.auction is null))
+            )
         )
-        ORDER BY collection
+        ORDER BY n.collection
         LIMIT $5 OFFSET $6
         ", owners, collections, auction, forsale, limit as i64, offset as i64)
             .fetch_all(self.db.as_ref())
@@ -283,18 +291,26 @@ impl Queries {
         auction: Option<bool>,
     ) -> sqlx::Result<i64> {
         sqlx::query!("
-        SELECT count(*)
-        FROM nft_details
+        SELECT count(n.*)
+        FROM nft_details n
+        LEFT JOIN nft_auction a ON a.address = n.auction
+        LEFT JOIN nft_direct_sell s ON a.address = n.forsale
         WHERE
-        (owner = ANY($1) OR array_length($1::varchar[], 1) is null)
-        and (collection = ANY($2) OR array_length($2::varchar[], 1) is null)
+        (n.owner = ANY($1) OR array_length($1::varchar[], 1) is null)
+        and (n.collection = ANY($2) OR array_length($2::varchar[], 1) is null)
         and (($3::bool is null and $4::bool is null)
             or ($3::bool is not null and $4::bool is not null 
-                and (($4::bool and forsale is not null) or (not $4::bool and forsale is null)
-                or ($3::bool and auction is not null) or (not $3::bool and auction is null))
+                and (($4::bool and n.forsale is not null and s.state = 'active') or (not $4::bool and n.forsale is null)
+                or ($3::bool and n.auction is not null and a.status = 'active') or (not $3::bool and n.auction is null))
             )
-            or ($3::bool is null and (($4::bool and forsale is not null) or (not $4::bool and forsale is null)))
-            or ($4::bool is null and (($3::bool and auction is not null) or (not $3::bool and auction is null)))
+            or (
+                $3::bool is null 
+                and (($4::bool and n.forsale is not null and s.state = 'active') or (not $4::bool and n.forsale is null))
+            )
+            or (
+                $4::bool is null
+                and (($3::bool and n.auction is not null and a.status = 'active') or (not $3::bool and n.auction is null))
+            )
         )
         ", owners, collections, auction, forsale)
             .fetch_one(self.db.as_ref())

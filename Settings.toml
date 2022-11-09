@@ -1,5 +1,5 @@
 http_address = "0.0.0.0:8080"
 
 [database]
-url = "postgresql://indexator:%7BM_%2B%2ASyJ%3E%5B6%7B%3CUaY@35.205.27.61/indexator"
+url = "postgresql://indexator:cz%2Fj%27H%3DTz%5Bc%3BNt%25M@35.205.27.61/indexator"
 max_connections = 3
