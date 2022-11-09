@@ -250,29 +250,6 @@
     },
     "query": "\n        select a.collection, a.trait_type, jsonb_agg(a.value) as values\n        from (\n            select distinct a.collection, a.trait_type, a.value\n            from nft_attributes a\n            where a.collection is not null and a.trait_type is not null\n            order by a.collection ASC, a.trait_type ASC, a.value ASC\n        ) as a\n        group by a.collection, a.trait_type\n        "
   },
-  "0f0fba54dea775bc8ff1b430e2e0265efadf1cc2ccc71aab392153abdb19fe0d": {
-    "describe": {
-      "columns": [
-        {
-          "name": "count",
-          "ordinal": 0,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "TextArray",
-          "TextArray",
-          "Bool",
-          "Bool"
-        ]
-      }
-    },
-    "query": "\n        SELECT count(n.*)\n        FROM nft_details n\n        LEFT JOIN nft_auction a ON a.address = n.auction\n        LEFT JOIN nft_direct_sell s ON a.address = n.forsale\n        WHERE\n        (n.owner = ANY($1) OR array_length($1::varchar[], 1) is null)\n        and (n.collection = ANY($2) OR array_length($2::varchar[], 1) is null)\n        and (($3::bool is null and $4::bool is null)\n            or ($3::bool is not null and $4::bool is not null \n                and (($4::bool and n.forsale is not null and s.state = 'active') or (not $4::bool and n.forsale is null)\n                or ($3::bool and n.auction is not null and a.status = 'active') or (not $3::bool and n.auction is null))\n            )\n            or (\n                $3::bool is null \n                and (($4::bool and n.forsale is not null and s.state = 'active') or (not $4::bool and n.forsale is null))\n            )\n            or (\n                $4::bool is null\n                and (($3::bool and n.auction is not null and a.status = 'active') or (not $3::bool and n.auction is null))\n            )\n        )\n        "
-  },
   "1b58d610bdfe90414c441ef9fe2c34666228f2c220de94c04dc4def8eba820e5": {
     "describe": {
       "columns": [
@@ -480,6 +457,165 @@
     },
     "query": "\n        SELECT c.*, count(n.*) as nft_count\n        FROM nft_collection c\n        LEFT JOIN nft n ON n.collection = c.address\n        WHERE (c.owner = ANY($3) OR array_length($3::varchar[], 1) is null)\n            AND ($4::boolean is null OR c.verified = $4)\n            AND ($5::varchar is null OR c.name LIKE $5)\n            AND (c.address = ANY($6) OR array_length($6::varchar[], 1) is null)\n        GROUP BY 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12\n        ORDER BY c.owners_count DESC\n        LIMIT $1 OFFSET $2\n        "
   },
+  "3a19d3cba9efecfef8e103c00574ad888b501417254040e737c851d4b94bf3e9": {
+    "describe": {
+      "columns": [
+        {
+          "name": "address",
+          "ordinal": 0,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "collection",
+          "ordinal": 1,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "owner",
+          "ordinal": 2,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "manager",
+          "ordinal": 3,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "name",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "description",
+          "ordinal": 5,
+          "type_info": "Text"
+        },
+        {
+          "name": "burned",
+          "ordinal": 6,
+          "type_info": "Bool"
+        },
+        {
+          "name": "updated",
+          "ordinal": 7,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "tx_lt",
+          "ordinal": 8,
+          "type_info": "Int8"
+        },
+        {
+          "name": "meta",
+          "ordinal": 9,
+          "type_info": "Jsonb"
+        },
+        {
+          "name": "auction",
+          "ordinal": 10,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "auction_status: _",
+          "ordinal": 11,
+          "type_info": {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "created",
+                  "active",
+                  "cancelled",
+                  "completed",
+                  "expired"
+                ]
+              },
+              "name": "auction_status"
+            }
+          }
+        },
+        {
+          "name": "forsale",
+          "ordinal": 12,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "forsale_status: _",
+          "ordinal": 13,
+          "type_info": {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "create",
+                  "await_nft",
+                  "active",
+                  "filled",
+                  "cancelled",
+                  "expired"
+                ]
+              },
+              "name": "direct_sell_state"
+            }
+          }
+        },
+        {
+          "name": "best_offer",
+          "ordinal": 14,
+          "type_info": "Varchar"
+        }
+      ],
+      "nullable": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "TextArray",
+          "TextArray",
+          "Bool",
+          "Bool",
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "\n        SELECT n.*\n        FROM nft_details n\n        WHERE\n        (n.owner = ANY($1) OR array_length($1::varchar[], 1) is null)\n        and (n.collection = ANY($2) OR array_length($2::varchar[], 1) is null)\n        and (($3::bool is null and $4::bool is null)\n            or ($3::bool is not null and $4::bool is not null \n                and (($4::bool and n.forsale is not null and n.\"forsale_status: _\" = 'active') or (not $4::bool and n.forsale is null)\n                or ($3::bool and n.auction is not null and n.\"auction_status: _\" = 'active') or (not $3::bool and n.auction is null))\n            )\n            or (\n                $3::bool is null \n                and (($4::bool and n.forsale is not null and n.\"forsale_status: _\" = 'active') or (not $4::bool and n.forsale is null))\n            )\n            or (\n                $4::bool is null\n                and (($3::bool and n.auction is not null and n.\"auction_status: _\" = 'active') or (not $3::bool and n.auction is null))\n            )\n        )\n        ORDER BY n.collection\n        LIMIT $5 OFFSET $6\n        "
+  },
+  "3b830235f464b91844d55c51acd5902dee28049dac79f8c04542277a1bcf54cb": {
+    "describe": {
+      "columns": [
+        {
+          "name": "count",
+          "ordinal": 0,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "TextArray",
+          "TextArray",
+          "Bool",
+          "Bool"
+        ]
+      }
+    },
+    "query": "\n        SELECT count(n.*)\n        FROM nft_details n\n        WHERE\n        (n.owner = ANY($1) OR array_length($1::varchar[], 1) is null)\n        and (n.collection = ANY($2) OR array_length($2::varchar[], 1) is null)\n        and (($3::bool is null and $4::bool is null)\n            or ($3::bool is not null and $4::bool is not null \n                and (($4::bool and n.forsale is not null and n.\"forsale_status: _\" = 'active') or (not $4::bool and n.forsale is null)\n                or ($3::bool and n.auction is not null and n.\"auction_status: _\" = 'active') or (not $3::bool and n.auction is null))\n            )\n            or (\n                $3::bool is null \n                and (($4::bool and n.forsale is not null and n.\"forsale_status: _\" = 'active') or (not $4::bool and n.forsale is null))\n            )\n            or (\n                $4::bool is null\n                and (($3::bool and n.auction is not null and n.\"auction_status: _\" = 'active') or (not $3::bool and n.auction is null))\n            )\n        )\n        "
+  },
   "3f1e4f66b0ce4d6fd55e128839712e8505c30878788954aa24da1713cc7d57ad": {
     "describe": {
       "columns": [
@@ -618,17 +754,56 @@
           "type_info": "Varchar"
         },
         {
-          "name": "forsale",
+          "name": "auction_status: _",
           "ordinal": 11,
+          "type_info": {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "created",
+                  "active",
+                  "cancelled",
+                  "completed",
+                  "expired"
+                ]
+              },
+              "name": "auction_status"
+            }
+          }
+        },
+        {
+          "name": "forsale",
+          "ordinal": 12,
           "type_info": "Varchar"
         },
         {
+          "name": "forsale_status: _",
+          "ordinal": 13,
+          "type_info": {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "create",
+                  "await_nft",
+                  "active",
+                  "filled",
+                  "cancelled",
+                  "expired"
+                ]
+              },
+              "name": "direct_sell_state"
+            }
+          }
+        },
+        {
           "name": "best_offer",
-          "ordinal": 12,
+          "ordinal": 14,
           "type_info": "Varchar"
         }
       ],
       "nullable": [
+        true,
+        true,
         true,
         true,
         true,
@@ -1386,17 +1561,56 @@
           "type_info": "Varchar"
         },
         {
-          "name": "forsale",
+          "name": "auction_status: _",
           "ordinal": 11,
+          "type_info": {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "created",
+                  "active",
+                  "cancelled",
+                  "completed",
+                  "expired"
+                ]
+              },
+              "name": "auction_status"
+            }
+          }
+        },
+        {
+          "name": "forsale",
+          "ordinal": 12,
           "type_info": "Varchar"
         },
         {
+          "name": "forsale_status: _",
+          "ordinal": 13,
+          "type_info": {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "create",
+                  "await_nft",
+                  "active",
+                  "filled",
+                  "cancelled",
+                  "expired"
+                ]
+              },
+              "name": "direct_sell_state"
+            }
+          }
+        },
+        {
           "name": "best_offer",
-          "ordinal": 12,
+          "ordinal": 14,
           "type_info": "Varchar"
         }
       ],
       "nullable": [
+        true,
+        true,
         true,
         true,
         true,
@@ -2011,103 +2225,6 @@
       }
     },
     "query": "SELECT c.*, count(n.*) as nft_count\n            FROM nft_collection c\n            LEFT JOIN nft n ON n.collection = c.address\n            WHERE c.address = ANY($1)\n            GROUP BY 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12"
-  },
-  "c910f64de231eecfdf4a74b98d03f9409ab61d90746655347eea3a73c44f99c6": {
-    "describe": {
-      "columns": [
-        {
-          "name": "address",
-          "ordinal": 0,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "collection",
-          "ordinal": 1,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "owner",
-          "ordinal": 2,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "manager",
-          "ordinal": 3,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "name",
-          "ordinal": 4,
-          "type_info": "Text"
-        },
-        {
-          "name": "description",
-          "ordinal": 5,
-          "type_info": "Text"
-        },
-        {
-          "name": "burned",
-          "ordinal": 6,
-          "type_info": "Bool"
-        },
-        {
-          "name": "updated",
-          "ordinal": 7,
-          "type_info": "Timestamp"
-        },
-        {
-          "name": "tx_lt",
-          "ordinal": 8,
-          "type_info": "Int8"
-        },
-        {
-          "name": "meta",
-          "ordinal": 9,
-          "type_info": "Jsonb"
-        },
-        {
-          "name": "auction",
-          "ordinal": 10,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "forsale",
-          "ordinal": 11,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "best_offer",
-          "ordinal": 12,
-          "type_info": "Varchar"
-        }
-      ],
-      "nullable": [
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true
-      ],
-      "parameters": {
-        "Left": [
-          "TextArray",
-          "TextArray",
-          "Bool",
-          "Bool",
-          "Int8",
-          "Int8"
-        ]
-      }
-    },
-    "query": "\n        SELECT n.*\n        FROM nft_details n\n        LEFT JOIN nft_auction a ON a.address = n.auction\n        LEFT JOIN nft_direct_sell s ON a.address = n.forsale\n        WHERE\n        (n.owner = ANY($1) OR array_length($1::varchar[], 1) is null)\n        and (n.collection = ANY($2) OR array_length($2::varchar[], 1) is null)\n        and (($3::bool is null and $4::bool is null)\n            or ($3::bool is not null and $4::bool is not null \n                and (($4::bool and n.forsale is not null and s.state = 'active') or (not $4::bool and n.forsale is null)\n                or ($3::bool and n.auction is not null and a.status = 'active') or (not $3::bool and n.auction is null))\n            )\n            or (\n                $3::bool is null \n                and (($4::bool and n.forsale is not null and s.state = 'active') or (not $4::bool and n.forsale is null))\n            )\n            or (\n                $4::bool is null\n                and (($3::bool and n.auction is not null and a.status = 'active') or (not $3::bool and n.auction is null))\n            )\n        )\n        ORDER BY n.collection\n        LIMIT $5 OFFSET $6\n        "
   },
   "ca832b37a485a0bb56617bd0e084a1d343f03bbec5ef0b2bc38712b40d866160": {
     "describe": {

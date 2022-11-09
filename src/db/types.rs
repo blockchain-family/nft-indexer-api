@@ -29,6 +29,8 @@ pub struct NftDetails {
     pub tx_lt: Option<i64>,
     pub auction: Option<String>,
     pub forsale: Option<String>,
+    pub auction_status: Option<AuctionStatus>,
+    pub forsale_status: Option<DirectSellState>,
     pub best_offer: Option<String>,
 }
 

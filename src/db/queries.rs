@@ -255,23 +255,21 @@ impl Queries {
         sqlx::query_as!(NftDetails, "
         SELECT n.*
         FROM nft_details n
-        LEFT JOIN nft_auction a ON a.address = n.auction
-        LEFT JOIN nft_direct_sell s ON a.address = n.forsale
         WHERE
         (n.owner = ANY($1) OR array_length($1::varchar[], 1) is null)
         and (n.collection = ANY($2) OR array_length($2::varchar[], 1) is null)
         and (($3::bool is null and $4::bool is null)
             or ($3::bool is not null and $4::bool is not null 
-                and (($4::bool and n.forsale is not null and s.state = 'active') or (not $4::bool and n.forsale is null)
-                or ($3::bool and n.auction is not null and a.status = 'active') or (not $3::bool and n.auction is null))
+                and (($4::bool and n.forsale is not null and n.\"forsale_status: _\" = 'active') or (not $4::bool and n.forsale is null)
+                or ($3::bool and n.auction is not null and n.\"auction_status: _\" = 'active') or (not $3::bool and n.auction is null))
             )
             or (
                 $3::bool is null 
-                and (($4::bool and n.forsale is not null and s.state = 'active') or (not $4::bool and n.forsale is null))
+                and (($4::bool and n.forsale is not null and n.\"forsale_status: _\" = 'active') or (not $4::bool and n.forsale is null))
             )
             or (
                 $4::bool is null
-                and (($3::bool and n.auction is not null and a.status = 'active') or (not $3::bool and n.auction is null))
+                and (($3::bool and n.auction is not null and n.\"auction_status: _\" = 'active') or (not $3::bool and n.auction is null))
             )
         )
         ORDER BY n.collection
@@ -293,23 +291,21 @@ impl Queries {
         sqlx::query!("
         SELECT count(n.*)
         FROM nft_details n
-        LEFT JOIN nft_auction a ON a.address = n.auction
-        LEFT JOIN nft_direct_sell s ON a.address = n.forsale
         WHERE
         (n.owner = ANY($1) OR array_length($1::varchar[], 1) is null)
         and (n.collection = ANY($2) OR array_length($2::varchar[], 1) is null)
         and (($3::bool is null and $4::bool is null)
             or ($3::bool is not null and $4::bool is not null 
-                and (($4::bool and n.forsale is not null and s.state = 'active') or (not $4::bool and n.forsale is null)
-                or ($3::bool and n.auction is not null and a.status = 'active') or (not $3::bool and n.auction is null))
+                and (($4::bool and n.forsale is not null and n.\"forsale_status: _\" = 'active') or (not $4::bool and n.forsale is null)
+                or ($3::bool and n.auction is not null and n.\"auction_status: _\" = 'active') or (not $3::bool and n.auction is null))
             )
             or (
                 $3::bool is null 
-                and (($4::bool and n.forsale is not null and s.state = 'active') or (not $4::bool and n.forsale is null))
+                and (($4::bool and n.forsale is not null and n.\"forsale_status: _\" = 'active') or (not $4::bool and n.forsale is null))
             )
             or (
                 $4::bool is null
-                and (($3::bool and n.auction is not null and a.status = 'active') or (not $3::bool and n.auction is null))
+                and (($3::bool and n.auction is not null and n.\"auction_status: _\" = 'active') or (not $3::bool and n.auction is null))
             )
         )
         ", owners, collections, auction, forsale)
