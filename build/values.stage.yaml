@@ -1,0 +1,37 @@
+env:
+  RUST_LOG: debug
+  RUST_BACKTRACE: 1
+  indexer_api_database_url: postgresql://$(BACKEND_API_USER):$(BACKEND_API_PASSWORD)@cloudsqlproxy.default:5432/indexator
+  indexer_api_http_address: 0.0.0.0:9000
+  indexer_api_database_max_connections: 3
+
+controller: statefulset
+
+service:
+  port: 9000
+
+ingress:
+  enabled: true
+  hosts:
+    - host: indexer-api.bf.works
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls:
+    - secretName: indexer-api-tls
+      hosts:
+        - indexer-api.bf.works
+
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: 9000
+  initialDelaySeconds: 5
+  periodSeconds: 10
+
+readinessProbe:
+  httpGet:
+    path: /healthz
+    port: 9000
+  initialDelaySeconds: 5
+  periodSeconds: 10

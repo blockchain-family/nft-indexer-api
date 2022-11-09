@@ -58,7 +58,7 @@ impl ApiConfig {
     pub fn new() -> Result<ApiConfig, ConfigError> {
         let prefix = std::env::var("PREFIX").unwrap_or_else(|_| String::from("indexer_api"));
         config::Config::builder()
-            .add_source(config::File::with_name("./Settings.toml"))
+            //.add_source(config::File::with_name("./Settings.toml"))
             .add_source(Environment::with_prefix(&prefix).separator("_"))
             .build()?
             .try_deserialize()
