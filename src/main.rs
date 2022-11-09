@@ -32,6 +32,8 @@ async fn main() {
         warp::options()
             .map(|| StatusCode::NO_CONTENT)
             .with(warp::reply::with::headers(cors_headers))
+        .or(warp::path!("healthz")
+                .map(warp::reply))
         .or(get_nft(service.clone()))
         .or(get_nft_list(service.clone()))
         .or(get_nft_direct_buy(service.clone()))
