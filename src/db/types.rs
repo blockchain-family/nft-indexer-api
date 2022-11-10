@@ -110,17 +110,17 @@ pub struct NftAuctionBid {
 #[derive(Clone, Debug)]
 pub struct NftAuctionBidExt {
     pub auction: Address,
-    pub nft: Option<Address>,
     pub buyer: Address,
     pub price_token: Option<Address>,
     pub price: BigDecimal,
     pub usd_price: Option<BigDecimal>,
     pub next_bid_value: Option<BigDecimal>,
     pub next_bid_usd_value: Option<BigDecimal>,
-    pub declined: Option<bool>,
     pub created_at: NaiveDateTime,
     pub tx_lt: Option<i64>,
     pub active: Option<bool>,
+    pub nft: Option<Address>,
+    pub collection: Option<Address>,
 }
 
 #[derive(Clone, Debug)]
