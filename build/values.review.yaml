@@ -12,15 +12,6 @@ service:
 
 ingress:
   enabled: true
-  hosts:
-    - host: indexer-api.bf.works
-      paths:
-        - path: /
-          pathType: ImplementationSpecific
-  tls:
-    - secretName: indexer-api-tls
-      hosts:
-        - indexer-api.bf.works
 
 livenessProbe:
   httpGet:
