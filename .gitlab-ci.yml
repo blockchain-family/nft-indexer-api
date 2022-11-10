@@ -61,3 +61,16 @@ stop:prod:
   extends: .stop
   environment:
     name: prod
+
+cloudbuild:image:review:
+  extends: .cloudbuild:common
+  only:
+    - merge_requests
+  before_script:
+    - rm -rf .env && cp .env.stage .env
+
+deploy:review:
+  extends: .deploy_review
+
+stop:review:
+  extends: .stop_review
