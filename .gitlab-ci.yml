@@ -66,8 +66,6 @@ cloudbuild:image:review:
   extends: .cloudbuild:common
   only:
     - merge_requests
-  before_script:
-    - rm -rf .env && cp .env.stage .env
 
 deploy:review:
   extends: .deploy_review
