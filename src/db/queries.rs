@@ -41,47 +41,68 @@ impl Queries {
     }
 
     pub async fn get_direct_sell(&self, address: &String) -> sqlx::Result<Option<NftDirectSell>> {
-        sqlx::query_as!(NftDirectSell, "
-        SELECT s.address, s.created, s.updated, s.tx_lt,
-        s.nft, s.collection, s.seller,
-        s.price_token, s.price,
-        s.price * p.usd_price as usd_price,
-        s.finished_at, s.expired_at,
-        s.state as \"state: _\"
-        FROM nft_direct_sell s
-        LEFT JOIN token_usd_prices p ON p.token = s.price_token
-        WHERE s.address = $1", address)
+        sqlx::query_as!(NftDirectSell, r#"
+        SELECT 
+        s.address as "address!",
+        s.created as "created!",
+        s.updated as "updated!",
+        s.tx_lt as "tx_lt!",
+        s.nft as "nft!",
+        s.collection,
+        s.seller,
+        s.price_token as "price_token!",
+        s.price as "price!",
+        s.usd_price,
+        s.finished_at,
+        s.expired_at,
+        s.state as "state!: _"
+        FROM nft_direct_sell_usd s
+        WHERE s.address = $1"#, address)
             .fetch_optional(self.db.as_ref())
             .await
     }
 
     pub async fn get_nft_direct_sell(&self, nft: &String) -> sqlx::Result<Option<NftDirectSell>> {
-        sqlx::query_as!(NftDirectSell, "
-        SELECT s.address, s.created, s.updated, s.tx_lt,
-        s.nft, s.collection, s.seller,
-        s.price_token, s.price,
-        s.price * p.usd_price as usd_price,
-        s.finished_at, s.expired_at,
-        s.state as \"state: _\"
-        FROM nft_direct_sell s
-        LEFT JOIN token_usd_prices p ON p.token = s.price_token
+        sqlx::query_as!(NftDirectSell, r#"
+        SELECT
+        s.address as "address!",
+        s.created as "created!",
+        s.updated as "updated!",
+        s.tx_lt as "tx_lt!",
+        s.nft as "nft!",
+        s.collection,
+        s.seller,
+        s.price_token as "price_token!",
+        s.price as "price!",
+        s.usd_price,
+        s.finished_at,
+        s.expired_at,
+        s.state as "state!: _"
+        FROM nft_direct_sell_usd s
         WHERE s.nft = $1 and s.state in ('active', 'expired')
-        ORDER BY s.created DESC LIMIT 1", nft)
+        ORDER BY s.created DESC LIMIT 1"#, nft)
             .fetch_optional(self.db.as_ref())
             .await
     }
 
     pub async fn get_direct_buy(&self, address: &String) -> sqlx::Result<Option<NftDirectBuy>> {
-        sqlx::query_as!(NftDirectBuy, "
-        SELECT s.address, s.created, s.updated, s.tx_lt,
-        s.nft, s.collection, s.buyer,
-        s.price_token, s.price,
-        s.price * p.usd_price as usd_price,
-        s.finished_at, s.expired_at,
-        s.state as \"state: _\"
-        FROM nft_direct_buy s
-        LEFT JOIN token_usd_prices p ON p.token = s.price_token
-        WHERE s.address = $1", address)
+        sqlx::query_as!(NftDirectBuy, r#"
+        SELECT
+        s.address as "address!",
+        s.created as "created!",
+        s.updated as "updated!",
+        s.tx_lt as "tx_lt!",
+        s.nft as "nft!",
+        s.collection,
+        s.buyer,
+        s.price_token as "price_token!",
+        s.price as "price!",
+        s.usd_price,
+        s.finished_at,
+        s.expired_at,
+        s.state as "state!: _"
+        FROM nft_direct_buy_usd s
+        WHERE s.address = $1"#, address)
             .fetch_optional(self.db.as_ref())
             .await
     }
@@ -123,23 +144,22 @@ impl Queries {
         ids: &[String],
     ) -> sqlx::Result<Vec<NftDirectBuy>> {
         sqlx::query_as!(NftDirectBuy,
-            "SELECT 
-            s.address as \"address!\",
-            s.created as \"created!\",
-            s.updated as \"updated!\",
-            s.tx_lt as \"tx_lt!\",
-            s.nft as \"nft!\",
+            r#"SELECT 
+            s.address as "address!",
+            s.created as "created!",
+            s.updated as "updated!",
+            s.tx_lt as "tx_lt!",
+            s.nft as "nft!",
             s.collection,
             s.buyer,
-            s.price_token as \"price_token!\",
-            s.price as \"price!\",
-            s.price * p.usd_price as usd_price,
+            s.price_token as "price_token!",
+            s.price as "price!",
+            s.usd_price,
             s.finished_at,
             s.expired_at,
-            s.state as \"state!: _\"
-            FROM nft_direct_buy s
-            LEFT JOIN token_usd_prices p ON p.token = s.price_token
-            WHERE s.address = ANY($1)", ids)
+            s.state as "state!: _"
+            FROM nft_direct_buy_usd s
+            WHERE s.address = ANY($1)"#, ids)
             .fetch_all(self.db.as_ref())
             .await
     }
@@ -148,23 +168,22 @@ impl Queries {
         ids: &[String],
     ) -> sqlx::Result<Vec<NftDirectSell>> {
         sqlx::query_as!(NftDirectSell,
-            "SELECT 
-            s.address as \"address!\",
-            s.created as \"created!\",
-            s.updated as \"updated!\",
-            s.tx_lt as \"tx_lt!\",
-            s.nft as \"nft!\",
+            r#"SELECT 
+            s.address as "address!",
+            s.created as "created!",
+            s.updated as "updated!",
+            s.tx_lt as "tx_lt!",
+            s.nft as "nft!",
             s.collection,
             s.seller,
-            s.price_token as \"price_token!\",
-            s.price as \"price!\",
-            s.price * p.usd_price as usd_price,
+            s.price_token as "price_token!",
+            s.price as "price!",
+            s.usd_price,
             s.finished_at,
             s.expired_at,
-            s.state as \"state!: _\"
-            FROM nft_direct_sell s
-            LEFT JOIN token_usd_prices p ON p.token = s.price_token
-            WHERE s.address = ANY($1)", ids)
+            s.state as "state!: _"
+            FROM nft_direct_sell_usd s
+            WHERE s.address = ANY($1)"#, ids)
             .fetch_all(self.db.as_ref())
             .await
     }
@@ -505,20 +524,19 @@ impl Queries {
         offset: usize,
     ) -> sqlx::Result<Vec<NftDirectBuy>> {
         let status_str: Vec<String> = status.iter().map(|x| x.to_string()).collect();
-        sqlx::query_as!(NftDirectBuy, "
-        SELECT s.address, s.created, s.updated, s.tx_lt,
-        s.nft, s.collection,
+        sqlx::query_as!(NftDirectBuy, r#"
+        SELECT s.address as "address!", s.created as "created!", s.updated as "updated!", s.tx_lt as "tx_lt!",
+        s.nft as "nft!", s.collection,
         s.buyer,
-        s.price_token, s.price,
-        s.price * p.usd_price as usd_price,
+        s.price_token as "price_token!", s.price as "price!",
+        s.usd_price,
         s.finished_at, s.expired_at,
-        s.state as \"state: _\"
-        FROM nft_direct_buy s
-        LEFT JOIN token_usd_prices p ON p.token = s.price_token
+        s.state as "state!: _"
+        FROM nft_direct_buy_usd s
         WHERE s.nft = $1
         AND (array_length($2::varchar[], 1) is null OR s.state::varchar = ANY($2))
         ORDER BY s.updated DESC LIMIT $3 OFFSET $4
-        ", nft, &status_str, limit as i64, offset as i64)
+        "#, nft, &status_str, limit as i64, offset as i64)
             .fetch_all(self.db.as_ref())
             .await
     }
@@ -545,21 +563,20 @@ impl Queries {
         offset: usize,
     ) -> sqlx::Result<Vec<NftDirectSell>> {
         let status_str: Vec<String> = status.iter().map(|x| x.to_string()).collect();
-        sqlx::query_as!(NftDirectSell, "
-        SELECT s.address, s.created, s.updated, s.tx_lt,
-        s.nft, s.collection,
+        sqlx::query_as!(NftDirectSell, r#"
+        SELECT s.address as "address!", s.created as "created!", s.updated as "updated!", s.tx_lt as "tx_lt!",
+        s.nft as "nft!", s.collection,
         s.seller,
-        s.price_token, s.price,
-        s.price * p.usd_price as usd_price,
+        s.price_token as "price_token!", s.price as "price!",
+        s.usd_price,
         s.finished_at, s.expired_at,
-        s.state as \"state: _\"
-        FROM nft_direct_sell s
-        LEFT JOIN token_usd_prices p ON p.token = s.price_token
+        s.state as "state!: _"
+        FROM nft_direct_sell_usd s
         WHERE s.seller = $1 
             AND (s.collection = ANY($2) OR array_length($2::varchar[], 1) is null)
             AND (array_length($3::varchar[], 1) is null OR s.state::varchar = ANY($3))
         ORDER BY s.updated DESC LIMIT $4 OFFSET $5
-        ", owner, collections, &status_str, limit as i64, offset as i64)
+        "#, owner, collections, &status_str, limit as i64, offset as i64)
             .fetch_all(self.db.as_ref())
             .await
     }
@@ -572,7 +589,7 @@ impl Queries {
         let status_str: Vec<String> = status.iter().map(|x| x.to_string()).collect();
         sqlx::query!(
             "SELECT count(*)
-            FROM nft_direct_sell s
+            FROM nft_direct_sell_usd s
             WHERE s.seller = $1 
                 AND (s.collection = ANY($2) OR array_length($2::varchar[], 1) is null)
                 AND (array_length($3::varchar[], 1) is null OR s.state::varchar = ANY($3))
@@ -590,21 +607,20 @@ impl Queries {
         offset: usize,
     ) -> sqlx::Result<Vec<NftDirectBuy>> {
         let status_str: Vec<String> = status.iter().map(|x| x.to_string()).collect();
-        sqlx::query_as!(NftDirectBuy, "
-        SELECT s.address, s.created, s.updated, s.tx_lt,
-        s.nft, s.collection,
+        sqlx::query_as!(NftDirectBuy, r#"
+        SELECT s.address as "address!", s.created as "created!", s.updated as "updated!", s.tx_lt as "tx_lt!",
+        s.nft as "nft!", s.collection,
         s.buyer,
-        s.price_token, s.price,
-        s.price * p.usd_price as usd_price,
+        s.price_token as "price_token!", s.price as "price!",
+        s.usd_price,
         s.finished_at, s.expired_at,
-        s.state as \"state: _\"
-        FROM nft_direct_buy s
-        LEFT JOIN token_usd_prices p ON p.token = s.price_token
+        s.state as "state!: _"
+        FROM nft_direct_buy_usd s
         WHERE s.buyer = $1 
             AND (s.collection = ANY($2) OR array_length($2::varchar[], 1) is null)
             AND (array_length($3::varchar[], 1) is null OR s.state::varchar = ANY($3))
         ORDER BY s.updated DESC LIMIT $4 OFFSET $5
-        ", owner, collections, &status_str, limit as i64, offset as i64)
+        "#, owner, collections, &status_str, limit as i64, offset as i64)
             .fetch_all(self.db.as_ref())
             .await
     }
@@ -617,7 +633,7 @@ impl Queries {
         let status_str: Vec<String> = status.iter().map(|x| x.to_string()).collect();
         sqlx::query!(
             "SELECT count(*)
-            FROM nft_direct_buy s
+            FROM nft_direct_buy_usd s
             WHERE s.buyer = $1 
                 AND (s.collection = ANY($2) OR array_length($2::varchar[], 1) is null)
                 AND (array_length($3::varchar[], 1) is null OR s.state::varchar = ANY($3))
@@ -635,22 +651,21 @@ impl Queries {
         offset: usize,
     ) -> sqlx::Result<Vec<NftDirectBuy>> {
         let status_str: Vec<String> = status.iter().map(|x| x.to_string()).collect();
-        sqlx::query_as!(NftDirectBuy, "
-        SELECT s.address, s.created, s.updated, s.tx_lt,
-        s.nft, s.collection,
+        sqlx::query_as!(NftDirectBuy, r#"
+        SELECT s.address as "address!", s.created as "created!", s.updated as "updated!", s.tx_lt as "tx_lt!",
+        s.nft as "nft!", s.collection,
         s.buyer,
-        s.price_token, s.price,
-        s.price * p.usd_price as usd_price,
+        s.price_token as "price_token!", s.price as "price!",
+        s.usd_price,
         s.finished_at, s.expired_at,
-        s.state as \"state: _\"
-        FROM nft_direct_buy s
+        s.state as "state!: _"
+        FROM nft_direct_buy_usd s
         INNER JOIN nft n ON n.address = s.nft
-        LEFT JOIN token_usd_prices p ON p.token = s.price_token
         WHERE n.owner = $1 
             AND (s.collection = ANY($2) OR array_length($2::varchar[], 1) is null)
             AND (array_length($3::varchar[], 1) is null OR s.state::varchar = ANY($3))
         ORDER BY s.updated DESC LIMIT $4 OFFSET $5
-        ", owner, collections, &status_str, limit as i64, offset as i64)
+        "#, owner, collections, &status_str, limit as i64, offset as i64)
             .fetch_all(self.db.as_ref())
             .await
     }
@@ -663,7 +678,7 @@ impl Queries {
         let status_str: Vec<String> = status.iter().map(|x| x.to_string()).collect();
         sqlx::query!(
             "SELECT count(*)
-            FROM nft_direct_buy s
+            FROM nft_direct_buy_usd s
             INNER JOIN nft n ON n.address = s.nft
             WHERE n.owner = $1 
                 AND (s.collection = ANY($2) OR array_length($2::varchar[], 1) is null)
@@ -681,23 +696,26 @@ impl Queries {
         limit: usize,
         offset: usize,
     ) -> sqlx::Result<Vec<NftAuctionBidExt>> {
-        sqlx::query_as!(NftAuctionBidExt, "
-        SELECT x.* FROM
-        (   SELECT b.*, a.nft, a.price_token,
-            b.price * p.usd_price as usd_price,
-            b.next_bid_value * p.usd_price as next_bid_usd_value,
-            (select x.created_at from nft_auction_bid x where x.auction = a.address order by price desc limit 1) = b.created_at as active
-            FROM nft_auction_bid b
-            INNER JOIN nft_auction a ON a.address = b.auction
-            INNER JOIN nft n ON n.address = a.nft
-            LEFT JOIN token_usd_prices p ON p.token = a.price_token
-            WHERE a.status != 'completed' AND b.buyer = $1 
-                AND (n.collection = ANY($2) OR array_length($2::varchar[], 1) is null)
-                AND (b.declined is null OR b.declined is false)
-        ) x
-        WHERE $3::bool is null OR $3::bool = false OR x.active is true
+        sqlx::query_as!(NftAuctionBidExt, r#"
+        SELECT
+        x.auction as "auction!",
+        x.buyer as "buyer!",
+        x.price as "price!",
+        x.price_token,
+        x.created_at as "created_at!",
+        x.next_bid_value,
+        x.tx_lt,
+        x.active,
+        x.usd_price,
+        x.next_bid_usd_value,
+        x.nft,
+        x.collection
+        FROM nft_auction_bids_view x
+        WHERE x.buyer = $1 
+        AND (x.collection = ANY($2) OR array_length($2::varchar[], 1) is null)
+            AND ($3::bool is null OR $3::bool = false OR x.active is true)
         ORDER BY x.created_at DESC LIMIT $4 OFFSET $5
-        ", owner, collections, lastbid.clone(), limit as i64, offset as i64)
+        "#, owner, collections, lastbid.clone(), limit as i64, offset as i64)
             .fetch_all(self.db.as_ref())
             .await
     }
@@ -708,18 +726,11 @@ impl Queries {
         lastbid: &Option<bool>,
     ) -> sqlx::Result<i64> {
         let lastbid = lastbid.clone();
-        sqlx::query!(
-            "SELECT count(*)
-            FROM (
-                SELECT b.*, a.nft, a.price_token, (select x.created_at from nft_auction_bid x where x.auction = a.address order by price desc limit 1) = b.created_at as active
-                FROM nft_auction_bid b
-                INNER JOIN nft_auction a ON a.address = b.auction
-                INNER JOIN nft n ON n.address = a.nft
-                WHERE a.status != 'completed' AND b.buyer = $1 
-                    AND (n.collection = ANY($2) OR array_length($2::varchar[], 1) is null)
-                    AND (b.declined is null OR b.declined is false)
-            ) x
-            WHERE $3::bool is null OR $3::bool = false OR x.active is true
+        sqlx::query!("
+            SELECT count(x.*) FROM nft_auction_bids_view x
+            WHERE x.buyer = $1 
+            AND (x.collection = ANY($2) OR array_length($2::varchar[], 1) is null)
+                AND ($3::bool is null OR $3::bool = false OR x.active is true)
             ", owner, collections, lastbid)
             .fetch_one(self.db.as_ref())
             .await
@@ -733,23 +744,26 @@ impl Queries {
         limit: usize,
         offset: usize,
     ) -> sqlx::Result<Vec<NftAuctionBidExt>> {
-        sqlx::query_as!(NftAuctionBidExt, "
-        SELECT x.* FROM
-        (SELECT b.*, 
-            a.nft, a.price_token,
-            b.price * p.usd_price as usd_price,
-            b.next_bid_value * p.usd_price as next_bid_usd_value,
-            (select x.created_at from nft_auction_bid x where x.auction = a.address order by price desc limit 1) = b.created_at as active
-        FROM nft_auction_bid b
-        INNER JOIN nft_auction a ON a.address = b.auction
-        INNER JOIN nft n ON n.address = a.nft
-        LEFT JOIN token_usd_prices p ON p.token = a.price_token
-        WHERE a.status != 'completed' AND n.owner = $1 
-            AND (n.collection = ANY($2) OR array_length($2::varchar[], 1) is null)
-        ) x
-        WHERE $3::bool is null OR $3::bool = false OR x.active is true
+        sqlx::query_as!(NftAuctionBidExt, r#"
+        SELECT
+        x.auction as "auction!",
+        x.buyer as "buyer!",
+        x.price as "price!",
+        x.price_token,
+        x.created_at as "created_at!",
+        x.next_bid_value,
+        x.tx_lt,
+        x.active,
+        x.usd_price,
+        x.next_bid_usd_value,
+        x.nft,
+        x.collection
+        FROM nft_auction_bids_view x
+        WHERE x.owner = $1 
+            AND (x.collection = ANY($2) OR array_length($2::varchar[], 1) is null)
+            AND ($3::bool is null OR $3::bool = false OR x.active is true)
         ORDER BY x.created_at DESC LIMIT $4 OFFSET $5
-        ", owner, collections, lastbid.clone(), limit as i64, offset as i64)
+        "#, owner, collections, lastbid.clone(), limit as i64, offset as i64)
             .fetch_all(self.db.as_ref())
             .await
     }
@@ -761,15 +775,10 @@ impl Queries {
     ) -> sqlx::Result<i64> {
         sqlx::query!(
             "SELECT count(*)
-            FROM (
-                SELECT b.*, a.nft, a.price_token, (select x.created_at from nft_auction_bid x where x.auction = a.address order by price desc limit 1) = b.created_at as active
-                FROM nft_auction_bid b
-                INNER JOIN nft_auction a ON a.address = b.auction
-                INNER JOIN nft n ON n.address = a.nft
-                WHERE a.status != 'completed' AND n.owner = $1 
-                    AND (n.collection = ANY($2) OR array_length($2::varchar[], 1) is null)
-            ) x
-            WHERE $3::bool is null OR $3::bool = false OR x.active is true
+            FROM nft_auction_bids_view x
+            WHERE x.owner = $1 
+                AND (x.collection = ANY($2) OR array_length($2::varchar[], 1) is null)
+                AND ($3::bool is null OR $3::bool = false OR x.active is true)
             ", owner, collections, lastbid.clone())
             .fetch_one(self.db.as_ref())
             .await
