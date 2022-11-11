@@ -13,14 +13,14 @@ service:
 ingress:
   enabled: true
   hosts:
-    - host: api.tokenmarket.place
+    - host: api.tokstock.io
       paths:
         - path: /
           pathType: ImplementationSpecific
   tls:
     - secretName: indexer-api-tls
       hosts:
-        - api.tokenmarket.place
+        - api.tokstock.io
 
 livenessProbe:
   httpGet:
