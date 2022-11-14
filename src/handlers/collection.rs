@@ -29,16 +29,16 @@ pub fn list_collections(
 
 pub async fn list_collections_handler(params: ListCollectionsParams, db: Queries) -> Result<Box<dyn warp::Reply>, Infallible> {
     let owners = params.owners.as_ref().map(|x| x.as_slice()).unwrap_or(&[]);
-    let verified = params.verified.as_ref();
+    let verified = Some(params.verified.clone().unwrap_or(true));
     let name = params.name.as_ref();
     let collections = params.collections.as_ref().map(|x| x.as_slice()).unwrap_or(&[]);
     let limit = params.limit.unwrap_or(100);
     let offset = params.offset.unwrap_or_default();
-    let count = match db.list_collections_count(name, owners, verified, collections).await {
+    let count = match db.list_collections_count(name, owners, verified.as_ref(), collections).await {
         Err(e) => return Ok(Box::from(warp::reply::with_status(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))),
         Ok(cnt) => cnt,
     };
-    match db.list_collections(name, owners, verified, collections, limit, offset).await {
+    match db.list_collections(name, owners, verified.as_ref(), collections, limit, offset).await {
         Err(e) => Ok(Box::from(warp::reply::with_status(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))),
         Ok(list) => {
             let ret: Vec<Collection> = list.iter().map(|c| Collection::from_db(c, &db.tokens)).collect();

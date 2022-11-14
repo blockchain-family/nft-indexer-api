@@ -268,12 +268,14 @@ impl Queries {
         _price_token: Option<Address>,
         forsale: Option<bool>,
         auction: Option<bool>,
+        verified: Option<bool>,
         limit: usize,
         offset: usize,
     ) -> sqlx::Result<Vec<NftDetails>> {
         sqlx::query_as!(NftDetails, "
         SELECT n.*
         FROM nft_details n
+        INNER JOIN nft_collection c ON n.collection = c.address
         WHERE
         (n.owner = ANY($1) OR array_length($1::varchar[], 1) is null)
         and (n.collection = ANY($2) OR array_length($2::varchar[], 1) is null)
@@ -291,9 +293,10 @@ impl Queries {
                 and (($3::bool and n.auction is not null and n.\"auction_status: _\" = 'active') or (not $3::bool and n.auction is null))
             )
         )
+        and ($5::boolean is null OR c.verified = $5)
         ORDER BY n.collection
-        LIMIT $5 OFFSET $6
-        ", owners, collections, auction, forsale, limit as i64, offset as i64)
+        LIMIT $6 OFFSET $7
+        ", owners, collections, auction, forsale, verified, limit as i64, offset as i64)
             .fetch_all(self.db.as_ref())
             .await
     }
@@ -306,10 +309,12 @@ impl Queries {
         _price_token: Option<Address>,
         forsale: Option<bool>,
         auction: Option<bool>,
+        verified: Option<bool>,
     ) -> sqlx::Result<i64> {
         sqlx::query!("
         SELECT count(n.*)
         FROM nft_details n
+        INNER JOIN nft_collection c ON n.collection = c.address
         WHERE
         (n.owner = ANY($1) OR array_length($1::varchar[], 1) is null)
         and (n.collection = ANY($2) OR array_length($2::varchar[], 1) is null)
@@ -327,7 +332,8 @@ impl Queries {
                 and (($3::bool and n.auction is not null and n.\"auction_status: _\" = 'active') or (not $3::bool and n.auction is null))
             )
         )
-        ", owners, collections, auction, forsale)
+        and ($5::boolean is null OR c.verified = $5)
+        ", owners, collections, auction, forsale, verified)
             .fetch_one(self.db.as_ref())
             .await
             .map(|r| r.count.unwrap_or_default())
