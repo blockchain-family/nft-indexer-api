@@ -419,6 +419,7 @@ paths:
                     $ref: '#/components/schemas/address'     
                 verified:
                   type: boolean
+                  default: true
                 limit:
                   type: integer
                 offset:
@@ -632,6 +633,9 @@ paths:
                 priceTo:
                   type: integer
                   format: int64
+                verified:
+                  type: boolean
+                  default: true
                 forsale:
                   type: boolean
                 auction:

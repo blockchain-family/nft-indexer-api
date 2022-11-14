@@ -199,9 +199,10 @@ pub fn get_nft_list(
 }
 
 pub async fn get_nft_list_handler(params: NFTListQuery, db: Queries) -> Result<Box<dyn warp::Reply>, Infallible> {
-    log::warn!("/nfts handler start");
+    //log::warn!("/nfts handler start");
     let owners = params.owners.as_ref().map(|x| x.as_slice()).unwrap_or(&[]);
     let collections = params.collections.as_ref().map(|x| x.as_slice()).unwrap_or(&[]);
+    let verified = Some(params.verified.clone().unwrap_or(true));
     let count = match db.nft_search_count(
         owners,
         collections,
@@ -209,11 +210,12 @@ pub async fn get_nft_list_handler(params: NFTListQuery, db: Queries) -> Result<B
         params.price_to,
         params.price_token.clone().into(),
         params.forsale,
-        params.auction,).await {
+        params.auction,
+        verified).await {
         Err(e) => return Ok(Box::from(warp::reply::with_status(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))),
         Ok(cnt) => cnt,
     };
-    log::warn!("/nfts handler count={}", count);
+    //log::warn!("/nfts handler count={}", count);
 
     match db.nft_search(
         owners,
@@ -223,44 +225,45 @@ pub async fn get_nft_list_handler(params: NFTListQuery, db: Queries) -> Result<B
         params.price_token.into(),
         params.forsale,
         params.auction,
+        verified,
         params.limit.unwrap_or(100),
         params.offset.unwrap_or_default(),
     ).await {
         Err(e) => Ok(Box::from(warp::reply::with_status(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))),
         Ok(list) => {
-            log::warn!("/nfts rselected {} rows", list.len());
+            //log::warn!("/nfts rselected {} rows", list.len());
             let ret: Vec<NFT> = list.iter().map(|x| NFT::from_db(x, &db.tokens)).collect();
             let collection_ids = ret.iter().map(|x| x.collection.clone()).collect();
-            log::warn!("/nfts before collections select");
+            //log::warn!("/nfts before collections select");
             let collection = match super::collect_collections(&db, &collection_ids).await {
                 Err(e) => return Ok(Box::from(warp::reply::with_status(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))),
                 Ok(m) => m,
             };
-            log::warn!("/nfts {} collections selected", collection.len());
+            //log::warn!("/nfts {} collections selected", collection.len());
 
             let auction_ids: Vec<String> = list.iter().filter_map(|x| x.auction.clone()).collect();
-            log::warn!("/nfts before auctions select");
+            //log::warn!("/nfts before auctions select");
             let auction = match super::collect_auctions(&db, &auction_ids).await {
                 Err(e) => return Ok(Box::from(warp::reply::with_status(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))),
                 Ok(m) => m,
             };
-            log::warn!("/nfts {} auctions selected", auction.len());
+            //log::warn!("/nfts {} auctions selected", auction.len());
 
             let direct_sell_ids: Vec<String> = list.iter().filter_map(|x| x.forsale.clone()).collect();
-            log::warn!("/nfts before direct_sell select");
+            //log::warn!("/nfts before direct_sell select");
             let direct_sell = match super::collect_direct_sell(&db, &direct_sell_ids).await {
                 Err(e) => return Ok(Box::from(warp::reply::with_status(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))),
                 Ok(m) => m,
             };
-            log::warn!("/nfts {} direct_sell selected", direct_sell.len());
+            //log::warn!("/nfts {} direct_sell selected", direct_sell.len());
 
             let direct_buy_ids: Vec<String> = list.iter().filter_map(|x| x.best_offer.clone()).collect();
-            log::warn!("/nfts before direct_buy select");
+            //log::warn!("/nfts before direct_buy select");
             let direct_buy = match super::collect_direct_buy(&db, &direct_buy_ids).await {
                 Err(e) => return Ok(Box::from(warp::reply::with_status(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))),
                 Ok(m) => m,
             };
-            log::warn!("/nfts {} direct_but selected", direct_buy.len());
+            //log::warn!("/nfts {} direct_but selected", direct_buy.len());
 
             let ret = VecWith {
                 count,
@@ -298,7 +301,7 @@ pub struct NFTListQuery {
 
     pub forsale: Option<bool>,
     pub auction: Option<bool>,
-
+    pub verified: Option<bool>,
     pub limit: Option<usize>,
     pub offset: Option<usize>,
 }

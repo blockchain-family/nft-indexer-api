@@ -4,7 +4,7 @@ use api::db::Queries;
 use std::sync::Arc;
 use api::handlers::*;
 use api::token::TokenDict;
-//use api::usd_price::CurrencyClient;
+use api::usd_price::CurrencyClient;
 
 
 #[tokio::main(flavor = "current_thread")]
@@ -16,9 +16,9 @@ async fn main() {
     let tokens = TokenDict::load().await.expect("error loading tokens dictionary");
     let db_pool = cfg.database.init().await.expect("err init database");
     let service = Queries::new(Arc::new(db_pool), tokens);
-    //CurrencyClient::new(service.clone()).expect("err initialize currency client")
-    //    .start(std::time::Duration::from_secs(5 * 60)) // 5 minutes
-    //    .await.expect("err start currency client");
+    CurrencyClient::new(service.clone()).expect("err initialize currency client")
+        .start(std::time::Duration::from_secs(5 * 60)) // 5 minutes
+        .await.expect("err start currency client");
 
     let cors = warp::cors()
         .allow_any_origin()
@@ -53,10 +53,8 @@ async fn main() {
     ).with(cors);
 
 
-    // View access logs by setting `RUST_LOG=todos`.
     let routes = api.with(warp::log("api"));
-
-    // Start up the server...
+    log::info!("start http server on {}", cfg.http_address);
     warp::serve(routes).run(cfg.http_address).await;
 }
 
