@@ -230,7 +230,7 @@ impl Queries {
         FROM nft_collection c
         LEFT JOIN nft n ON n.collection = c.address
         WHERE (c.owner = ANY($3) OR array_length($3::varchar[], 1) is null)
-            AND ($4::boolean is null OR c.verified = $4)
+            AND ($4::boolean is false OR verified is true)
             AND ($5::varchar is null OR c.name LIKE $5)
             AND (c.address = ANY($6) OR array_length($6::varchar[], 1) is null)
         GROUP BY 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12
@@ -251,7 +251,7 @@ impl Queries {
         SELECT count(*)
         FROM nft_collection
         WHERE (owner = ANY($1) OR array_length($1::varchar[], 1) is null)
-        AND ($2::boolean is null OR verified = $2)
+        AND ($2::boolean is false OR verified is true)
         AND ($3::varchar is null OR name LIKE $3)
         AND (address = ANY($4) OR array_length($4::varchar[], 1) is null)
         ", owners, verified, name, collections)
@@ -293,7 +293,7 @@ impl Queries {
                 and (($3::bool and n.auction is not null and n.\"auction_status: _\" = 'active') or (not $3::bool and n.auction is null))
             )
         )
-        and ($5::boolean is null OR c.verified = $5)
+        and ($5::boolean is false OR c.verified is true)
         ORDER BY n.collection
         LIMIT $6 OFFSET $7
         ", owners, collections, auction, forsale, verified, limit as i64, offset as i64)
@@ -332,7 +332,7 @@ impl Queries {
                 and (($3::bool and n.auction is not null and n.\"auction_status: _\" = 'active') or (not $3::bool and n.auction is null))
             )
         )
-        and ($5::boolean is null OR c.verified = $5)
+        and ($5::boolean is false OR c.verified is true)
         ", owners, collections, auction, forsale, verified)
             .fetch_one(self.db.as_ref())
             .await
