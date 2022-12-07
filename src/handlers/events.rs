@@ -2,7 +2,7 @@ use std::convert::Infallible;
 use warp::http::StatusCode;
 use crate::{db::{EventType, Queries}, model::{VecWithTotal, SearchResult}};
 use warp::Filter;
-use crate::model::{Event, ContractType};
+use crate::model::{Event};
 use serde::{Serialize, Deserialize};
 use warp::hyper::body::Bytes;
 
@@ -20,61 +20,9 @@ pub fn search_all(
 
 pub async fn search_all_handler(query: Bytes, db: Queries) -> Result<Box<dyn warp::Reply>, Infallible> {
     let query = String::from_utf8(query.into()).expect("err converting to String");
-    let mut items: Vec<SearchResult> = Vec::new();
-    match db.get_collection(&query).await {
+    let items: Vec<SearchResult> = match db.search_all(&query).await {
         Err(e) => return Ok(Box::from(warp::reply::with_status(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))),
-        Ok(Some(x)) => {
-            items.push(SearchResult {
-                address: x.address,
-                image: x.logo,
-                contract_type: ContractType::Collection,
-            });
-        },
-        _ => {},
-    };
-    match db.get_nft_details(&query).await {
-        Err(e) => return Ok(Box::from(warp::reply::with_status(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))),
-        Ok(Some(x)) => {
-            items.push(SearchResult {
-                address: x.address.clone().unwrap_or_default(),
-                image: x.parse_meta().image.clone(),
-                contract_type: ContractType::Nft,
-             });
-        },
-        _ => {},
-    };
-    match db.get_nft_auction(&query).await {
-        Err(e) => return Ok(Box::from(warp::reply::with_status(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))),
-        Ok(Some(x)) => {
-            items.push(SearchResult {
-                address: x.address.clone().unwrap_or_default(),
-                image: None,
-                contract_type: ContractType::Auction,
-             });
-        },
-        _ => {},
-    };
-    match db.get_direct_sell(&query).await {
-        Err(e) => return Ok(Box::from(warp::reply::with_status(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))),
-        Ok(Some(x)) => {
-            items.push(SearchResult {
-                address: x.address.clone(),
-                image: None,
-                contract_type: ContractType::DirectSell,
-             });
-        },
-        _ => {},
-    };
-    match db.get_direct_buy(&query).await {
-        Err(e) => return Ok(Box::from(warp::reply::with_status(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))),
-        Ok(Some(x)) => {
-            items.push(SearchResult {
-                address: x.address.clone(),
-                image: None,
-                contract_type: ContractType::DirectBuy,
-             });
-        },
-        _ => {},
+        Ok(ref xs) => xs.iter().map(|x| SearchResult::from_db(x)).collect(),
     };
     let count = items.len();
     Ok(Box::from(

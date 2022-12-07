@@ -37,11 +37,16 @@ impl CurrencyClient {
         let prices = self.get_prices().await?;
         log::debug!("update_prices: {:?}", prices);
         let ts: NaiveDateTime = NaiveDateTime::from_timestamp(Local::now().timestamp(), 0);
+        let ten: u32 = 10;
         let db_prices = prices.iter()
-            .map(|(token, price)| TokenUsdPrice {
-                ts,
-                token: token.clone(),
-                usd_price: BigDecimal::from_str(price).unwrap_or_default(),
+            .map(|(token, price)| {
+                let decimals = self.db.tokens.get(token).clone().expect("unknown token").decimals as u32;
+                let scale = BigDecimal::from(ten.pow(decimals));
+                let usd_price = BigDecimal::from_str(price).unwrap_or_default() / scale;
+                TokenUsdPrice {
+                    ts, usd_price,
+                    token: token.clone(),
+                }
             })
             .collect();
         self.db.update_token_usd_prices(db_prices).await?;

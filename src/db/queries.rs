@@ -15,6 +15,54 @@ impl Queries {
         Self { db, tokens }
     }
 
+    pub async fn search_all(&self, 
+        search_str: &String,
+    ) -> sqlx::Result<Vec<SearchResult>> {
+        let is_address = sqlx::query_as!(SearchResult,
+            r#"SELECT 
+                s.address,
+                s.name,
+                s.type as "typ: _",
+                s.nft,
+                s.collection,
+                CASE WHEN m.meta is not null THEN m.meta::jsonb->'preview'->>'source'
+                        WHEN s.collection is not null THEN c.logo
+                        ELSE null
+                END as "image"
+            FROM search_index s
+            LEFT JOIN nft n ON n.address = s.nft
+            LEFT JOIN nft_metadata m ON m.nft = n.address
+            LEFT JOIN nft_collection c ON c.address = s.collection
+            WHERE s.address = $1
+            "#, search_str)
+                .fetch_optional(self.db.as_ref())
+                .await?;
+        if let Some(r) = is_address {
+            return Ok(vec![r]);
+        }
+
+        sqlx::query_as!(SearchResult,
+        r#"SELECT 
+            s.address,
+            s.name,
+            s.type as "typ: _",
+            s.nft,
+            s.collection,
+            CASE WHEN m.meta is not null THEN m.meta::jsonb->'preview'->>'source'
+                    WHEN s.collection is not null THEN c.logo
+                    ELSE null
+            END as "image"
+        FROM search_index s
+        LEFT JOIN nft n ON n.address = s.nft
+        LEFT JOIN nft_metadata m ON m.nft = n.address
+        LEFT JOIN nft_collection c ON c.address = s.collection
+        WHERE s.search @@ websearch_to_tsquery($1)
+        ORDER BY ts_rank_cd(s.search, websearch_to_tsquery($1), 32)
+        LIMIT 100"#, search_str)
+            .fetch_all(self.db.as_ref())
+            .await
+    }
+
     pub async fn get_nft_details(&self, address: &String) -> sqlx::Result<Option<NftDetails>> {
         sqlx::query_as!(NftDetails, "
         SELECT *
@@ -797,12 +845,11 @@ impl Queries {
         sqlx::query_as!(NftPrice, "
         SELECT
             date_trunc('hour', p.ts) as ts,
-            p.price_token,
-            AVG(p.price) as price,
+            AVG(p.usd_price) as usd_price,
             count(*) as count
-        FROM nft_price_history p
+        FROM nft_price_history_usd p
         WHERE p.nft = $1 AND p.price_token is not null
-        GROUP BY 1, 2
+        GROUP BY 1
         ORDER BY 1 ASC
         ", Some(nft))
             .fetch_all(self.db.as_ref())
@@ -815,12 +862,11 @@ impl Queries {
         sqlx::query_as!(NftPrice, "
         SELECT
             date_trunc('day', p.ts) as ts,
-            p.price_token,
-            AVG(p.price) as price,
+            AVG(p.usd_price) as usd_price,
             count(*) as count
-        FROM nft_price_history p
+        FROM nft_price_history_usd p
         WHERE p.nft = $1 AND p.price_token is not null
-        GROUP BY 1, 2
+        GROUP BY 1
         ORDER BY 1 ASC
         ", Some(nft))
             .fetch_all(self.db.as_ref())
