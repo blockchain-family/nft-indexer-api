@@ -46,6 +46,10 @@ impl TokenDict {
         Ok(Self::new(resp.tokens))
     }
 
+    pub fn get(&self, token: &String) -> Option<&Token> {
+        self.0.get(token)
+    }
+
     pub fn format_value(&self, _token: &String, val: &BigDecimal) -> String {
         let s = val.round(0).to_string();
         /*if let Some(t) = self.0.get(token) {

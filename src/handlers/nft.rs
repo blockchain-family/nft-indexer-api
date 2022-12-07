@@ -167,7 +167,7 @@ pub async fn get_nft_price_history_handler(query: NftPriceHistoryQuery, db: Quer
     match ret {
         Err(e) => Ok(Box::from(warp::reply::with_status(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))),
         Ok(list) => {
-            let ret: Vec<NFTPrice> = list.iter().map(|x| NFTPrice::from_db(x, &db.tokens)).collect();
+            let ret: Vec<NFTPrice> = list.iter().map(|x| NFTPrice::from_db(x)).collect();
             Ok(Box::from(warp::reply::with_status(warp::reply::json(&ret), StatusCode::OK)))
         }
     }

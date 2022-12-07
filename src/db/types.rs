@@ -5,6 +5,16 @@ use super::*;
 pub type Address = String;
 
 #[derive(Debug, Clone, sqlx::FromRow)]
+pub struct SearchResult {
+    pub address: Address,
+    pub typ: EventCategory,
+    pub name: Option<String>,
+    pub nft: Option<Address>,
+    pub collection: Option<Address>,
+    pub image: Option<String>,
+}
+
+#[derive(Debug, Clone, sqlx::FromRow)]
 pub struct Event {
     pub id: i64,
     pub address: String,
@@ -172,8 +182,7 @@ pub struct NftPriceHistory {
 #[derive(Clone, Debug)]
 pub struct NftPrice {
     pub ts: Option<NaiveDateTime>,
-    pub price: Option<BigDecimal>,
-    pub price_token: Option<Address>,
+    pub usd_price: Option<BigDecimal>,
     pub count: Option<i64>,
 }
 

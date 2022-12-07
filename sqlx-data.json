@@ -110,6 +110,69 @@
     },
     "query": "\n        SELECT s.address as \"address!\", s.created as \"created!\", s.updated as \"updated!\", s.tx_lt as \"tx_lt!\",\n        s.nft as \"nft!\", s.collection,\n        s.seller,\n        s.price_token as \"price_token!\", s.price as \"price!\",\n        s.usd_price,\n        s.finished_at, s.expired_at,\n        s.state as \"state!: _\"\n        FROM nft_direct_sell_usd s\n        WHERE s.seller = $1 \n            AND (s.collection = ANY($2) OR array_length($2::varchar[], 1) is null)\n            AND (array_length($3::varchar[], 1) is null OR s.state::varchar = ANY($3))\n        ORDER BY s.updated DESC LIMIT $4 OFFSET $5\n        "
   },
+  "003e0edb120966bd8f4708bba1134c02d887e4faaed55f05ab0988e3419f9c9b": {
+    "describe": {
+      "columns": [
+        {
+          "name": "address",
+          "ordinal": 0,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "typ: _",
+          "ordinal": 2,
+          "type_info": {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "auction",
+                  "direct_buy",
+                  "direct_sell",
+                  "nft",
+                  "collection"
+                ]
+              },
+              "name": "event_category"
+            }
+          }
+        },
+        {
+          "name": "nft",
+          "ordinal": 3,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "collection",
+          "ordinal": 4,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "image",
+          "ordinal": 5,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        true,
+        false,
+        true,
+        true,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "SELECT \n                s.address,\n                s.name,\n                s.type as \"typ: _\",\n                s.nft,\n                s.collection,\n                CASE WHEN m.meta is not null THEN m.meta::jsonb->'preview'->>'source'\n                        WHEN s.collection is not null THEN c.logo\n                        ELSE null\n                END as \"image\"\n            FROM search_index s\n            LEFT JOIN nft n ON n.address = s.nft\n            LEFT JOIN nft_metadata m ON m.nft = n.address\n            LEFT JOIN nft_collection c ON c.address = s.collection\n            WHERE s.address = $1\n            "
+  },
   "00605d60756f67a9dc446a945ace7a57755224df3d6ea3c38a8cc54c0df6d5f7": {
     "describe": {
       "columns": [
@@ -552,6 +615,38 @@
       }
     },
     "query": "\n            SELECT count(x.*) FROM nft_auction_bids_view x\n            WHERE x.buyer = $1 \n            AND (x.collection = ANY($2) OR array_length($2::varchar[], 1) is null)\n                AND ($3::bool is null OR $3::bool = false OR x.active is true)\n            "
+  },
+  "4b5f65eeae497857f7211820b79fcc886a833ca4aadc74011a78ddc3c3707085": {
+    "describe": {
+      "columns": [
+        {
+          "name": "ts",
+          "ordinal": 0,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "usd_price",
+          "ordinal": 1,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "count",
+          "ordinal": 2,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        null,
+        null,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "\n        SELECT\n            date_trunc('hour', p.ts) as ts,\n            AVG(p.usd_price) as usd_price,\n            count(*) as count\n        FROM nft_price_history_usd p\n        WHERE p.nft = $1 AND p.price_token is not null\n        GROUP BY 1\n        ORDER BY 1 ASC\n        "
   },
   "56024124d03cb7963fd44eb146635caf579f200f510913f2a2053943cc6338a1": {
     "describe": {
@@ -1246,6 +1341,69 @@
     },
     "query": "SELECT * FROM nft_metadata WHERE nft_metadata.nft = $1"
   },
+  "6b98dde139c59f4f351d0f142350e446fb1ee1d10860785e5c909fdfb9a058f5": {
+    "describe": {
+      "columns": [
+        {
+          "name": "address",
+          "ordinal": 0,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "typ: _",
+          "ordinal": 2,
+          "type_info": {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "auction",
+                  "direct_buy",
+                  "direct_sell",
+                  "nft",
+                  "collection"
+                ]
+              },
+              "name": "event_category"
+            }
+          }
+        },
+        {
+          "name": "nft",
+          "ordinal": 3,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "collection",
+          "ordinal": 4,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "image",
+          "ordinal": 5,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        true,
+        false,
+        true,
+        true,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "SELECT \n            s.address,\n            s.name,\n            s.type as \"typ: _\",\n            s.nft,\n            s.collection,\n            CASE WHEN m.meta is not null THEN m.meta::jsonb->'preview'->>'source'\n                    WHEN s.collection is not null THEN c.logo\n                    ELSE null\n            END as \"image\"\n        FROM search_index s\n        LEFT JOIN nft n ON n.address = s.nft\n        LEFT JOIN nft_metadata m ON m.nft = n.address\n        LEFT JOIN nft_collection c ON c.address = s.collection\n        WHERE s.search @@ websearch_to_tsquery($1)\n        ORDER BY ts_rank_cd(s.search, websearch_to_tsquery($1), 32)\n        LIMIT 100"
+  },
   "70dbd1f5213d4b44a65e73921a873764a3c176a6c44bbdb4fb8d7c5c544f0628": {
     "describe": {
       "columns": [
@@ -1820,6 +1978,38 @@
       }
     },
     "query": "SELECT c.*, count(n.*) as nft_count\n            FROM nft_collection c\n            LEFT JOIN nft n ON n.collection = c.address\n            WHERE c.address = ANY($1)\n            GROUP BY 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12"
+  },
+  "a72ec97cb8408c2c49f77f5bd0e9b6f5be33954aa151f57b98307a2012669cd8": {
+    "describe": {
+      "columns": [
+        {
+          "name": "ts",
+          "ordinal": 0,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "usd_price",
+          "ordinal": 1,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "count",
+          "ordinal": 2,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        null,
+        null,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "\n        SELECT\n            date_trunc('day', p.ts) as ts,\n            AVG(p.usd_price) as usd_price,\n            count(*) as count\n        FROM nft_price_history_usd p\n        WHERE p.nft = $1 AND p.price_token is not null\n        GROUP BY 1\n        ORDER BY 1 ASC\n        "
   },
   "c46235bc4733791d564938596db86893f98e90674cb6c40971d1f2cab40aebf6": {
     "describe": {
@@ -2718,44 +2908,6 @@
     },
     "query": "SELECT count(*)\n            FROM nft_direct_sell_usd s\n            WHERE s.seller = $1 \n                AND (s.collection = ANY($2) OR array_length($2::varchar[], 1) is null)\n                AND (array_length($3::varchar[], 1) is null OR s.state::varchar = ANY($3))\n            "
   },
-  "e4774a0131899791fb33f5062ae05dfb0639b0cef71e707eac9f303863897d64": {
-    "describe": {
-      "columns": [
-        {
-          "name": "ts",
-          "ordinal": 0,
-          "type_info": "Timestamp"
-        },
-        {
-          "name": "price_token",
-          "ordinal": 1,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "price",
-          "ordinal": 2,
-          "type_info": "Numeric"
-        },
-        {
-          "name": "count",
-          "ordinal": 3,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        null,
-        true,
-        null,
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "Text"
-        ]
-      }
-    },
-    "query": "\n        SELECT\n            date_trunc('hour', p.ts) as ts,\n            p.price_token,\n            AVG(p.price) as price,\n            count(*) as count\n        FROM nft_price_history p\n        WHERE p.nft = $1 AND p.price_token is not null\n        GROUP BY 1, 2\n        ORDER BY 1 ASC\n        "
-  },
   "e5df6c7f6afb1373f1d74400d4e31f7d641fec15a68878348a874f5c082d801b": {
     "describe": {
       "columns": [
@@ -3299,43 +3451,5 @@
       }
     },
     "query": "\n                SELECT a.*\n                FROM nft_auction_search a\n                INNER JOIN nft n ON a.nft = n.address\n                WHERE \n                (n.owner = ANY($1) OR array_length($1::varchar[], 1) is null)\n                AND (n.collection = ANY($2) OR array_length($2::varchar[], 1) is null)\n                AND (a.nft = ANY($3) OR array_length($3::varchar[], 1) is null)\n                ORDER BY a.created_at DESC\n                LIMIT $4 OFFSET $5"
-  },
-  "f8b9c3afd43b06a6ec6f4bf349d7e716bcb625f2c441520aedf2ecabd1445c2e": {
-    "describe": {
-      "columns": [
-        {
-          "name": "ts",
-          "ordinal": 0,
-          "type_info": "Timestamp"
-        },
-        {
-          "name": "price_token",
-          "ordinal": 1,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "price",
-          "ordinal": 2,
-          "type_info": "Numeric"
-        },
-        {
-          "name": "count",
-          "ordinal": 3,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        null,
-        true,
-        null,
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "Text"
-        ]
-      }
-    },
-    "query": "\n        SELECT\n            date_trunc('day', p.ts) as ts,\n            p.price_token,\n            AVG(p.price) as price,\n            count(*) as count\n        FROM nft_price_history p\n        WHERE p.nft = $1 AND p.price_token is not null\n        GROUP BY 1, 2\n        ORDER BY 1 ASC\n        "
   }
 }

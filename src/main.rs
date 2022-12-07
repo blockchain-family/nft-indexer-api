@@ -12,6 +12,8 @@ async fn main() {
     pretty_env_logger::init();
     log::info!("INDEXER-API SERVICE");
     let cfg = ApiConfig::new().unwrap();
+    log::info!("database url={}", cfg.database.url);
+    log::info!("BACKEND_API_USER={}", std::env::var("BACKEND_API_USER").expect("err read BACKEND_API_USER env"));
 
     let tokens = TokenDict::load().await.expect("error loading tokens dictionary");
     let db_pool = cfg.database.init().await.expect("err init database");
@@ -34,6 +36,7 @@ async fn main() {
             .with(warp::reply::with::headers(cors_headers))
         .or(warp::path!("healthz")
                 .map(warp::reply))
+        .or(get_swagger())
         .or(get_nft(service.clone()))
         .or(get_nft_list(service.clone()))
         .or(get_nft_direct_buy(service.clone()))

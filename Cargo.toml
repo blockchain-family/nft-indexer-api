@@ -25,4 +25,5 @@ sqlx = { version = "0.6.2", features = [
     "chrono",
     "offline"
 ] }
+lazy_static = "1.4.0"
 

@@ -44,6 +44,7 @@ dependencies = [
  "anyhow",
  "chrono",
  "config",
+ "lazy_static",
  "log",
  "pretty_env_logger",
  "reqwest",

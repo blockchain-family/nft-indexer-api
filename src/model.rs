@@ -46,8 +46,8 @@ pub struct Price {
 
 #[derive(Debug, Clone, Serialize)]
 pub struct NFTPrice {
-    #[serde(flatten)]
-    pub price: Price,
+    #[serde(rename = "usdPrice")]
+    pub usd_price: String,
     pub ts: i64,
 }
 
@@ -198,25 +198,11 @@ pub struct CollectionAttributes {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum ContractType {
-    #[serde(rename = "nft")]
-    Nft,
-    #[serde(rename = "collection")]
-    Collection,
-    #[serde(rename = "auction")]
-    Auction,
-    #[serde(rename = "directBuy")]
-    DirectBuy,
-    #[serde(rename = "directSell")]
-    DirectSell,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SearchResult {
     pub address: Address,
     pub image: Option<String>,
     #[serde(rename = "contractType")]
-    pub contract_type: ContractType,
+    pub contract_type: EventCategory,
 }
 
 impl CollectionAttributes {
@@ -311,7 +297,7 @@ impl Auction {
             finish_time: db.finished_at.map(|x| x.timestamp()),
             last_bid_from: db.last_bid_from.clone(),
             last_bid_ts: db.last_bid_ts.map(|x| x.timestamp()),
-            last_bid_value: db.last_bid_from.clone(),
+            last_bid_value: db.last_bid_value.as_ref().map(|x| x.to_string()),
             last_bid_usd_value: db.last_bid_usd_value.as_ref().map(|x| x.to_string()),
         }
     }
@@ -399,15 +385,25 @@ impl DirectBuy {
 impl NFTPrice {
     pub fn from_db(
         val: &crate::db::NftPrice,
-        tokens: &TokenDict,
     ) -> Self {
-        let token = val.price_token.clone().expect("null price token in price history");
-        let price = tokens.format_value(&token, val.price.as_ref().expect("null price in price history"));
+        let usd_price = val.usd_price
+            .as_ref()
+            .expect("null usd_price in price history")
+            .round(0)
+            .to_string();
         let ts = val.ts.expect("null ts in price history").timestamp();
-        NFTPrice {
-            price: Price { 
-                token, price, usd_price: None,
-            }, ts
+        NFTPrice { usd_price, ts }
+    }
+}
+
+impl SearchResult {
+    pub fn from_db(
+        val: &crate::db::SearchResult,
+    ) -> Self {
+        Self {
+            address: val.address.clone(),
+            image: val.image.clone(),
+            contract_type: val.typ.clone(),
         }
     }
 }
