@@ -42,6 +42,8 @@ pub struct NftDetails {
     pub auction_status: Option<AuctionStatus>,
     pub forsale_status: Option<DirectSellState>,
     pub best_offer: Option<String>,
+    pub floor_price_usd: Option<BigDecimal>,
+    pub deal_price_usd: Option<BigDecimal>,
 }
 
 #[derive(Clone, Debug)]
@@ -79,6 +81,25 @@ pub struct NftCollection {
     pub nft_count: Option<i64>,
     pub max_price: Option<BigDecimal>,
     pub total_price: Option<BigDecimal>,
+}
+
+#[derive(Clone, Debug)]
+pub struct NftCollectionDetails {
+    pub address: Option<Address>,
+    pub owner: Option<Address>,
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub created: Option<NaiveDateTime>,
+    pub updated: Option<NaiveDateTime>,
+    pub verified: Option<bool>,
+    pub wallpaper: Option<String>,
+    pub logo: Option<String>,
+    pub owners_count: Option<i32>,
+    pub nft_count: Option<i64>,
+    pub max_price: Option<BigDecimal>,
+    pub total_price: Option<BigDecimal>,
+    pub floor_price_usd: Option<BigDecimal>,
+    pub total_volume_usd: Option<BigDecimal>,
 }
 
 #[derive(Clone, Debug)]
@@ -177,6 +198,7 @@ pub struct NftPriceHistory {
 
     pub nft: Option<Address>,
     pub collection: Option<Address>,
+    pub is_deal: bool,
 }
 
 #[derive(Clone, Debug)]

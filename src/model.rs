@@ -103,6 +103,18 @@ pub struct Collection {
 }
 
 #[derive(Debug, Clone, Serialize)]
+pub struct CollectionDetails {
+    #[serde(flatten)]
+    pub collection: Collection,
+
+    #[serde(rename = "floorPriceUsd")]
+    pub floor_price_usd: Option<String>,
+
+    #[serde(rename = "totalVolumeUsd")]
+    pub total_volume_usd: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
 pub struct Event {
     pub id: i64,
     #[serde(rename = "type")]
@@ -275,6 +287,33 @@ impl Collection {
             total_price: db.total_price.clone().map(|x| x.to_string()),
             lowest_price: None,
         }
+    }
+}
+
+impl CollectionDetails {
+    pub fn from_db(db: &crate::db::NftCollectionDetails, _tokens: &TokenDict) -> Self {
+        CollectionDetails {
+            collection: Collection {
+                contract: Contract { 
+                    address: Address::from(db.address.clone().unwrap_or_default()),
+                    name: Some(db.name.clone().unwrap_or_default()),
+                    description: Some(db.description.clone().unwrap_or_default()),
+                    owner: Some(Address::from(db.owner.clone().unwrap_or_default())),
+                    verified: db.verified.clone(),
+                },
+                verified: db.verified.clone(),
+                created_at: db.created.unwrap_or_default().timestamp() as usize,
+                logo: db.logo.clone(),
+                wallpaper: db.wallpaper.clone(),
+                owners_count: db.owners_count.unwrap_or_default() as usize,
+                nft_count: db.nft_count.unwrap_or_default() as usize,
+                total_price: db.total_price.clone().map(|x| x.to_string()),
+                lowest_price: None,
+            },
+            floor_price_usd: db.floor_price_usd.clone().map(|x| x.to_string()),
+            total_volume_usd: db.total_volume_usd.clone().map(|x| x.to_string()),
+        }
+
     }
 }
 

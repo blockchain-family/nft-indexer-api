@@ -3,7 +3,7 @@ use serde::Deserialize;
 use warp::http::StatusCode;
 use crate::db::{Address, Queries};
 use warp::Filter;
-use crate::model::{Collection, VecWithTotal};
+use crate::model::{Collection, CollectionDetails, VecWithTotal};
 
 
 #[derive(Debug, Clone, Deserialize)]
@@ -41,7 +41,7 @@ pub async fn list_collections_handler(params: ListCollectionsParams, db: Queries
     match db.list_collections(name, owners, verified.as_ref(), collections, limit, offset).await {
         Err(e) => Ok(Box::from(warp::reply::with_status(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))),
         Ok(list) => {
-            let ret: Vec<Collection> = list.iter().map(|c| Collection::from_db(c, &db.tokens)).collect();
+            let ret: Vec<CollectionDetails> = list.iter().map(|c| CollectionDetails::from_db(c, &db.tokens)).collect();
             let ret = VecWithTotal { count, items: ret };
             Ok(Box::from(
                 warp::reply::with_status(
@@ -73,7 +73,7 @@ pub async fn get_collection_handler(param: CollectionParam, db: Queries) -> Resu
         Err(e) => Ok(Box::from(warp::reply::with_status(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))),
         Ok(None) => Ok(Box::from(warp::reply::with_status(String::default(), StatusCode::BAD_REQUEST))),
         Ok(Some(col)) => {
-            let ret = Collection::from_db(&col, &db.tokens);
+            let ret = CollectionDetails::from_db(&col, &db.tokens);
             Ok(Box::from(warp::reply::with_status(warp::reply::json(&ret), StatusCode::OK)))
         }
     }
