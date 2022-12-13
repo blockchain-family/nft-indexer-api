@@ -79,11 +79,11 @@ impl Queries {
             .await
     }
 
-    pub async fn get_collection(&self, address: &String) -> sqlx::Result<Option<NftCollection>> {
-        sqlx::query_as!(NftCollection, "SELECT c.*, count(n.*) as nft_count
-        FROM nft_collection c
-        LEFT JOIN nft n ON n.collection = c.address
-        WHERE c.address = $1 GROUP BY 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12", address)
+    pub async fn get_collection(&self, address: &String) -> sqlx::Result<Option<NftCollectionDetails>> {
+        sqlx::query_as!(NftCollectionDetails, "
+        SELECT c.*
+        FROM nft_collection_details c
+        WHERE c.address = $1", address)
             .fetch_optional(self.db.as_ref())
             .await
     }
@@ -272,16 +272,14 @@ impl Queries {
         collections: &[Address],
         limit: usize,
         offset: usize,
-    ) -> sqlx::Result<Vec<NftCollection>> {
-        sqlx::query_as!(NftCollection, "
-        SELECT c.*, count(n.*) as nft_count
-        FROM nft_collection c
-        LEFT JOIN nft n ON n.collection = c.address
+    ) -> sqlx::Result<Vec<NftCollectionDetails>> {
+        sqlx::query_as!(NftCollectionDetails, "
+        SELECT c.*
+        FROM nft_collection_details c
         WHERE (c.owner = ANY($3) OR array_length($3::varchar[], 1) is null)
-            AND ($4::boolean is false OR verified is true)
-            AND ($5::varchar is null OR lower(c.name) LIKE lower($5))
+            AND ($4::boolean is false OR c.verified is true)
+            AND ($5::varchar is null OR c.name ILIKE $5)
             AND (c.address = ANY($6) OR array_length($6::varchar[], 1) is null)
-        GROUP BY 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12
         ORDER BY c.owners_count DESC
         LIMIT $1 OFFSET $2
         ", limit as i64, offset as i64, owners, verified, name, collections)
@@ -300,7 +298,7 @@ impl Queries {
         FROM nft_collection
         WHERE (owner = ANY($1) OR array_length($1::varchar[], 1) is null)
         AND ($2::boolean is false OR verified is true)
-        AND ($3::varchar is null OR name LIKE $3)
+        AND ($3::varchar is null OR name ILIKE $3)
         AND (address = ANY($4) OR array_length($4::varchar[], 1) is null)
         ", owners, verified, name, collections)
             .fetch_one(self.db.as_ref())
@@ -321,7 +319,7 @@ impl Queries {
         offset: usize,
     ) -> sqlx::Result<Vec<NftDetails>> {
         sqlx::query_as!(NftDetails, "
-        SELECT n.*
+        SELECT DISTINCT n.*
         FROM nft_details n
         INNER JOIN nft_collection c ON n.collection = c.address
         WHERE
@@ -360,7 +358,7 @@ impl Queries {
         verified: Option<bool>,
     ) -> sqlx::Result<i64> {
         sqlx::query!("
-        SELECT count(n.*)
+        SELECT DISTINCT count(n.*)
         FROM nft_details n
         INNER JOIN nft_collection c ON n.collection = c.address
         WHERE
