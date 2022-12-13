@@ -36,6 +36,25 @@ stop:api:
   environment:
     name: stage
 
+deploy:venom-stage:
+  only:
+    - dev
+  extends: .deploy
+  variables:
+    APP_CONFIG: venom
+  environment:
+    name: stage
+    on_stop: stop:venom-stage
+
+stop:venom-stage:
+  only:
+    - dev
+  extends: .stop
+  variables:
+    APP_CONFIG: venom
+  environment:
+    name: stage
+
 cloudbuild:image:prod:
   only:
     - main
