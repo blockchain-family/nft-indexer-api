@@ -1,0 +1,38 @@
+env:
+  RUST_LOG: info
+  RUST_BACKTRACE: 1
+  DATABASE_URL: postgresql://$(BACKEND_API_USER):$(BACKEND_API_PASSWORD)@cloudsqlproxy.default:5432/indexator-venom
+  INDEXER_API_DATABASE_URL: postgresql://$(BACKEND_API_USER):$(BACKEND_API_PASSWORD)@cloudsqlproxy.default:5432/indexator-venom
+  indexer_api_http_address: 0.0.0.0:8080
+  indexer_api_database_max_connections: 3
+
+controller: statefulset
+
+service:
+  port: 8080
+
+ingress:
+  enabled: true
+  hosts:
+    - host: indexer-api-venom.bf.works
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls:
+    - secretName: indexer-api-venom-tls
+      hosts:
+        - indexer-api-venom.bf.works
+
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: 8080
+  initialDelaySeconds: 5
+  periodSeconds: 10
+
+readinessProbe:
+  httpGet:
+    path: /healthz
+    port: 8080
+  initialDelaySeconds: 5
+  periodSeconds: 10

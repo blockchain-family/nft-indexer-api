@@ -990,115 +990,6 @@
     },
     "query": "\n        SELECT\n        x.auction as \"auction!\",\n        x.buyer as \"buyer!\",\n        x.price as \"price!\",\n        x.price_token,\n        x.created_at as \"created_at!\",\n        x.next_bid_value,\n        x.tx_lt,\n        x.active,\n        x.usd_price,\n        x.next_bid_usd_value,\n        x.nft,\n        x.collection\n        FROM nft_auction_bids_view x\n        WHERE x.owner = $1 \n            AND (x.collection = ANY($2) OR array_length($2::varchar[], 1) is null)\n            AND ($3::bool is null OR $3::bool = false OR x.active is true)\n        ORDER BY x.created_at DESC LIMIT $4 OFFSET $5\n        "
   },
-  "5c6e3d82acc619290f3832a61700a03b9e7476ba0d33390b949619be944e8e2c": {
-    "describe": {
-      "columns": [
-        {
-          "name": "address!",
-          "ordinal": 0,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "created!",
-          "ordinal": 1,
-          "type_info": "Timestamp"
-        },
-        {
-          "name": "updated!",
-          "ordinal": 2,
-          "type_info": "Timestamp"
-        },
-        {
-          "name": "tx_lt!",
-          "ordinal": 3,
-          "type_info": "Int8"
-        },
-        {
-          "name": "nft!",
-          "ordinal": 4,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "collection",
-          "ordinal": 5,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "buyer",
-          "ordinal": 6,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "price_token!",
-          "ordinal": 7,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "price!",
-          "ordinal": 8,
-          "type_info": "Numeric"
-        },
-        {
-          "name": "usd_price",
-          "ordinal": 9,
-          "type_info": "Numeric"
-        },
-        {
-          "name": "finished_at",
-          "ordinal": 10,
-          "type_info": "Timestamp"
-        },
-        {
-          "name": "expired_at",
-          "ordinal": 11,
-          "type_info": "Timestamp"
-        },
-        {
-          "name": "state!: _",
-          "ordinal": 12,
-          "type_info": {
-            "Custom": {
-              "kind": {
-                "Enum": [
-                  "create",
-                  "await_tokens",
-                  "active",
-                  "filled",
-                  "cancelled",
-                  "expired"
-                ]
-              },
-              "name": "direct_buy_state"
-            }
-          }
-        }
-      ],
-      "nullable": [
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true
-      ],
-      "parameters": {
-        "Left": [
-          "Text",
-          "VarcharArray",
-          "Int8",
-          "Int8"
-        ]
-      }
-    },
-    "query": "\n        SELECT s.address as \"address!\", s.created as \"created!\", s.updated as \"updated!\", s.tx_lt as \"tx_lt!\",\n        s.nft as \"nft!\", s.collection,\n        s.buyer,\n        s.price_token as \"price_token!\", s.price as \"price!\",\n        s.usd_price,\n        s.finished_at, s.expired_at,\n        s.state as \"state!: _\"\n        FROM nft_direct_buy_usd s\n        WHERE s.nft = $1\n        AND (array_length($2::varchar[], 1) is null OR s.state::varchar = ANY($2))\n        ORDER BY s.updated DESC LIMIT $3 OFFSET $4\n        "
-  },
   "608e4bf5fd2052af4d9e472883a724b7721a6fb04777795bcd371c4bd5cb5c63": {
     "describe": {
       "columns": [
@@ -1332,150 +1223,7 @@
     },
     "query": "SELECT \n            s.address,\n            s.name,\n            s.type as \"typ: _\",\n            s.nft,\n            s.collection,\n            CASE WHEN m.meta is not null THEN m.meta::jsonb->'preview'->>'source'\n                    WHEN s.collection is not null THEN c.logo\n                    ELSE null\n            END as \"image\"\n        FROM search_index s\n        LEFT JOIN nft n ON n.address = s.nft\n        LEFT JOIN nft_metadata m ON m.nft = n.address\n        LEFT JOIN nft_collection c ON c.address = s.collection\n        WHERE s.search @@ websearch_to_tsquery($1)\n        ORDER BY ts_rank_cd(s.search, websearch_to_tsquery($1), 32)\n        LIMIT 100"
   },
-  "70dbd1f5213d4b44a65e73921a873764a3c176a6c44bbdb4fb8d7c5c544f0628": {
-    "describe": {
-      "columns": [
-        {
-          "name": "address",
-          "ordinal": 0,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "collection",
-          "ordinal": 1,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "owner",
-          "ordinal": 2,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "manager",
-          "ordinal": 3,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "name",
-          "ordinal": 4,
-          "type_info": "Text"
-        },
-        {
-          "name": "description",
-          "ordinal": 5,
-          "type_info": "Text"
-        },
-        {
-          "name": "burned",
-          "ordinal": 6,
-          "type_info": "Bool"
-        },
-        {
-          "name": "updated",
-          "ordinal": 7,
-          "type_info": "Timestamp"
-        },
-        {
-          "name": "tx_lt",
-          "ordinal": 8,
-          "type_info": "Int8"
-        },
-        {
-          "name": "meta",
-          "ordinal": 9,
-          "type_info": "Jsonb"
-        },
-        {
-          "name": "auction",
-          "ordinal": 10,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "auction_status: _",
-          "ordinal": 11,
-          "type_info": {
-            "Custom": {
-              "kind": {
-                "Enum": [
-                  "created",
-                  "active",
-                  "cancelled",
-                  "completed",
-                  "expired"
-                ]
-              },
-              "name": "auction_status"
-            }
-          }
-        },
-        {
-          "name": "forsale",
-          "ordinal": 12,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "forsale_status: _",
-          "ordinal": 13,
-          "type_info": {
-            "Custom": {
-              "kind": {
-                "Enum": [
-                  "create",
-                  "await_nft",
-                  "active",
-                  "filled",
-                  "cancelled",
-                  "expired"
-                ]
-              },
-              "name": "direct_sell_state"
-            }
-          }
-        },
-        {
-          "name": "best_offer",
-          "ordinal": 14,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "floor_price_usd",
-          "ordinal": 15,
-          "type_info": "Numeric"
-        },
-        {
-          "name": "deal_price_usd",
-          "ordinal": 16,
-          "type_info": "Numeric"
-        }
-      ],
-      "nullable": [
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true
-      ],
-      "parameters": {
-        "Left": [
-          "TextArray"
-        ]
-      }
-    },
-    "query": "SELECT *\n            FROM nft_details\n            WHERE address = ANY($1)"
-  },
-  "75f0e0298b1d9717fd8e92f4ecbd4b2d3d658d1ec6d31b5664dece67007bef2c": {
+  "608e4bf5fd2052af4d9e472883a724b7721a6fb04777795bcd371c4bd5cb5c63": {
     "describe": {
       "columns": [
         {
@@ -1499,63 +1247,9 @@
           "type_info": "Int8"
         },
         {
-          "name": "nft!",
-          "ordinal": 4,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "collection",
-          "ordinal": 5,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "buyer",
-          "ordinal": 6,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "price_token!",
-          "ordinal": 7,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "price!",
+          "name": "active!",
           "ordinal": 8,
-          "type_info": "Numeric"
-        },
-        {
-          "name": "usd_price",
-          "ordinal": 9,
-          "type_info": "Numeric"
-        },
-        {
-          "name": "finished_at",
-          "ordinal": 10,
-          "type_info": "Timestamp"
-        },
-        {
-          "name": "expired_at",
-          "ordinal": 11,
-          "type_info": "Timestamp"
-        },
-        {
-          "name": "state!: _",
-          "ordinal": 12,
-          "type_info": {
-            "Custom": {
-              "kind": {
-                "Enum": [
-                  "create",
-                  "await_tokens",
-                  "active",
-                  "filled",
-                  "cancelled",
-                  "expired"
-                ]
-              },
-              "name": "direct_buy_state"
-            }
-          }
+          "type_info": "Bool"
         }
       ],
       "nullable": [
@@ -1563,6 +1257,72 @@
         true,
         true,
         true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "\n        SELECT\n            auction as \"auction!\",\n            buyer as \"buyer!\",\n            price as \"price!\",\n            usd_price as \"usd_price\",\n            created_at as \"created_at!\",\n            next_bid_value as \"next_bid_value!\",\n            next_bid_usd_value as \"next_bid_usd_value\",\n            tx_lt as \"tx_lt!\",\n            active as \"active!\"\n        FROM nft_auction_bids_view\n        WHERE auction = $1\n        ORDER BY created_at DESC LIMIT $2 OFFSET $3"
+  },
+  "63a581531d2bfb7564dad72070d20698031cdcc5fe5446403922c09ace004124": {
+    "describe": {
+      "columns": [
+        {
+          "name": "auction!",
+          "ordinal": 0,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "buyer!",
+          "ordinal": 1,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "price!",
+          "ordinal": 2,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "usd_price",
+          "ordinal": 3,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "created_at!",
+          "ordinal": 4,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "next_bid_value!",
+          "ordinal": 5,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "next_bid_usd_value",
+          "ordinal": 6,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "tx_lt!",
+          "ordinal": 7,
+          "type_info": "Int8"
+        },
+        {
+          "name": "active!",
+          "ordinal": 8,
+          "type_info": "Bool"
+        }
+      ],
+      "nullable": [
         true,
         true,
         true,
@@ -1607,28 +1367,113 @@
     },
     "query": "\n        SELECT count(*)\n        FROM nft_events e\n        WHERE\n            ($1::varchar is null OR e.nft = $1)\n            AND ($2::varchar is null OR e.collection = $2)\n            AND (array_length($3::varchar[], 1) is null OR e.event_type::varchar = ANY($3))\n        "
   },
-  "81c03e70c449c1809f6e9c3e4b8590c7ac418b6cc343d884c9bf018db0f187e5": {
+  "810cc046140ce2e58299cbfc9dec3b150eecae469c3f93331ce70854a260cbe0": {
     "describe": {
       "columns": [
         {
-          "name": "count",
+          "name": "address",
           "ordinal": 0,
-          "type_info": "Int8"
+          "type_info": "Varchar"
+        },
+        {
+          "name": "owner",
+          "ordinal": 1,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "name",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "description",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "created",
+          "ordinal": 4,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "updated",
+          "ordinal": 5,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "wallpaper",
+          "ordinal": 6,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "logo",
+          "ordinal": 7,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "total_price",
+          "ordinal": 8,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "max_price",
+          "ordinal": 9,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "owners_count",
+          "ordinal": 10,
+          "type_info": "Int4"
+        },
+        {
+          "name": "verified",
+          "ordinal": 11,
+          "type_info": "Bool"
+        },
+        {
+          "name": "best_offer",
+          "ordinal": 14,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "floor_price_usd",
+          "ordinal": 15,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "deal_price_usd",
+          "ordinal": 16,
+          "type_info": "Numeric"
         }
       ],
       "nullable": [
-        null
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
       ],
       "parameters": {
         "Left": [
-          "TextArray",
-          "Bool",
-          "Varchar",
-          "TextArray"
+          "Text"
         ]
       }
     },
-    "query": "\n        SELECT count(*)\n        FROM nft_collection\n        WHERE (owner = ANY($1) OR array_length($1::varchar[], 1) is null)\n        AND ($2::boolean is false OR verified is true)\n        AND ($3::varchar is null OR name ILIKE $3)\n        AND (address = ANY($4) OR array_length($4::varchar[], 1) is null)\n        "
+    "query": "SELECT c.*, count(n.*) as nft_count\n        FROM nft_collection c\n        LEFT JOIN nft n ON n.collection = c.address\n        WHERE c.address = $1 GROUP BY 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12"
   },
   "8de3c46fb0b2d55e584aa688fc08f3b8cf878492faadae9b7396b5a1ed321818": {
     "describe": {
@@ -1750,15 +1595,179 @@
       ],
       "parameters": {
         "Left": [
+          "Varchar",
+          "Varchar",
+          "VarcharArray"
+        ]
+      }
+    },
+    "query": "\n        SELECT count(*)\n        FROM nft_events e\n        WHERE\n            ($1::varchar is null OR e.nft = $1)\n            AND ($2::varchar is null OR e.collection = $2)\n            AND (array_length($3::varchar[], 1) is null OR e.event_type::varchar = ANY($3))\n        "
+  },
+  "81c03e70c449c1809f6e9c3e4b8590c7ac418b6cc343d884c9bf018db0f187e5": {
+    "describe": {
+      "columns": [
+        {
+          "name": "count",
+          "ordinal": 0,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        null
+      ],
+      "parameters": {
+        "Left": [
           "TextArray",
-          "TextArray",
+          "Bool",
+          "Varchar",
           "TextArray"
         ]
       }
     },
-    "query": "\n    SELECT count(a.*) \n    FROM nft_auction_search a\n    INNER JOIN nft n ON a.nft = n.address\n    WHERE \n    (n.owner = ANY($1) OR array_length($1::varchar[], 1) is null)\n    AND (n.collection = ANY($2) OR array_length($2::varchar[], 1) is null)\n    AND (a.nft = ANY($3) OR array_length($3::varchar[], 1) is null)\n        "
+    "query": "\n        SELECT count(*)\n        FROM nft_collection\n        WHERE (owner = ANY($1) OR array_length($1::varchar[], 1) is null)\n        AND ($2::boolean is false OR verified is true)\n        AND ($3::varchar is null OR name ILIKE $3)\n        AND (address = ANY($4) OR array_length($4::varchar[], 1) is null)\n        "
   },
-  "a54d6c8c07c76a9aeec23ecfacd38cd42b1ed4b98204ef7f4ac1942ca24cfd79": {
+  "a586610879c6d2f4cf07d81382c9a6c3cd5dc5f47545c57d86e46048e9ae9832": {
+    "describe": {
+      "columns": [
+        {
+          "name": "address!",
+          "ordinal": 0,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "created!",
+          "ordinal": 1,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "updated!",
+          "ordinal": 2,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "tx_lt!",
+          "ordinal": 3,
+          "type_info": "Int8"
+        },
+        {
+          "name": "nft!",
+          "ordinal": 4,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "collection",
+          "ordinal": 5,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "buyer",
+          "ordinal": 6,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "price_token!",
+          "ordinal": 7,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "price!",
+          "ordinal": 8,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "usd_price",
+          "ordinal": 9,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "finished_at",
+          "ordinal": 10,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "expired_at",
+          "ordinal": 11,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "state!: _",
+          "ordinal": 12,
+          "type_info": {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "create",
+                  "await_tokens",
+                  "active",
+                  "filled",
+                  "cancelled",
+                  "expired"
+                ]
+              },
+              "name": "direct_buy_state"
+            }
+          }
+        }
+      ],
+      "nullable": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "VarcharArray",
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "\n        SELECT s.address as \"address!\", s.created as \"created!\", s.updated as \"updated!\", s.tx_lt as \"tx_lt!\",\n        s.nft as \"nft!\", s.collection,\n        s.buyer,\n        s.price_token as \"price_token!\", s.price as \"price!\",\n        s.usd_price,\n        s.finished_at, s.expired_at,\n        s.state as \"state!: _\"\n        FROM nft_direct_buy_usd s\n        WHERE s.nft = $1\n        and s.state = 'active'\n        AND (array_length($2::varchar[], 1) is null OR s.state::varchar = ANY($2))\n        ORDER BY s.updated DESC LIMIT $3 OFFSET $4\n        "
+  },
+  "a72ec97cb8408c2c49f77f5bd0e9b6f5be33954aa151f57b98307a2012669cd8": {
+    "describe": {
+      "columns": [
+        {
+          "name": "ts",
+          "ordinal": 0,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "usd_price",
+          "ordinal": 1,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "count",
+          "ordinal": 2,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        null,
+        null,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "\n        SELECT\n            date_trunc('day', p.ts) as ts,\n            AVG(p.usd_price) as usd_price,\n            count(*) as count\n        FROM nft_price_history_usd p\n        WHERE p.nft = $1 AND p.price_token is not null\n        GROUP BY 1\n        ORDER BY 1 ASC\n        "
+  },
+  "bfca11004758a82e5ed749fb72101eb700b216bfc850852462b8af21f39afb31": {
     "describe": {
       "columns": [
         {
@@ -1844,43 +1853,16 @@
       ],
       "parameters": {
         "Left": [
+          "Int8",
+          "Int8",
+          "TextArray",
+          "Bool",
+          "Varchar",
           "TextArray"
         ]
       }
     },
-    "query": "SELECT c.*, count(n.*) as nft_count\n            FROM nft_collection c\n            LEFT JOIN nft n ON n.collection = c.address\n            WHERE c.address = ANY($1)\n            GROUP BY 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12"
-  },
-  "a72ec97cb8408c2c49f77f5bd0e9b6f5be33954aa151f57b98307a2012669cd8": {
-    "describe": {
-      "columns": [
-        {
-          "name": "ts",
-          "ordinal": 0,
-          "type_info": "Timestamp"
-        },
-        {
-          "name": "usd_price",
-          "ordinal": 1,
-          "type_info": "Numeric"
-        },
-        {
-          "name": "count",
-          "ordinal": 2,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        null,
-        null,
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "Text"
-        ]
-      }
-    },
-    "query": "\n        SELECT\n            date_trunc('day', p.ts) as ts,\n            AVG(p.usd_price) as usd_price,\n            count(*) as count\n        FROM nft_price_history_usd p\n        WHERE p.nft = $1 AND p.price_token is not null\n        GROUP BY 1\n        ORDER BY 1 ASC\n        "
+    "query": "\n        SELECT c.*, count(n.*) as nft_count\n        FROM nft_collection c\n        LEFT JOIN nft n ON n.collection = c.address\n        WHERE (c.owner = ANY($3) OR array_length($3::varchar[], 1) is null)\n            AND ($4::boolean is false OR verified is true)\n            AND ($5::varchar is null OR lower(c.name) LIKE lower($5))\n            AND (c.address = ANY($6) OR array_length($6::varchar[], 1) is null)\n        GROUP BY 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12\n        ORDER BY c.owners_count DESC\n        LIMIT $1 OFFSET $2\n        "
   },
   "b02db64280cd208ae0e18b798481c6b58df9f5220cd6bf0055e4cad9a5438fdf": {
     "describe": {
@@ -2735,6 +2717,155 @@
       }
     },
     "query": "\n                SELECT a.*\n                FROM nft_auction_search a\n                INNER JOIN nft n ON a.nft = n.address\n                WHERE \n                (n.owner = ANY($1) OR array_length($1::varchar[], 1) is null)\n                AND (n.collection = ANY($2) OR array_length($2::varchar[], 1) is null)\n                AND (a.nft = ANY($3) OR array_length($3::varchar[], 1) is null)\n                ORDER BY a.bids_count ASC\n                LIMIT $4 OFFSET $5"
+  },
+  "de43a066940846035d6e7564907baefeb82a9e630d415355d34fb9902168a448": {
+    "describe": {
+      "columns": [
+        {
+          "name": "address",
+          "ordinal": 0,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "collection",
+          "ordinal": 1,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "owner",
+          "ordinal": 2,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "manager",
+          "ordinal": 3,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "name",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "description",
+          "ordinal": 5,
+          "type_info": "Text"
+        },
+        {
+          "name": "burned",
+          "ordinal": 6,
+          "type_info": "Bool"
+        },
+        {
+          "name": "updated",
+          "ordinal": 7,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "tx_lt",
+          "ordinal": 8,
+          "type_info": "Int8"
+        },
+        {
+          "name": "meta",
+          "ordinal": 9,
+          "type_info": "Jsonb"
+        },
+        {
+          "name": "auction",
+          "ordinal": 10,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "auction_status: _",
+          "ordinal": 11,
+          "type_info": {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "created",
+                  "active",
+                  "cancelled",
+                  "completed",
+                  "expired"
+                ]
+              },
+              "name": "auction_status"
+            }
+          }
+        },
+        {
+          "name": "forsale",
+          "ordinal": 12,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "forsale_status: _",
+          "ordinal": 13,
+          "type_info": {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "create",
+                  "await_nft",
+                  "active",
+                  "filled",
+                  "cancelled",
+                  "expired"
+                ]
+              },
+              "name": "direct_sell_state"
+            }
+          }
+        },
+        {
+          "name": "best_offer",
+          "ordinal": 14,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "floor_price_usd",
+          "ordinal": 15,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "deal_price_usd",
+          "ordinal": 16,
+          "type_info": "Numeric"
+        }
+      ],
+      "nullable": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "TextArray",
+          "TextArray",
+          "Bool",
+          "Bool",
+          "Bool",
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "\n        SELECT n.*\n        FROM nft_details n\n        INNER JOIN nft_collection c ON n.collection = c.address\n        WHERE\n        (n.owner = ANY($1) OR array_length($1::varchar[], 1) is null)\n        and (n.collection = ANY($2) OR array_length($2::varchar[], 1) is null)\n        and (($3::bool is null and $4::bool is null)\n            or ($3::bool is not null and $4::bool is not null \n                and (($4::bool and n.forsale is not null and n.\"forsale_status: _\" = 'active') or (not $4::bool and n.forsale is null)\n                or ($3::bool and n.auction is not null and n.\"auction_status: _\" = 'active') or (not $3::bool and n.auction is null))\n            )\n            or (\n                $3::bool is null \n                and (($4::bool and n.forsale is not null and n.\"forsale_status: _\" = 'active') or (not $4::bool and n.forsale is null))\n            )\n            or (\n                $4::bool is null\n                and (($3::bool and n.auction is not null and n.\"auction_status: _\" = 'active') or (not $3::bool and n.auction is null))\n            )\n        )\n        and ($5::boolean is false OR c.verified is true)\n        ORDER BY n.name, n.address\n        LIMIT $6 OFFSET $7\n        "
   },
   "e148beabfe46e291e04e4b14d4aa671652779138f66ac967431581844593918d": {
     "describe": {

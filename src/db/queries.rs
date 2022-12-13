@@ -340,7 +340,7 @@ impl Queries {
             )
         )
         and ($5::boolean is false OR c.verified is true)
-        ORDER BY n.name ASC
+        ORDER BY n.name, n.address
         LIMIT $6 OFFSET $7
         ", owners, collections, auction, forsale, verified, limit as i64, offset as i64)
             .fetch_all(self.db.as_ref())
@@ -586,6 +586,7 @@ impl Queries {
         s.state as "state!: _"
         FROM nft_direct_buy_usd s
         WHERE s.nft = $1
+        and s.state = 'active'
         AND (array_length($2::varchar[], 1) is null OR s.state::varchar = ANY($2))
         ORDER BY s.updated DESC LIMIT $3 OFFSET $4
         "#, nft, &status_str, limit as i64, offset as i64)
