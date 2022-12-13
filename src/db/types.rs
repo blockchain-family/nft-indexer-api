@@ -42,6 +42,8 @@ pub struct NftDetails {
     pub auction_status: Option<AuctionStatus>,
     pub forsale_status: Option<DirectSellState>,
     pub best_offer: Option<String>,
+    pub floor_price_usd: Option<BigDecimal>,
+    pub deal_price_usd: Option<BigDecimal>,
 }
 
 #[derive(Clone, Debug)]
