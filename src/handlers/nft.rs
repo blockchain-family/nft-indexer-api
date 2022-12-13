@@ -67,7 +67,7 @@ pub async fn get_nft_handler(param: NFTParam, db: Queries) -> Result<Box<dyn war
 
             let mut direct_buy = HashMap::default();
             let nft_addr = nft.address.clone().unwrap_or_default();
-            match db.list_nft_direct_buy(&nft_addr, &[], 100, 0).await {
+            match db.list_nft_direct_buy(&nft_addr, &[DirectBuyState::Active], 100, 0).await {
                 Err(e) => return Ok(Box::from(warp::reply::with_status(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))),
                 Ok(mut list) => { 
                     for x in list.drain(..) {

@@ -524,7 +524,15 @@ paths:
                   items:
                     type: array
                     items:
-                      $ref: '#/components/schemas/nftPrice'
+                      type: object
+                      required:
+                        - usdPrice
+                        - ts
+                      properties:
+                        usdPrice:
+                          type: string
+                        ts:
+                          $ref: '#/components/schemas/ts'
                 required:
                   - totalCount
                   - items
