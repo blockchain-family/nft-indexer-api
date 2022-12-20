@@ -527,24 +527,107 @@ impl Queries {
     pub async fn list_events(&self,
         nft: Option<&String>,
         collection: Option<&String>,
-        _owner: Option<&String>,
-        typ: &[EventType],
+        owner: Option<&String>,
+        event_type: &[NftEventType],
+        category: &[NftEventCategory],
         offset: usize,
         limit: usize,
-    ) -> sqlx::Result<Vec<Event>> {
-        let typ_str: Vec<String> = typ.iter().map(|x| x.to_string()).collect();
-        sqlx::query_as!(Event, "
-        SELECT e.id, e.address, e.created_at, e.created_lt, e.args,
-        e.event_cat as \"event_cat: _\",
-        e.event_type as \"event_type: _\"
-        FROM nft_events e
-        WHERE
-            ($3::varchar is null OR e.nft = $3)
-            AND ($4::varchar is null OR e.collection = $4)
-            AND (array_length($5::varchar[], 1) is null OR e.event_type::varchar = ANY($5))
-        LIMIT $1 OFFSET $2
-        ", limit as i64, offset as i64,
-            nft, collection, &typ_str)
+    ) -> sqlx::Result<Vec<NftEvent>> {
+        let event_types_str: Vec<String> = event_type.iter().map(|x| format!("{:?}", x)).collect();
+        let categories_str: Vec<String> = category.iter().map(|x| format!("{:?}", x)).collect();
+        sqlx::query_as!(NftEvent, "
+        /* event cat, event type, owner, nft, collection, offset, limit */
+
+            with result as (
+                select ne.*,
+                       (ne.args ->> 'from')::int            f,
+                       (ne.args ->> 'to')::int              t,
+                       nm.meta -> 'preview' ->> 'source' as preview_url,
+                       n.description,
+                       n.name,
+                       n.owner,
+                       nm.meta
+                from nft_events ne
+                         join nft n
+                              on ne.nft = n.address
+
+                         join nft_metadata nm on ne.nft = nm.nft
+                where (ne.address = :a3 or :a3 is null)
+                  and (ne.args -> 'creator' = :a3 or :a3 is null)
+
+                  and (ne.nft = :a4 or :a4 is null)
+                  and (ne.collection = :a5 or :a5 is null)
+                  and (ne.event_cat::text = any (:a1) or :a1 is null)
+                  and (
+                        ((ne.args ->> 'from')::int = 0 and (ne.args ->> 'to')::int = 2) or
+                        ((ne.args ->> 'from')::int = 2 and (ne.args ->> 'to')::int = 3) or
+                        ((ne.args ->> 'from')::int = 2 and (ne.args ->> 'to')::int = 4)
+                    )
+                  and (
+                        ((ne.args ->> 'from')::int = 0 and (ne.args ->> 'to')::int = 2 and
+                         (('UpForSale' = any (:a2) and ne.event_cat = 'direct_buy') or
+                          ('Active' = any (:a2) and ne.event_cat = 'direct_sell')))
+                        or
+                        ((ne.args ->> 'from')::int = 2 and (ne.args ->> 'to')::int = 3 and
+                         ('purchase' = any (:a2) and ne.event_cat = 'direct_buy') or
+                         ('filled' = any (:a2) and ne.event_cat = 'direct_sell'))
+                        or
+                        ((ne.args ->> 'from')::int = 2 and (ne.args ->> 'to')::int = 4 and (
+                                ('SaleCanceled' = any (:a2) and (ne.event_cat = 'direct_buy')) or
+                                ('Canceled' = any (:a2) and ne.event_cat = 'direct_sell'))
+                            ) or (:a2) is null
+                    )
+                order by ne.created_at desc, ne.id desc
+                limit :a6 offset :a7
+            )
+            select json_agg(json_build_object('event_type', case
+                                                       when
+                                                           r.f = 0 and r.t = 2 then 'UpForSale'
+                                                       when
+                                                           r.f = 2 and r.t = 3 then 'Purchase'
+                                                       when
+                                                           r.f = 2 and r.t = 4 then 'SaleCanceled'
+                end,
+                                     'name', r.name,
+                                     'description', r.description,
+                                     'datetime', r.created_at,
+                                     'address', r.address,
+                                     'preview_url', r.preview_url,
+                   'direct_sell',
+                   case
+                       when r.event_cat = 'direct_sell' then
+                           json_build_object(
+                                   'creator', r.args -> 'creator',
+                                   'start_time', r.args -> 'start',
+                                   'end_time', r.args -> 'end',
+                                   'status', r.args -> 'status',
+                                   'price', r.args -> '_price',
+                                   'usd_price', ((r.args ->> '_price')::numeric * curr.usd_price)::text,
+                                   'payment_token', r.args -> 'token'
+                               )
+                       end                                        , 'direct_buy',
+                   case
+                       when r.event_cat = 'direct_buy' then
+                           json_build_object(
+                                   'creator', r.args -> 'creator',
+                                   'start_time', r.args -> 'start_time_buy',
+                                   'end_time', r.args -> 'end_time_buy',
+                                   'duration_time', r.args -> 'duration_time',
+                                   'price', r.args -> '_price',
+                                   'usd_price', ((r.args ->> '_price')::numeric * curr.usd_price)::text,
+                                   'status', r.args -> 'status',
+                                   'spent_token', r.args -> 'spent_token'
+                               )
+                       end                      )      )    obj
+            from result as r
+                     left join lateral (
+                select p.usd_price
+                from token_usd_prices p
+                where r.args ->> 'token' = p.token::text
+                   or r.args ->> 'spent_token' = p.token::text
+                ) curr on true
+        ",
+            &categories_str, &event_types_str, owner, nft, collection, offset as i64, limit as i64)
             .fetch_all(self.db.as_ref())
             .await
     }

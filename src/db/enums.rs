@@ -94,6 +94,28 @@ pub enum NftPriceSource {
     DirectSell,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type)]
+#[sqlx(type_name = "event_category", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum NftEventCategory {
+    Auction,
+    DirectBuy,
+    DirectSell,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type)]
+#[sqlx(type_name = "event_category", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum NftEventType {
+    Active,
+    Filled,
+    Canceled,
+
+    UpForSale,
+    Purchase,
+    SaleCanceled
+}
+
 impl Default for AuctionStatus {
     fn default() -> Self {
         Self::Active

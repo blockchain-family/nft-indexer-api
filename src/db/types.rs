@@ -1,5 +1,6 @@
 use sqlx::types::BigDecimal;
 use chrono::NaiveDateTime;
+use serde::{Serialize, Deserialize};
 use super::*;
 
 pub type Address = String;
@@ -14,16 +15,17 @@ pub struct SearchResult {
     pub image: Option<String>,
 }
 
-#[derive(Debug, Clone, sqlx::FromRow)]
-pub struct Event {
-    pub id: i64,
-    pub address: String,
-    pub event_cat: EventCategory,
-    pub event_type: EventType,
-    pub created_at: i64,
-    pub created_lt: i64,
-    pub args: Option<serde_json::Value>,
-}
+
+// #[derive(Debug, Clone, sqlx::FromRow)]
+// pub struct Event {
+//     pub id: i64,
+//     pub address: String,
+//     pub event_cat: EventCategory,
+//     pub event_type: EventType,
+//     pub created_at: i64,
+//     pub created_lt: i64,
+//     // pub args: Option<serde_json::Value>,
+// }
 
 #[derive(Debug, Clone, sqlx::FromRow)]
 pub struct NftDetails {
@@ -255,12 +257,12 @@ impl NftDetails {
         if image.is_none() {
             // https://github.com/nftalliance/docs/blob/main/src/standard/TIP-4/2.md
             image = meta_obj.get("preview").and_then(|p| {
-                p.as_object().and_then(|o| 
+                p.as_object().and_then(|o|
                     o.get("source").map(|x| x.as_str().unwrap_or_default().to_string())
                 )
             });
             mimetype = meta_obj.get("preview").and_then(|p| {
-                p.as_object().and_then(|o| 
+                p.as_object().and_then(|o|
                     o.get("mimetype").map(|x| x.as_str().unwrap_or_default().to_string())
                 )
             });
@@ -269,3 +271,38 @@ impl NftDetails {
     }
 }
 
+#[derive(Deserialize, Debug, Serialize)]
+pub struct NftEvent {
+    event_type: String,
+    name: String,
+    description: Option<String>,
+    datetime: i64,
+    address: String,
+    preview_url: Option<String>,
+    direct_sell: Option<NftEventDirectSell>,
+    direct_buy: Option<NftEventDirectBuy>,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct NftEventDirectSell {
+    creator: String,
+    start_time: i64,
+    end_time: i64,
+    duration_time: Option<i64>,
+    price: BigDecimal,
+    usd_price: BigDecimal,
+    status: i64,
+    payment_token: String,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct NftEventDirectBuy {
+    creator: String,
+    start_time: i64,
+    end_time: i64,
+    duration_time: Option<i64>,
+    price: BigDecimal,
+    usd_price: BigDecimal,
+    status: i64,
+    spent_token: String,
+}
