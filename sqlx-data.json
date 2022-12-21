@@ -267,6 +267,74 @@
     },
     "query": "SELECT count(*)\n            FROM nft_auction_bids_view x\n            WHERE x.owner = $1 \n                AND (x.collection = ANY($2) OR array_length($2::varchar[], 1) is null)\n                AND ($3::bool is null OR $3::bool = false OR x.active is true)\n            "
   },
+  "28b6018bdd25eb48cf02332fbe6553f00fdced6f9f760f84b87f898900ad10fd": {
+    "describe": {
+      "columns": [
+        {
+          "name": "ts",
+          "ordinal": 0,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "usd_price",
+          "ordinal": 1,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "count",
+          "ordinal": 2,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        null,
+        null,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Timestamp",
+          "Timestamp"
+        ]
+      }
+    },
+    "query": "\n        SELECT\n            date_trunc('day', p.ts) as ts,\n            AVG(p.usd_price) as usd_price,\n            count(*) as count\n        FROM nft_price_history_usd p\n        WHERE p.nft = $1 AND p.price_token is not null\n        AND ($2::timestamp is null or p.ts >= $2::timestamp)\n        AND ($3::timestamp is null or p.ts < $3::timestamp)\n        GROUP BY 1\n        ORDER BY 1 ASC\n        "
+  },
+  "31458c794836022cc85ef31ef6210e2c418e36d1340ea69e8f1ad682bbf3c4d2": {
+    "describe": {
+      "columns": [
+        {
+          "name": "ts",
+          "ordinal": 0,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "usd_price",
+          "ordinal": 1,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "count",
+          "ordinal": 2,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        null,
+        null,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Timestamp",
+          "Timestamp"
+        ]
+      }
+    },
+    "query": "\n        SELECT\n            date_trunc('hour', p.ts) as ts,\n            AVG(p.usd_price) as usd_price,\n            count(*) as count\n        FROM nft_price_history_usd p\n        WHERE p.nft = $1 AND p.price_token is not null\n        AND ($2::timestamp is null or p.ts >= $2::timestamp)\n        AND ($3::timestamp is null or p.ts < $3::timestamp)\n        GROUP BY 1\n        ORDER BY 1 ASC\n        "
+  },
   "3f1e4f66b0ce4d6fd55e128839712e8505c30878788954aa24da1713cc7d57ad": {
     "describe": {
       "columns": [
@@ -604,38 +672,6 @@
       }
     },
     "query": "\n            SELECT count(x.*) FROM nft_auction_bids_view x\n            WHERE x.buyer = $1 \n            AND (x.collection = ANY($2) OR array_length($2::varchar[], 1) is null)\n                AND ($3::bool is null OR $3::bool = false OR x.active is true)\n            "
-  },
-  "4b5f65eeae497857f7211820b79fcc886a833ca4aadc74011a78ddc3c3707085": {
-    "describe": {
-      "columns": [
-        {
-          "name": "ts",
-          "ordinal": 0,
-          "type_info": "Timestamp"
-        },
-        {
-          "name": "usd_price",
-          "ordinal": 1,
-          "type_info": "Numeric"
-        },
-        {
-          "name": "count",
-          "ordinal": 2,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        null,
-        null,
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "Text"
-        ]
-      }
-    },
-    "query": "\n        SELECT\n            date_trunc('hour', p.ts) as ts,\n            AVG(p.usd_price) as usd_price,\n            count(*) as count\n        FROM nft_price_history_usd p\n        WHERE p.nft = $1 AND p.price_token is not null\n        GROUP BY 1\n        ORDER BY 1 ASC\n        "
   },
   "5435c6a07176b44367000f8077a48f57b119098613bcf03c43dc7c7e6a4ef1e8": {
     "describe": {
@@ -1850,38 +1886,6 @@
     },
     "query": "\n        SELECT s.address as \"address!\", s.created as \"created!\", s.updated as \"updated!\", s.tx_lt as \"tx_lt!\",\n        s.nft as \"nft!\", s.collection,\n        s.buyer,\n        s.price_token as \"price_token!\", s.price as \"price!\",\n        s.usd_price,\n        s.finished_at, s.expired_at,\n        s.state as \"state!: _\"\n        FROM nft_direct_buy_usd s\n        WHERE s.nft = $1\n        and s.state = 'active'\n        AND (array_length($2::varchar[], 1) is null OR s.state::varchar = ANY($2))\n        ORDER BY s.updated DESC LIMIT $3 OFFSET $4\n        "
   },
-  "a72ec97cb8408c2c49f77f5bd0e9b6f5be33954aa151f57b98307a2012669cd8": {
-    "describe": {
-      "columns": [
-        {
-          "name": "ts",
-          "ordinal": 0,
-          "type_info": "Timestamp"
-        },
-        {
-          "name": "usd_price",
-          "ordinal": 1,
-          "type_info": "Numeric"
-        },
-        {
-          "name": "count",
-          "ordinal": 2,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        null,
-        null,
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "Text"
-        ]
-      }
-    },
-    "query": "\n        SELECT\n            date_trunc('day', p.ts) as ts,\n            AVG(p.usd_price) as usd_price,\n            count(*) as count\n        FROM nft_price_history_usd p\n        WHERE p.nft = $1 AND p.price_token is not null\n        GROUP BY 1\n        ORDER BY 1 ASC\n        "
-  },
   "b02db64280cd208ae0e18b798481c6b58df9f5220cd6bf0055e4cad9a5438fdf": {
     "describe": {
       "columns": [
@@ -2791,7 +2795,7 @@
                 "Enum": [
                   "auction_deployed",
                   "auction_created",
-                  "auction_ownership_transferred",
+                  "auction_root_ownership_transferred",
                   "auction_active",
                   "auction_declined",
                   "auction_bid_placed",
@@ -2800,20 +2804,17 @@
                   "auction_complete",
                   "direct_buy_deployed",
                   "direct_buy_declined",
-                  "direct_buy_ownership_transferred",
+                  "factory_direct_buy_ownership_transferred",
                   "direct_buy_state_changed",
                   "direct_sell_deployed",
                   "direct_sell_declined",
-                  "direct_sell_ownership_transferred",
+                  "factory_direct_sell_ownership_transferred",
                   "direct_sell_state_changed",
                   "nft_owner_changed",
                   "nft_manager_changed",
                   "collection_ownership_transferred",
                   "nft_created",
-                  "nft_burned",
-                  "auction_root_ownership_transferred",
-                  "factory_direct_buy_ownership_transferred",
-                  "factory_direct_sell_ownership_transferred"
+                  "nft_burned"
                 ]
               },
               "name": "event_type"
