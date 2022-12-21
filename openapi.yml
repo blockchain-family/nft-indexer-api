@@ -505,37 +505,27 @@ paths:
                   enum:
                     - d
                     - h
-                limit:
-                  type: integer
-                  default: 100
-                offset:
-                  type: integer
-                  default: 0
+                from:
+                  $ref: '#/components/schemas/ts'
+                to:
+                  $ref: '#/components/schemas/ts'
       responses:
         '200':
           description: OK
           content:
             'application/json':
               schema:
-                type: object
-                properties:
-                  totalCount:
-                    type: integer
-                  items:
-                    type: array
-                    items:
-                      type: object
-                      required:
-                        - usdPrice
-                        - ts
-                      properties:
-                        usdPrice:
-                          type: string
-                        ts:
-                          $ref: '#/components/schemas/ts'
-                required:
-                  - totalCount
-                  - items
+                type: array
+                items:
+                  type: object
+                  required:
+                    - usdPrice
+                    - ts
+                  properties:
+                    usdPrice:
+                      type: string
+                    ts:
+                      $ref: '#/components/schemas/ts'
 
   /nft/details:
     post:
