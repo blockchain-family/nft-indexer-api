@@ -1,6 +1,7 @@
 use crate::{db::{Address, EventType, EventCategory, AuctionStatus, DirectSellState, DirectBuyState}, token::TokenDict};
 use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
+use crate::db::NftEventType;
 
 
 #[derive(Debug, Clone, Serialize)]
@@ -445,4 +446,104 @@ impl SearchResult {
             contract_type: val.typ.clone(),
         }
     }
+}
+
+
+#[derive(Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NftEvent {
+    event_type: NftEventType,
+    name: Option<String>,
+    description: Option<String>,
+    datetime: i64,
+    address: String,
+    preview_url: Option<String>,
+    direct_sell: Option<NftEventDirectSell>,
+    direct_buy: Option<NftEventDirectBuy>,
+    auction: Option<NftEventAuction>,
+}
+
+#[derive(Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NftEventDirectSell {
+    creator: String,
+    start_time: u64,
+    end_time: Option<u64>,
+    duration_time: Option<i64>,
+    price: String,
+    usd_price: Option<String>,
+    status: i64,
+    payment_token: String,
+}
+
+#[derive(Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NftEventDirectBuy {
+    creator: String,
+    start_time: i64,
+    end_time: i64,
+    duration_time: i64,
+    price: String,
+    usd_price: Option<String>,
+    status: i64,
+    spent_token: String,
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct NftEventAuction {
+    auction_active: Option<AuctionActive>,
+    auction_complete: Option<AuctionComplete>,
+    auction_cancelled: Option<AuctionCanceled>,
+    auction_bid_placed: Option<AuctionBidPlaced>,
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AuctionActive {
+    nft_owner: String,
+    auction_start_time: i64,
+    auction_end_time: i64,
+    auction_duration: i64,
+    state: i64,
+    payment_token: String,
+    price: String,
+    usd_price: Option<String>,
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AuctionComplete {
+    nft_owner: String,
+    auction_start_time: i64,
+    auction_end_time: i64,
+    auction_duration: i64,
+    state: i64,
+    payment_token: String,
+    price: String,
+    usd_price: Option<String>,
+    max_bid_value: String,
+    max_bid_address: String,
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AuctionCanceled {
+    nft_owner: String,
+    auction_start_time: i64,
+    auction_end_time: i64,
+    auction_duration: i64,
+    state: i64,
+    payment_token: String,
+    price: String,
+    usd_price: Option<String>,
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AuctionBidPlaced {
+    bid_sender: String,
+    payment_token: String,
+    bid_value: String,
+    usd_price: String,
 }

@@ -15,14 +15,14 @@ impl Queries {
         Self { db, tokens }
     }
 
-    pub async fn search_all(&self, 
+    pub async fn search_all(&self,
         search_str: &String,
     ) -> sqlx::Result<Vec<SearchResult>> {
         let is_address = sqlx::query_as!(SearchResult,
-            r#"SELECT 
+            r#"SELECT
                 s.address,
                 s.name,
-                s.type as "typ: _",
+                s.typ as "typ: _",
                 s.nft,
                 s.collection,
                 CASE WHEN m.meta is not null THEN m.meta::jsonb->'preview'->>'source'
@@ -42,10 +42,10 @@ impl Queries {
         }
 
         sqlx::query_as!(SearchResult,
-        r#"SELECT 
+        r#"SELECT
             s.address,
             s.name,
-            s.type as "typ: _",
+            s.typ as "typ: _",
             s.nft,
             s.collection,
             CASE WHEN m.meta is not null THEN m.meta::jsonb->'preview'->>'source'
@@ -90,7 +90,7 @@ impl Queries {
 
     pub async fn get_direct_sell(&self, address: &String) -> sqlx::Result<Option<NftDirectSell>> {
         sqlx::query_as!(NftDirectSell, r#"
-        SELECT 
+        SELECT
         s.address as "address!",
         s.created as "created!",
         s.updated as "updated!",
@@ -155,7 +155,7 @@ impl Queries {
             .await
     }
 
-    pub async fn collect_collections(&self, 
+    pub async fn collect_collections(&self,
         ids: &[String],
     ) -> sqlx::Result<Vec<NftCollection>> {
         sqlx::query_as!(NftCollection,
@@ -168,7 +168,7 @@ impl Queries {
             .await
     }
 
-    pub async fn collect_nfts(&self, 
+    pub async fn collect_nfts(&self,
         ids: &[String],
     ) -> sqlx::Result<Vec<NftDetails>> {
         sqlx::query_as!(NftDetails,
@@ -179,7 +179,7 @@ impl Queries {
             .await
     }
 
-    pub async fn collect_auctions(&self, 
+    pub async fn collect_auctions(&self,
         ids: &[String],
     ) -> sqlx::Result<Vec<NftAuction>> {
         sqlx::query_as!(NftAuction,
@@ -188,11 +188,11 @@ impl Queries {
             .await
     }
 
-    pub async fn collect_direct_buy(&self, 
+    pub async fn collect_direct_buy(&self,
         ids: &[String],
     ) -> sqlx::Result<Vec<NftDirectBuy>> {
         sqlx::query_as!(NftDirectBuy,
-            r#"SELECT 
+            r#"SELECT
             s.address as "address!",
             s.created as "created!",
             s.updated as "updated!",
@@ -212,11 +212,11 @@ impl Queries {
             .await
     }
 
-    pub async fn collect_direct_sell(&self, 
+    pub async fn collect_direct_sell(&self,
         ids: &[String],
     ) -> sqlx::Result<Vec<NftDirectSell>> {
         sqlx::query_as!(NftDirectSell,
-            r#"SELECT 
+            r#"SELECT
             s.address as "address!",
             s.created as "created!",
             s.updated as "updated!",
@@ -236,7 +236,7 @@ impl Queries {
             .await
     }
 
-    pub async fn list_collections_by_owner(&self, 
+    pub async fn list_collections_by_owner(&self,
         owner: &String,
         limit: usize,
         offset: usize,
@@ -253,7 +253,7 @@ impl Queries {
             .await
     }
 
-    pub async fn list_collections_by_owner_count(&self, 
+    pub async fn list_collections_by_owner_count(&self,
         owner: &String,
     ) -> sqlx::Result<i64> {
         sqlx::query!(
@@ -287,7 +287,7 @@ impl Queries {
             .await
     }
 
-    pub async fn list_collections_count(&self, 
+    pub async fn list_collections_count(&self,
         name: Option<&String>,
         owners: &[String],
         verified: Option<&bool>,
@@ -326,12 +326,12 @@ impl Queries {
         (n.owner = ANY($1) OR array_length($1::varchar[], 1) is null)
         and (n.collection = ANY($2) OR array_length($2::varchar[], 1) is null)
         and (($3::bool is null and $4::bool is null)
-            or ($3::bool is not null and $4::bool is not null 
+            or ($3::bool is not null and $4::bool is not null
                 and (($4::bool and n.forsale is not null and n.\"forsale_status: _\" = 'active') or (not $4::bool and n.forsale is null)
                 or ($3::bool and n.auction is not null and n.\"auction_status: _\" = 'active') or (not $3::bool and n.auction is null))
             )
             or (
-                $3::bool is null 
+                $3::bool is null
                 and (($4::bool and n.forsale is not null and n.\"forsale_status: _\" = 'active') or (not $4::bool and n.forsale is null))
             )
             or (
@@ -347,7 +347,7 @@ impl Queries {
             .await
     }
 
-    pub async fn nft_search_count(&self, 
+    pub async fn nft_search_count(&self,
         owners: &[Address],
         collections: &[Address],
         _price_from: Option<u64>,
@@ -365,12 +365,12 @@ impl Queries {
         (n.owner = ANY($1) OR array_length($1::varchar[], 1) is null)
         and (n.collection = ANY($2) OR array_length($2::varchar[], 1) is null)
         and (($3::bool is null and $4::bool is null)
-            or ($3::bool is not null and $4::bool is not null 
+            or ($3::bool is not null and $4::bool is not null
                 and (($4::bool and n.forsale is not null and n.\"forsale_status: _\" = 'active') or (not $4::bool and n.forsale is null)
                 or ($3::bool and n.auction is not null and n.\"auction_status: _\" = 'active') or (not $3::bool and n.auction is null))
             )
             or (
-                $3::bool is null 
+                $3::bool is null
                 and (($4::bool and n.forsale is not null and n.\"forsale_status: _\" = 'active') or (not $4::bool and n.forsale is null))
             )
             or (
@@ -465,7 +465,7 @@ impl Queries {
                 SELECT a.*
                 FROM nft_auction_search a
                 INNER JOIN nft n ON a.nft = n.address
-                WHERE 
+                WHERE
                 (n.owner = ANY($1) OR array_length($1::varchar[], 1) is null)
                 AND (n.collection = ANY($2) OR array_length($2::varchar[], 1) is null)
                 AND (a.nft = ANY($3) OR array_length($3::varchar[], 1) is null)
@@ -479,7 +479,7 @@ impl Queries {
                 SELECT a.*
                 FROM nft_auction_search a
                 INNER JOIN nft n ON a.nft = n.address
-                WHERE 
+                WHERE
                 (n.owner = ANY($1) OR array_length($1::varchar[], 1) is null)
                 AND (n.collection = ANY($2) OR array_length($2::varchar[], 1) is null)
                 AND (a.nft = ANY($3) OR array_length($3::varchar[], 1) is null)
@@ -493,7 +493,7 @@ impl Queries {
                 SELECT a.*
                 FROM nft_auction_search a
                 INNER JOIN nft n ON a.nft = n.address
-                WHERE 
+                WHERE
                 (n.owner = ANY($1) OR array_length($1::varchar[], 1) is null)
                 AND (n.collection = ANY($2) OR array_length($2::varchar[], 1) is null)
                 AND (a.nft = ANY($3) OR array_length($3::varchar[], 1) is null)
@@ -511,10 +511,10 @@ impl Queries {
         tokens: &[Address],
     ) -> sqlx::Result<i64> {
         sqlx::query!("
-    SELECT count(a.*) 
+    SELECT count(a.*)
     FROM nft_auction_search a
     INNER JOIN nft n ON a.nft = n.address
-    WHERE 
+    WHERE
     (n.owner = ANY($1) OR array_length($1::varchar[], 1) is null)
     AND (n.collection = ANY($2) OR array_length($2::varchar[], 1) is null)
     AND (a.nft = ANY($3) OR array_length($3::varchar[], 1) is null)
@@ -525,111 +525,29 @@ impl Queries {
     }
 
     pub async fn list_events(&self,
-        nft: Option<&String>,
-        collection: Option<&String>,
-        owner: Option<&String>,
-        event_type: &[NftEventType],
-        category: &[NftEventCategory],
-        offset: usize,
-        limit: usize,
-    ) -> sqlx::Result<Vec<NftEvent>> {
-        let event_types_str: Vec<String> = event_type.iter().map(|x| format!("{:?}", x)).collect();
-        let categories_str: Vec<String> = category.iter().map(|x| format!("{:?}", x)).collect();
-        sqlx::query_as!(NftEvent, "
-        /* event cat, event type, owner, nft, collection, offset, limit */
+                             nft: Option<&String>,
+                             collection: Option<&String>,
+                             owner: Option<&String>,
+                             event_type: &[NftEventType],
+                             category: &[NftEventCategory],
+                             offset: usize,
+                             limit: usize,
+    ) -> sqlx::Result<NftEvents> {
+        let event_types_slice = &event_type.iter().map(|x| x.to_string()).collect::<Vec<String>>()[..];
+        let categories_slice = &category.iter().map(|x| x.to_string()).collect::<Vec<String>>()[..];
+        let events = sqlx::query_file_as!(NftEvents,
+            "src/db/sql/list_activities.sql",
+            categories_slice,
+            event_types_slice,
+            owner,
+            nft,
+            collection,
+            limit as i64,
+            offset as i64)
+            .fetch_one(self.db.as_ref())
+            .await?;
 
-            with result as (
-                select ne.*,
-                       (ne.args ->> 'from')::int            f,
-                       (ne.args ->> 'to')::int              t,
-                       nm.meta -> 'preview' ->> 'source' as preview_url,
-                       n.description,
-                       n.name,
-                       n.owner,
-                       nm.meta
-                from nft_events ne
-                         join nft n
-                              on ne.nft = n.address
-
-                         join nft_metadata nm on ne.nft = nm.nft
-                where (ne.address = :a3 or :a3 is null)
-                  and (ne.args -> 'creator' = :a3 or :a3 is null)
-
-                  and (ne.nft = :a4 or :a4 is null)
-                  and (ne.collection = :a5 or :a5 is null)
-                  and (ne.event_cat::text = any (:a1) or :a1 is null)
-                  and (
-                        ((ne.args ->> 'from')::int = 0 and (ne.args ->> 'to')::int = 2) or
-                        ((ne.args ->> 'from')::int = 2 and (ne.args ->> 'to')::int = 3) or
-                        ((ne.args ->> 'from')::int = 2 and (ne.args ->> 'to')::int = 4)
-                    )
-                  and (
-                        ((ne.args ->> 'from')::int = 0 and (ne.args ->> 'to')::int = 2 and
-                         (('UpForSale' = any (:a2) and ne.event_cat = 'direct_buy') or
-                          ('Active' = any (:a2) and ne.event_cat = 'direct_sell')))
-                        or
-                        ((ne.args ->> 'from')::int = 2 and (ne.args ->> 'to')::int = 3 and
-                         ('purchase' = any (:a2) and ne.event_cat = 'direct_buy') or
-                         ('filled' = any (:a2) and ne.event_cat = 'direct_sell'))
-                        or
-                        ((ne.args ->> 'from')::int = 2 and (ne.args ->> 'to')::int = 4 and (
-                                ('SaleCanceled' = any (:a2) and (ne.event_cat = 'direct_buy')) or
-                                ('Canceled' = any (:a2) and ne.event_cat = 'direct_sell'))
-                            ) or (:a2) is null
-                    )
-                order by ne.created_at desc, ne.id desc
-                limit :a6 offset :a7
-            )
-            select json_agg(json_build_object('event_type', case
-                                                       when
-                                                           r.f = 0 and r.t = 2 then 'UpForSale'
-                                                       when
-                                                           r.f = 2 and r.t = 3 then 'Purchase'
-                                                       when
-                                                           r.f = 2 and r.t = 4 then 'SaleCanceled'
-                end,
-                                     'name', r.name,
-                                     'description', r.description,
-                                     'datetime', r.created_at,
-                                     'address', r.address,
-                                     'preview_url', r.preview_url,
-                   'direct_sell',
-                   case
-                       when r.event_cat = 'direct_sell' then
-                           json_build_object(
-                                   'creator', r.args -> 'creator',
-                                   'start_time', r.args -> 'start',
-                                   'end_time', r.args -> 'end',
-                                   'status', r.args -> 'status',
-                                   'price', r.args -> '_price',
-                                   'usd_price', ((r.args ->> '_price')::numeric * curr.usd_price)::text,
-                                   'payment_token', r.args -> 'token'
-                               )
-                       end                                        , 'direct_buy',
-                   case
-                       when r.event_cat = 'direct_buy' then
-                           json_build_object(
-                                   'creator', r.args -> 'creator',
-                                   'start_time', r.args -> 'start_time_buy',
-                                   'end_time', r.args -> 'end_time_buy',
-                                   'duration_time', r.args -> 'duration_time',
-                                   'price', r.args -> '_price',
-                                   'usd_price', ((r.args ->> '_price')::numeric * curr.usd_price)::text,
-                                   'status', r.args -> 'status',
-                                   'spent_token', r.args -> 'spent_token'
-                               )
-                       end                      )      )    obj
-            from result as r
-                     left join lateral (
-                select p.usd_price
-                from token_usd_prices p
-                where r.args ->> 'token' = p.token::text
-                   or r.args ->> 'spent_token' = p.token::text
-                ) curr on true
-        ",
-            &categories_str, &event_types_str, owner, nft, collection, offset as i64, limit as i64)
-            .fetch_all(self.db.as_ref())
-            .await
+        Ok(events)
     }
 
     pub async fn list_events_count(&self,
@@ -677,7 +595,7 @@ impl Queries {
             .await
     }
 
-    pub async fn list_nft_direct_buy_count(&self, 
+    pub async fn list_nft_direct_buy_count(&self,
         nft: &String,
         status: &[DirectBuyState],
     ) -> sqlx::Result<i64> {
@@ -708,7 +626,7 @@ impl Queries {
         s.finished_at, s.expired_at,
         s.state as "state!: _"
         FROM nft_direct_sell_usd s
-        WHERE s.seller = $1 
+        WHERE s.seller = $1
             AND (s.collection = ANY($2) OR array_length($2::varchar[], 1) is null)
             AND (array_length($3::varchar[], 1) is null OR s.state::varchar = ANY($3))
         ORDER BY s.updated DESC LIMIT $4 OFFSET $5
@@ -717,7 +635,7 @@ impl Queries {
             .await
     }
 
-    pub async fn list_owner_direct_sell_count(&self, 
+    pub async fn list_owner_direct_sell_count(&self,
         owner: &String,
         collections: &[String],
         status: &[DirectSellState],
@@ -726,7 +644,7 @@ impl Queries {
         sqlx::query!(
             "SELECT count(*)
             FROM nft_direct_sell_usd s
-            WHERE s.seller = $1 
+            WHERE s.seller = $1
                 AND (s.collection = ANY($2) OR array_length($2::varchar[], 1) is null)
                 AND (array_length($3::varchar[], 1) is null OR s.state::varchar = ANY($3))
             ", owner, collections, &status_str)
@@ -752,7 +670,7 @@ impl Queries {
         s.finished_at, s.expired_at,
         s.state as "state!: _"
         FROM nft_direct_buy_usd s
-        WHERE s.buyer = $1 
+        WHERE s.buyer = $1
             AND (s.collection = ANY($2) OR array_length($2::varchar[], 1) is null)
             AND (array_length($3::varchar[], 1) is null OR s.state::varchar = ANY($3))
         ORDER BY s.updated DESC LIMIT $4 OFFSET $5
@@ -761,7 +679,7 @@ impl Queries {
             .await
     }
 
-    pub async fn list_owner_direct_buy_count(&self, 
+    pub async fn list_owner_direct_buy_count(&self,
         owner: &String,
         collections: &[String],
         status: &[DirectBuyState],
@@ -770,7 +688,7 @@ impl Queries {
         sqlx::query!(
             "SELECT count(*)
             FROM nft_direct_buy_usd s
-            WHERE s.buyer = $1 
+            WHERE s.buyer = $1
                 AND (s.collection = ANY($2) OR array_length($2::varchar[], 1) is null)
                 AND (array_length($3::varchar[], 1) is null OR s.state::varchar = ANY($3))
             ", owner, collections, &status_str)
@@ -797,7 +715,7 @@ impl Queries {
         s.state as "state!: _"
         FROM nft_direct_buy_usd s
         INNER JOIN nft n ON n.address = s.nft
-        WHERE n.owner = $1 
+        WHERE n.owner = $1
             AND (s.collection = ANY($2) OR array_length($2::varchar[], 1) is null)
             AND (array_length($3::varchar[], 1) is null OR s.state::varchar = ANY($3))
         ORDER BY s.updated DESC LIMIT $4 OFFSET $5
@@ -806,7 +724,7 @@ impl Queries {
             .await
     }
 
-    pub async fn list_owner_direct_buy_in_count(&self, 
+    pub async fn list_owner_direct_buy_in_count(&self,
         owner: &String,
         collections: &[String],
         status: &[DirectBuyState],
@@ -816,7 +734,7 @@ impl Queries {
             "SELECT count(*)
             FROM nft_direct_buy_usd s
             INNER JOIN nft n ON n.address = s.nft
-            WHERE n.owner = $1 
+            WHERE n.owner = $1
                 AND (s.collection = ANY($2) OR array_length($2::varchar[], 1) is null)
                 AND (array_length($3::varchar[], 1) is null OR s.state::varchar = ANY($3))
             ", owner, collections, &status_str)
@@ -847,7 +765,7 @@ impl Queries {
         x.nft,
         x.collection
         FROM nft_auction_bids_view x
-        WHERE x.buyer = $1 
+        WHERE x.buyer = $1
         AND (x.collection = ANY($2) OR array_length($2::varchar[], 1) is null)
             AND ($3::bool is null OR $3::bool = false OR x.active is true)
         ORDER BY x.created_at DESC LIMIT $4 OFFSET $5
@@ -856,7 +774,7 @@ impl Queries {
             .await
     }
 
-    pub async fn list_owner_auction_bids_out_count(&self, 
+    pub async fn list_owner_auction_bids_out_count(&self,
         owner: &String,
         collections: &[String],
         lastbid: &Option<bool>,
@@ -864,7 +782,7 @@ impl Queries {
         let lastbid = lastbid.clone();
         sqlx::query!("
             SELECT count(x.*) FROM nft_auction_bids_view x
-            WHERE x.buyer = $1 
+            WHERE x.buyer = $1
             AND (x.collection = ANY($2) OR array_length($2::varchar[], 1) is null)
                 AND ($3::bool is null OR $3::bool = false OR x.active is true)
             ", owner, collections, lastbid)
@@ -895,7 +813,7 @@ impl Queries {
         x.nft,
         x.collection
         FROM nft_auction_bids_view x
-        WHERE x.owner = $1 
+        WHERE x.owner = $1
             AND (x.collection = ANY($2) OR array_length($2::varchar[], 1) is null)
             AND ($3::bool is null OR $3::bool = false OR x.active is true)
         ORDER BY x.created_at DESC LIMIT $4 OFFSET $5
@@ -904,7 +822,7 @@ impl Queries {
             .await
     }
 
-    pub async fn list_owner_auction_bids_in_count(&self, 
+    pub async fn list_owner_auction_bids_in_count(&self,
         owner: &String,
         collections: &[String],
         lastbid: &Option<bool>,
@@ -912,7 +830,7 @@ impl Queries {
         sqlx::query!(
             "SELECT count(*)
             FROM nft_auction_bids_view x
-            WHERE x.owner = $1 
+            WHERE x.owner = $1
                 AND (x.collection = ANY($2) OR array_length($2::varchar[], 1) is null)
                 AND ($3::bool is null OR $3::bool = false OR x.active is true)
             ", owner, collections, lastbid.clone())
@@ -1011,8 +929,8 @@ impl Queries {
         for price in prices.drain(..) {
             sqlx::query!("
             INSERT INTO token_usd_prices (token, usd_price, ts)
-            VALUES ($1::varchar, $2, $3) 
-            ON CONFLICT (token) DO UPDATE 
+            VALUES ($1::varchar, $2, $3)
+            ON CONFLICT (token) DO UPDATE
             SET
                 usd_price = EXCLUDED.usd_price,
                 ts = EXCLUDED.ts;

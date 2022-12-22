@@ -1,6 +1,7 @@
 use sqlx::types::BigDecimal;
 use chrono::NaiveDateTime;
 use serde::{Serialize, Deserialize};
+use serde_json::Value;
 use super::*;
 
 pub type Address = String;
@@ -271,38 +272,7 @@ impl NftDetails {
     }
 }
 
-#[derive(Deserialize, Debug, Serialize)]
-pub struct NftEvent {
-    event_type: String,
-    name: String,
-    description: Option<String>,
-    datetime: i64,
-    address: String,
-    preview_url: Option<String>,
-    direct_sell: Option<NftEventDirectSell>,
-    direct_buy: Option<NftEventDirectBuy>,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct NftEventDirectSell {
-    creator: String,
-    start_time: i64,
-    end_time: i64,
-    duration_time: Option<i64>,
-    price: BigDecimal,
-    usd_price: BigDecimal,
-    status: i64,
-    payment_token: String,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct NftEventDirectBuy {
-    creator: String,
-    start_time: i64,
-    end_time: i64,
-    duration_time: Option<i64>,
-    price: BigDecimal,
-    usd_price: BigDecimal,
-    status: i64,
-    spent_token: String,
+#[derive(Deserialize, Debug, Serialize, sqlx::FromRow)]
+pub struct NftEvents {
+    pub events: Option<Value>
 }
