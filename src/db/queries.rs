@@ -1,5 +1,6 @@
 use sqlx::{self, postgres::PgPool};
 use std::sync::Arc;
+use chrono::NaiveDateTime;
 use crate::{handlers::AuctionsSortOrder, token::TokenDict};
 use super::*;
 
@@ -841,7 +842,11 @@ impl Queries {
 
     pub async fn list_nft_price_history_hours(&self,
         nft: &String,
+        from: Option<usize>,
+        to: Option<usize>,
     ) -> sqlx::Result<Vec<NftPrice>> {
+        let from = from.map(|x| NaiveDateTime::from_timestamp(x as i64, 0));
+        let to = to.map(|x| NaiveDateTime::from_timestamp(x as i64, 0));
         sqlx::query_as!(NftPrice, "
         SELECT
             date_trunc('hour', p.ts) as ts,
@@ -849,16 +854,22 @@ impl Queries {
             count(*) as count
         FROM nft_price_history_usd p
         WHERE p.nft = $1 AND p.price_token is not null
+        AND ($2::timestamp is null or p.ts >= $2::timestamp)
+        AND ($3::timestamp is null or p.ts < $3::timestamp)
         GROUP BY 1
         ORDER BY 1 ASC
-        ", Some(nft))
+        ", Some(nft), from, to)
             .fetch_all(self.db.as_ref())
             .await
     }
 
     pub async fn list_nft_price_history_days(&self,
         nft: &String,
+        from: Option<usize>,
+        to: Option<usize>,
     ) -> sqlx::Result<Vec<NftPrice>> {
+        let from = from.map(|x| NaiveDateTime::from_timestamp(x as i64, 0));
+        let to = to.map(|x| NaiveDateTime::from_timestamp(x as i64, 0));
         sqlx::query_as!(NftPrice, "
         SELECT
             date_trunc('day', p.ts) as ts,
@@ -866,9 +877,11 @@ impl Queries {
             count(*) as count
         FROM nft_price_history_usd p
         WHERE p.nft = $1 AND p.price_token is not null
+        AND ($2::timestamp is null or p.ts >= $2::timestamp)
+        AND ($3::timestamp is null or p.ts < $3::timestamp)
         GROUP BY 1
         ORDER BY 1 ASC
-        ", Some(nft))
+        ", Some(nft), from, to)
             .fetch_all(self.db.as_ref())
             .await
     }

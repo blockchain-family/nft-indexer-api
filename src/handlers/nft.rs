@@ -161,8 +161,8 @@ pub fn get_nft_price_history(
 
 pub async fn get_nft_price_history_handler(query: NftPriceHistoryQuery, db: Queries) -> Result<Box<dyn warp::Reply>, Infallible> {
     let ret = match query.scale.unwrap_or_default() {
-        PriceHistoryScale::Days => db.list_nft_price_history_days(&query.nft).await,
-        PriceHistoryScale::Hours => db.list_nft_price_history_hours(&query.nft).await,
+        PriceHistoryScale::Days => db.list_nft_price_history_days(&query.nft, query.from.clone(), query.to.clone()).await,
+        PriceHistoryScale::Hours => db.list_nft_price_history_hours(&query.nft, query.from.clone(), query.to.clone()).await,
     };
     match ret {
         Err(e) => Ok(Box::from(warp::reply::with_status(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))),
@@ -322,8 +322,8 @@ impl Default for PriceHistoryScale {
 pub struct NftPriceHistoryQuery {
     pub nft: Address,
     pub scale: Option<PriceHistoryScale>,
-    pub limit: Option<usize>,
-    pub offset: Option<usize>,
+    pub from: Option<usize>,
+    pub to: Option<usize>,
 }
 
 pub async fn collect_nfts(db: &Queries, ids: &Vec<String>) -> anyhow::Result<HashMap<String, NFT>> {

@@ -72,7 +72,7 @@ select coalesce(json_agg(json_build_object('eventType', case
                                   'name', r.name,
                                   'description', r.description,
                                   'datetime', r.created_at,
-                                  'address', r.address,
+                                  'address', r.nft,
                                   'previewUrl', r.preview_url,
                                   'directSell',
                                   case
