@@ -23,7 +23,7 @@ impl Queries {
             r#"SELECT 
                 s.address,
                 s.name,
-                s.type as "typ: _",
+                s.typ as "typ: _",
                 s.nft,
                 s.collection,
                 CASE WHEN m.meta is not null THEN m.meta::jsonb->'preview'->>'source'
@@ -46,7 +46,7 @@ impl Queries {
         r#"SELECT 
             s.address,
             s.name,
-            s.type as "typ: _",
+            s.typ as "typ: _",
             s.nft,
             s.collection,
             CASE WHEN m.meta is not null THEN m.meta::jsonb->'preview'->>'source'
