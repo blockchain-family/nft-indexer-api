@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::fmt::{Display, Formatter};
 
 use serde::{Deserialize, Serialize};
 
@@ -92,6 +92,60 @@ pub enum NftPriceSource {
     DirectBuy,
     #[sqlx(rename = "directSell")]
     DirectSell,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type)]
+#[sqlx(type_name = "event_category", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum NftEventCategory {
+    Auction,
+    DirectBuy,
+    DirectSell,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type)]
+#[sqlx(type_name = "event_category")]
+#[serde(rename_all = "snake_case")]
+pub enum NftEventType {
+    Active,
+    Filled,
+    Canceled,
+
+    UpForSale,
+    Purchase,
+    SaleCanceled,
+
+    AuctionActive,
+    AuctionBidPlaced,
+    AuctionCancelled,
+    AuctionComplete,
+}
+
+impl Display for NftEventCategory {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            NftEventCategory::Auction => write!(f, "auction"),
+            NftEventCategory::DirectBuy => write!(f, "direct_buy"),
+            NftEventCategory::DirectSell => write!(f, "direct_sell"),
+        }
+    }
+}
+
+impl Display for NftEventType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            NftEventType::Active => write!(f, "Active"),
+            NftEventType::Filled => write!(f, "Filled"),
+            NftEventType::Canceled => write!(f, "Canceled"),
+            NftEventType::UpForSale => write!(f, "UpForSale"),
+            NftEventType::Purchase => write!(f, "Purchase"),
+            NftEventType::SaleCanceled => write!(f, "SaleCanceled"),
+            NftEventType::AuctionActive => write!(f, "AuctionActive"),
+            NftEventType::AuctionBidPlaced => write!(f, "AuctionBidPlaced"),
+            NftEventType::AuctionCancelled => write!(f, "AuctionCancelled"),
+            NftEventType::AuctionComplete => write!(f, "AuctionComplete"),
+        }
+    }
 }
 
 impl Default for AuctionStatus {
