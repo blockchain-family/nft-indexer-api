@@ -461,6 +461,8 @@ pub struct NftEvent {
     direct_sell: Option<NftEventDirectSell>,
     direct_buy: Option<NftEventDirectBuy>,
     auction: Option<NftEventAuction>,
+    mint: Option<NftEventMint>,
+    transfer: Option<NftEventTransfer>,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -546,4 +548,18 @@ struct AuctionBidPlaced {
     payment_token: String,
     bid_value: String,
     usd_price: String,
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct NftEventMint {
+    owner: String,
+    creator: String,
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct NftEventTransfer {
+    from: String,
+    to: String,
 }

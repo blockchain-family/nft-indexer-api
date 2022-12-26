@@ -218,6 +218,26 @@ components:
         - status
         - price
         - paymentToken
+    nftEventMint:
+      type: object
+      properties:
+        creator:
+          $ref: '#/components/schemas/address'
+        owner:
+          $ref: '#/components/schemas/address'
+      required:
+        - creator
+        - owner
+    nftEventTransfer:
+      type: object
+      properties:
+        from:
+          $ref: '#/components/schemas/address'
+        to:
+          $ref: '#/components/schemas/address'
+      required:
+        - from
+        - to
     nftEventAuction:
       type: object
       properties:
@@ -250,6 +270,10 @@ components:
           $ref: '#/components/schemas/nftEventDirectBuy'
         auction:
           $ref: '#/components/schemas/nftEventAuction'
+        mint:
+          $ref: '#/components/schemas/nftEventMint'
+        transfer:
+          $ref: '#/components/schemas/nftEventTransfer'
       required:
         - eventType
         - datetime
