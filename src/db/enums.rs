@@ -101,6 +101,8 @@ pub enum NftEventCategory {
     Auction,
     DirectBuy,
     DirectSell,
+    Collection,
+    Nft
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type)]
@@ -119,6 +121,10 @@ pub enum NftEventType {
     AuctionBidPlaced,
     AuctionCancelled,
     AuctionComplete,
+
+    Mint,
+
+    Transfer
 }
 
 impl Display for NftEventCategory {
@@ -127,6 +133,8 @@ impl Display for NftEventCategory {
             NftEventCategory::Auction => write!(f, "auction"),
             NftEventCategory::DirectBuy => write!(f, "direct_buy"),
             NftEventCategory::DirectSell => write!(f, "direct_sell"),
+            NftEventCategory::Collection => write!(f, "collection"),
+            NftEventCategory::Nft => write!(f, "nft")
         }
     }
 }
@@ -144,6 +152,8 @@ impl Display for NftEventType {
             NftEventType::AuctionBidPlaced => write!(f, "AuctionBidPlaced"),
             NftEventType::AuctionCancelled => write!(f, "AuctionCancelled"),
             NftEventType::AuctionComplete => write!(f, "AuctionComplete"),
+            NftEventType::Mint => write!(f, "Mint"),
+            NftEventType::Transfer => write!(f, "Transfer"),
         }
     }
 }
