@@ -542,7 +542,7 @@ components:
         - purchase
         - sale_canceled
         - auction_active
-        - bid_placed
+        - auction_bid_placed
         - auction_canceled
         - auction_complete
     eventCategory:
