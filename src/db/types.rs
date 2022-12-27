@@ -273,6 +273,6 @@ impl NftDetails {
 }
 
 #[derive(Deserialize, Debug, Serialize, sqlx::FromRow)]
-pub struct NftEvents {
-    pub events: Option<Value>
+pub struct NftEventsRecord {
+    pub content: Option<Value>
 }

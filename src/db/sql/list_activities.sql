@@ -1,5 +1,6 @@
 /* event cat, event type, owner, nft, collection, offset, limit */
 
+
 with result as (
     select ne.*,
            (ne.args ->> 'from')::int            f,
@@ -9,7 +10,9 @@ with result as (
            n.name,
            n.owner,
            nm.meta,
-           auction.args                         auction_args
+           auction.args                         auction_args,
+           ne.id,
+           count(1) over () as total_rows
     from nft_events ne
              join nft n on ne.nft = n.address
              join nft_metadata nm on ne.nft = nm.nft
@@ -32,15 +35,16 @@ with result as (
                         auction.args ->> 'subject_owner'
                 )
             or $3 is null))
-
+-- and n.name = 'Test Mystery Box 2'
       and (ne.nft = $4 or $4 is null)
-      and (ne.collection = $5 or $5 is null)
+      and (ne.collection = any($5) or $5 = '{}')
       and (ne.event_cat::text = any ($1) or $1 = '{}')
       and (
-            ((ne.args ->> 'from')::int = 0 and (ne.args ->> 'to')::int = 2) or
-            ((ne.args ->> 'from')::int = 2 and (ne.args ->> 'to')::int = 3) or
-            ((ne.args ->> 'from')::int = 2 and (ne.args ->> 'to')::int = 4)
-            or ne.event_type in ('auction_active',
+            ((ne.args ->> 'from')::integer = 0 and (ne.args ->> 'to')::integer = 2) or
+            ((ne.args ->> 'from')::integer = 2 and (ne.args ->> 'to')::integer = 3) or
+            ((ne.args ->> 'from')::integer = 2 and (ne.args ->> 'to')::integer = 4)
+            or
+            ne.event_type in ('auction_active',
                                  'auction_cancelled',
                                  'auction_bid_placed',
                                  'auction_complete',
@@ -52,8 +56,9 @@ with result as (
             ('Transfer' = any ($2) and ne.event_type = 'nft_owner_changed') or
             ('AuctionActive' = any ($2) and ne.event_type = 'auction_active') or
             ('AuctionBidPlaced' = any ($2) and ne.event_type = 'auction_bid_placed') or
-            ('AuctionCancelled' = any ($2) and ne.event_type = 'auction_cancelled') or
-            ('AuctionComplete' = any ($2) and ne.event_type = 'auction_complete') or
+            ('AuctionCanceled' = any ($2) and ne.event_type = 'auction_cancelled') or
+            ('AuctionComplete' = any ($2) and ne.event_type = 'auction_complete')
+                or
             ((ne.args ->> 'from')::int = 0 and (ne.args ->> 'to')::int = 2 and
              (('UpForSale' = any ($2) and ne.event_cat = 'direct_buy') or
               ('Active' = any ($2) and ne.event_cat = 'direct_sell')))
@@ -63,19 +68,25 @@ with result as (
              ('filled' = any ($2) and ne.event_cat = 'direct_sell'))
             or
             ((ne.args ->> 'from')::int = 2 and (ne.args ->> 'to')::int = 4 and (
-                    ('SaleCanceled' = any ($2) and (ne.event_cat = 'direct_buy')) or
-                    ('Canceled' = any ($2) and ne.event_cat = 'direct_sell'))
-                ) or ($2) = '{}'
+                    ('SaleCanceled' = any ($2) and (ne.event_cat = 'direct_sell')) or
+                    ('Canceled' = any ($2) and ne.event_cat = 'direct_buy'))
+                )
+
+                or ($2) = '{}'
         )
     order by ne.created_at desc, ne.id desc
     limit $6 offset $7
 )
-select coalesce(json_agg(json_build_object('eventType', case
+select
+       json_build_object('totalRows', coalesce(max(r.total_rows),0), 'data',
+       coalesce(json_agg(json_build_object('eventType', case
                                                             when r.f = 0 and r.t = 2 then 'up_for_sale'
                                                             when r.f = 2 and r.t = 3 then 'purchase'
-                                                            when r.f = 2 and r.t = 4 then 'sale_canceled'
+                                                            when r.f = 2 and r.t = 4 and r.event_cat ='direct_sell' then 'sale_canceled'
+                                                            when r.f = 2 and r.t = 4 and r.event_cat ='direct_buy' then 'canceled'
                                                             when r.event_type = 'nft_created' then 'mint'
                                                             when r.event_type = 'nft_owner_changed' then 'transfer'
+                                                            when r.event_type = 'auction_cancelled' then 'auction_canceled'
                                                             else r.event_type::text
     end,
                                            'name', r.name,
@@ -85,15 +96,15 @@ select coalesce(json_agg(json_build_object('eventType', case
                                            'previewUrl', r.preview_url,
                                            'mint',
                                            case when r.event_type = 'nft_created'
-                                               then json_build_object(
-                                                    'owner', r.args -> 'owner',
+                                               then json_build_object('owner', r.args -> 'owner',
                                                    'creator', r.args -> 'creator')
+
                                                end,
                                           'transfer',
                                            case when r.event_type = 'nft_owner_changed'
-                                               then json_build_object(
-                                                   'from', r.args -> 'old_owner',
+                                               then json_build_object('from', r.args -> 'old_owner',
                                                    'to', r.args -> 'new_owner')
+
                                                end,
                                            'directSell',
                                            case
@@ -162,7 +173,7 @@ select coalesce(json_agg(json_build_object('eventType', case
                                                                                      ((r.args ->> 'value')::numeric * curr.usd_price)::text
                                                                        )
                                                                end,
-                                                           'auctionCancelled',
+                                                           'auctionCanceled',
                                                            case
                                                                when r.event_type = 'auction_cancelled' then
                                                                    json_build_object(
@@ -194,8 +205,8 @@ select coalesce(json_agg(json_build_object('eventType', case
                                                                end
                                                        ) end
     )
-                    ), '[]'::json)
-           events
+                    ), '[]'::json))
+           content
 from result as r
          left join lateral (
     select p.usd_price

@@ -119,7 +119,7 @@ pub enum NftEventType {
 
     AuctionActive,
     AuctionBidPlaced,
-    AuctionCancelled,
+    AuctionCanceled,
     AuctionComplete,
 
     Mint,
@@ -150,7 +150,7 @@ impl Display for NftEventType {
             NftEventType::SaleCanceled => write!(f, "SaleCanceled"),
             NftEventType::AuctionActive => write!(f, "AuctionActive"),
             NftEventType::AuctionBidPlaced => write!(f, "AuctionBidPlaced"),
-            NftEventType::AuctionCancelled => write!(f, "AuctionCancelled"),
+            NftEventType::AuctionCanceled => write!(f, "AuctionCanceled"),
             NftEventType::AuctionComplete => write!(f, "AuctionComplete"),
             NftEventType::Mint => write!(f, "Mint"),
             NftEventType::Transfer => write!(f, "Transfer"),

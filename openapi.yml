@@ -278,7 +278,6 @@ components:
         - eventType
         - datetime
         - address
-
     auctionBid:
       type: object
       properties:
@@ -1360,7 +1359,9 @@ paths:
                 nft:
                   $ref: '#/components/schemas/address'
                 collection:
-                  $ref: '#/components/schemas/address'
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/address'
                 owner:
                   $ref: '#/components/schemas/address'
                 type:
@@ -1383,6 +1384,11 @@ paths:
           content:
             'application/json':
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/nftEvent'
+                type: object
+                properties:
+                  totalRows:
+                    type: integer
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/nftEvent'
