@@ -65,7 +65,7 @@ pub struct Nft {
 #[derive(Clone, Debug)]
 pub struct NftMeta {
     pub nft: Address,
-    pub meta: serde_json::Value,
+    pub meta: Value,
     pub updated: NaiveDateTime,
 }
 

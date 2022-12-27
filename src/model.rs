@@ -465,6 +465,7 @@ impl Default for NftEvents {
 #[derive(Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NftEvent {
+    id: i64,
     event_type: NftEventType,
     name: Option<String>,
     description: Option<String>,

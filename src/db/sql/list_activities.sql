@@ -11,7 +11,6 @@ with result as (
            n.owner,
            nm.meta,
            auction.args                         auction_args,
-           ne.id,
            count(1) over () as total_rows
     from nft_events ne
              join nft n on ne.nft = n.address
@@ -35,7 +34,6 @@ with result as (
                         auction.args ->> 'subject_owner'
                 )
             or $3 is null))
--- and n.name = 'Test Mystery Box 2'
       and (ne.nft = $4 or $4 is null)
       and (ne.collection = any($5) or $5 = '{}')
       and (ne.event_cat::text = any ($1) or $1 = '{}')
@@ -60,16 +58,16 @@ with result as (
             ('AuctionComplete' = any ($2) and ne.event_type = 'auction_complete')
                 or
             ((ne.args ->> 'from')::int = 0 and (ne.args ->> 'to')::int = 2 and
-             (('UpForSale' = any ($2) and ne.event_cat = 'direct_buy') or
-              ('Active' = any ($2) and ne.event_cat = 'direct_sell')))
+             (('OfferActive' = any ($2) and ne.event_cat = 'direct_buy') or
+              ('SellActive' = any ($2) and ne.event_cat = 'direct_sell')))
             or
-            ((ne.args ->> 'from')::int = 2 and (ne.args ->> 'to')::int = 3 and
-             ('purchase' = any ($2) and ne.event_cat = 'direct_buy') or
-             ('filled' = any ($2) and ne.event_cat = 'direct_sell'))
+            ((ne.args ->> 'from')::int = 2 and (ne.args ->> 'to')::int = 3 and (
+             ('OfferFilled' = any ($2) and ne.event_cat = 'direct_buy') or
+             ('SellPurchased' = any ($2) and ne.event_cat = 'direct_sell')))
             or
             ((ne.args ->> 'from')::int = 2 and (ne.args ->> 'to')::int = 4 and (
-                    ('SaleCanceled' = any ($2) and (ne.event_cat = 'direct_sell')) or
-                    ('Canceled' = any ($2) and ne.event_cat = 'direct_buy'))
+                    ('SellCanceled' = any ($2) and (ne.event_cat = 'direct_sell')) or
+                    ('OfferCanceled' = any ($2) and ne.event_cat = 'direct_buy'))
                 )
 
                 or ($2) = '{}'
@@ -80,15 +78,18 @@ with result as (
 select
        json_build_object('totalRows', coalesce(max(r.total_rows),0), 'data',
        coalesce(json_agg(json_build_object('eventType', case
-                                                            when r.f = 0 and r.t = 2 then 'up_for_sale'
-                                                            when r.f = 2 and r.t = 3 then 'purchase'
-                                                            when r.f = 2 and r.t = 4 and r.event_cat ='direct_sell' then 'sale_canceled'
-                                                            when r.f = 2 and r.t = 4 and r.event_cat ='direct_buy' then 'canceled'
+                                                            when r.f = 0 and r.t = 2 and r.event_cat = 'direct_sell' then 'sell_active'
+                                                            when r.f = 0 and r.t = 2 and r.event_cat = 'direct_buy' then 'offer_active'
+                                                            when r.f = 2 and r.t = 3 and r.event_cat = 'direct_sell' then 'sell_purchased'
+                                                            when r.f = 2 and r.t = 3 and r.event_cat = 'direct_buy' then 'offer_filled'
+                                                            when r.f = 2 and r.t = 4 and r.event_cat = 'direct_sell' then 'sell_canceled'
+                                                            when r.f = 2 and r.t = 4 and r.event_cat = 'direct_buy' then 'offer_canceled'
                                                             when r.event_type = 'nft_created' then 'mint'
                                                             when r.event_type = 'nft_owner_changed' then 'transfer'
                                                             when r.event_type = 'auction_cancelled' then 'auction_canceled'
                                                             else r.event_type::text
     end,
+                                           'id', r.id,
                                            'name', r.name,
                                            'description', r.description,
                                            'datetime', r.created_at,

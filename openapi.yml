@@ -252,6 +252,8 @@ components:
     nftEvent:
       type: object
       properties:
+        id:
+          type: integer
         eventType:
           $ref: '#/components/schemas/nftEventType'
         name:
@@ -535,12 +537,14 @@ components:
     nftEventType:
       type: string
       enum:
-        - active
-        - filled
-        - canceled
-        - up_for_sale
-        - purchase
-        - sale_canceled
+        - mint
+        - transfer
+        - offer_active
+        - offer_filled
+        - offer_canceled
+        - sell_active
+        - sell_purchased
+        - sell_canceled
         - auction_active
         - auction_bid_placed
         - auction_canceled
@@ -551,7 +555,6 @@ components:
         - auction
         - direct_buy
         - direct_sell
-
     event:
       type: object
       properties:
@@ -1358,17 +1361,17 @@ paths:
               properties:
                 nft:
                   $ref: '#/components/schemas/address'
-                collection:
+                collections:
                   type: array
                   items:
                     $ref: '#/components/schemas/address'
                 owner:
                   $ref: '#/components/schemas/address'
-                type:
+                types:
                   type: array
                   items:
                     $ref: '#/components/schemas/nftEventType'
-                category:
+                categories:
                   type: array
                   items:
                     $ref: '#/components/schemas/eventCategory'

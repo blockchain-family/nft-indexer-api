@@ -47,8 +47,8 @@ pub fn get_events(
 pub async fn get_events_handler(query: EventsQuery, db: Queries) -> Result<Box<dyn warp::Reply>, Infallible> {
     let nft = query.nft.as_ref();
     let event_type = query.event_type.as_deref().unwrap_or(&[]);
-    let category = query.category.as_deref().unwrap_or(&[]);
-    let collection = query.collection.as_deref().unwrap_or(&[]);
+    let category = query.categories.as_deref().unwrap_or(&[]);
+    let collection = query.collections.as_deref().unwrap_or(&[]);
     let owner = query.owner.as_ref();
     let limit = query.limit.unwrap_or(100);
     let offset = query.offset.unwrap_or_default();
@@ -77,10 +77,10 @@ pub async fn get_events_handler(query: EventsQuery, db: Queries) -> Result<Box<d
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct EventsQuery {
     pub owner: Option<String>,
-    pub collection: Option<Vec<String>>,
+    pub collections: Option<Vec<String>>,
     pub nft: Option<String>,
-    pub category: Option<Vec<NftEventCategory>>,
-    #[serde(rename = "type")]
+    pub categories: Option<Vec<NftEventCategory>>,
+    #[serde(rename = "types")]
     pub event_type: Option<Vec<NftEventType>>,
     pub limit: Option<usize>,
     pub offset: Option<usize>,

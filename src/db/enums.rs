@@ -109,13 +109,13 @@ pub enum NftEventCategory {
 #[sqlx(type_name = "event_category")]
 #[serde(rename_all = "snake_case")]
 pub enum NftEventType {
-    Active,
-    Filled,
-    Canceled,
+    SellActive,
+    SellPurchased,
+    SellCanceled,
 
-    UpForSale,
-    Purchase,
-    SaleCanceled,
+    OfferActive,
+    OfferFilled,
+    OfferCanceled,
 
     AuctionActive,
     AuctionBidPlaced,
@@ -142,12 +142,14 @@ impl Display for NftEventCategory {
 impl Display for NftEventType {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            NftEventType::Active => write!(f, "Active"),
-            NftEventType::Filled => write!(f, "Filled"),
-            NftEventType::Canceled => write!(f, "Canceled"),
-            NftEventType::UpForSale => write!(f, "UpForSale"),
-            NftEventType::Purchase => write!(f, "Purchase"),
-            NftEventType::SaleCanceled => write!(f, "SaleCanceled"),
+            NftEventType::SellActive => write!(f, "SellActive"),
+            NftEventType::SellPurchased => write!(f, "SellPurchased"),
+            NftEventType::SellCanceled => write!(f, "SellCanceled"),
+
+            NftEventType::OfferActive => write!(f, "OfferActive"),
+            NftEventType::OfferFilled => write!(f, "OfferFilled"),
+            NftEventType::OfferCanceled => write!(f, "OfferCanceled"),
+
             NftEventType::AuctionActive => write!(f, "AuctionActive"),
             NftEventType::AuctionBidPlaced => write!(f, "AuctionBidPlaced"),
             NftEventType::AuctionCanceled => write!(f, "AuctionCanceled"),
