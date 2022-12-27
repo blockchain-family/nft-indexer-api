@@ -2,7 +2,7 @@ use std::convert::Infallible;
 use warp::http::StatusCode;
 use crate::{db::Queries, model::SearchResult};
 use warp::Filter;
-use crate::model::NftEvent;
+use crate::model::NftEvents;
 use serde::{Serialize, Deserialize};
 use warp::hyper::body::Bytes;
 use crate::db::{NftEventCategory, NftEventType};
@@ -46,20 +46,18 @@ pub fn get_events(
 
 pub async fn get_events_handler(query: EventsQuery, db: Queries) -> Result<Box<dyn warp::Reply>, Infallible> {
     let nft = query.nft.as_ref();
-    let collection = query.collection.as_ref();
     let event_type = query.event_type.as_deref().unwrap_or(&[]);
     let category = query.category.as_deref().unwrap_or(&[]);
+    let collection = query.collection.as_deref().unwrap_or(&[]);
     let owner = query.owner.as_ref();
     let limit = query.limit.unwrap_or(100);
     let offset = query.offset.unwrap_or_default();
     match db.list_events(nft, collection, owner, event_type, category, offset, limit).await {
         Err(e) => Ok(Box::from(warp::reply::with_status(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))),
-        Ok(list) => {
-            let response: Result<Vec<NftEvent>, serde_json::Error> = match list.events {
-                None => Ok(vec![]),
-                Some(value) => {
-                    serde_json::from_value(value)
-                }
+        Ok(record) => {
+            let response: Result<NftEvents, serde_json::Error> = match record.content {
+                None => Ok(NftEvents::default()),
+                Some(value) => serde_json::from_value(value)
             };
 
             match response {
@@ -79,7 +77,7 @@ pub async fn get_events_handler(query: EventsQuery, db: Queries) -> Result<Box<d
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct EventsQuery {
     pub owner: Option<String>,
-    pub collection: Option<String>,
+    pub collection: Option<Vec<String>>,
     pub nft: Option<String>,
     pub category: Option<Vec<NftEventCategory>>,
     #[serde(rename = "type")]

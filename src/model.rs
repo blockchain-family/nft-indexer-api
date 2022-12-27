@@ -448,6 +448,19 @@ impl SearchResult {
     }
 }
 
+#[derive(Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NftEvents {
+    data: Vec<NftEvent>,
+    total_rows: i64
+}
+
+impl Default for NftEvents {
+    fn default() -> Self {
+        Self{data: vec![], total_rows: 0}
+    }
+}
+
 
 #[derive(Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
