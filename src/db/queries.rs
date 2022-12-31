@@ -326,6 +326,7 @@ impl Queries {
         WHERE
         (n.owner = ANY($1) OR array_length($1::varchar[], 1) is null)
         and (n.collection = ANY($2) OR array_length($2::varchar[], 1) is null)
+        and n.burned = false
         and (($3::bool is null and $4::bool is null)
             or ($3::bool is not null and $4::bool is not null
                 and (($4::bool and n.forsale is not null and n.\"forsale_status: _\" = 'active') or (not $4::bool and n.forsale is null)
@@ -365,6 +366,7 @@ impl Queries {
         WHERE
         (n.owner = ANY($1) OR array_length($1::varchar[], 1) is null)
         and (n.collection = ANY($2) OR array_length($2::varchar[], 1) is null)
+        and n.burned = false
         and (($3::bool is null and $4::bool is null)
             or ($3::bool is not null and $4::bool is not null
                 and (($4::bool and n.forsale is not null and n.\"forsale_status: _\" = 'active') or (not $4::bool and n.forsale is null)
