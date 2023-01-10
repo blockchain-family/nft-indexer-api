@@ -121,7 +121,7 @@ select
                                                            'paymentToken', r.args -> 'token'
                                                        )
                                                end,
-                                           'direct_buy',
+                                           'directBuy',
                                            case
                                                when r.event_cat = 'direct_buy' then
                                                    json_build_object(
