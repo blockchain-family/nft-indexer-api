@@ -2,7 +2,6 @@ use std::fmt::{Display, Formatter};
 
 use serde::{Deserialize, Serialize};
 
-
 #[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type)]
 #[sqlx(type_name = "event_type", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
@@ -35,7 +34,6 @@ pub enum EventType {
     NftCreated,
     NftBurned,
 }
-
 
 #[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type)]
 #[sqlx(type_name = "event_category", rename_all = "snake_case")]
@@ -102,7 +100,7 @@ pub enum NftEventCategory {
     DirectBuy,
     DirectSell,
     Collection,
-    Nft
+    Nft,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type)]
@@ -124,7 +122,7 @@ pub enum NftEventType {
 
     Mint,
 
-    Transfer
+    Transfer,
 }
 
 impl Display for NftEventCategory {
@@ -134,7 +132,7 @@ impl Display for NftEventCategory {
             NftEventCategory::DirectBuy => write!(f, "direct_buy"),
             NftEventCategory::DirectSell => write!(f, "direct_sell"),
             NftEventCategory::Collection => write!(f, "collection"),
-            NftEventCategory::Nft => write!(f, "nft")
+            NftEventCategory::Nft => write!(f, "nft"),
         }
     }
 }
@@ -212,22 +210,22 @@ impl From<i16> for EventType {
             6 => Self::AuctionBidDeclined,
             7 => Self::AuctionCancelled,
             8 => Self::AuctionComplete,
-        
+
             9 => Self::DirectBuyDeployed,
             10 => Self::DirectBuyDeclined,
             11 => Self::FactoryDirectBuyOwnershipTransferred,
             12 => Self::DirectBuyStateChanged,
-        
+
             13 => Self::DirectSellDeployed,
             14 => Self::DirectSellDeclined,
             15 => Self::FactoryDirectSellOwnershipTransferred,
             16 => Self::DirectSellStateChanged,
-        
+
             17 => Self::NftOwnerChanged,
             18 => Self::NftManagerChanged,
-        
+
             19 => Self::CollectionOwnershipTransferred,
-        
+
             20 => Self::NftCreated,
             21 => Self::NftBurned,
             _ => panic!("Unknown state of AuctionStatus"),

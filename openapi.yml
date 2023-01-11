@@ -86,6 +86,8 @@ components:
           type: integer
         spentToken:
           $ref: '#/components/schemas/address'
+        oldOwner:
+          $ref: '#/components/schemas/address'
       required:
         - creator
         - startTime
@@ -211,6 +213,8 @@ components:
         status:
           type: integer
         paymentToken:
+          $ref: '#/components/schemas/address'
+        newOwner:
           $ref: '#/components/schemas/address'
       required:
         - creator

@@ -1,10 +1,9 @@
-use std::{convert::Infallible, collections::HashMap};
-use serde::Deserialize;
-use warp::http::StatusCode;
 use crate::db::{Address, Queries};
-use warp::Filter;
 use crate::model::{Collection, CollectionDetails, VecWithTotal};
-
+use serde::Deserialize;
+use std::{collections::HashMap, convert::Infallible};
+use warp::http::StatusCode;
+use warp::Filter;
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct ListCollectionsParams {
@@ -27,27 +26,46 @@ pub fn list_collections(
         .and_then(list_collections_handler)
 }
 
-pub async fn list_collections_handler(params: ListCollectionsParams, db: Queries) -> Result<Box<dyn warp::Reply>, Infallible> {
-    let owners = params.owners.as_ref().map(|x| x.as_slice()).unwrap_or(&[]);
-    let verified = Some(params.verified.clone().unwrap_or(true));
+pub async fn list_collections_handler(
+    params: ListCollectionsParams,
+    db: Queries,
+) -> Result<Box<dyn warp::Reply>, Infallible> {
+    let owners = params.owners.as_deref().unwrap_or(&[]);
+    let verified = Some(params.verified.unwrap_or(true));
     let name = params.name.as_ref();
-    let collections = params.collections.as_ref().map(|x| x.as_slice()).unwrap_or(&[]);
+    let collections = params.collections.as_deref().unwrap_or(&[]);
     let limit = params.limit.unwrap_or(100);
     let offset = params.offset.unwrap_or_default();
-    let count = match db.list_collections_count(name, owners, verified.as_ref(), collections).await {
-        Err(e) => return Ok(Box::from(warp::reply::with_status(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))),
+    let count = match db
+        .list_collections_count(name, owners, verified.as_ref(), collections)
+        .await
+    {
+        Err(e) => {
+            return Ok(Box::from(warp::reply::with_status(
+                e.to_string(),
+                StatusCode::INTERNAL_SERVER_ERROR,
+            )))
+        }
         Ok(cnt) => cnt,
     };
-    match db.list_collections(name, owners, verified.as_ref(), collections, limit, offset).await {
-        Err(e) => Ok(Box::from(warp::reply::with_status(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))),
+    match db
+        .list_collections(name, owners, verified.as_ref(), collections, limit, offset)
+        .await
+    {
+        Err(e) => Ok(Box::from(warp::reply::with_status(
+            e.to_string(),
+            StatusCode::INTERNAL_SERVER_ERROR,
+        ))),
         Ok(list) => {
-            let ret: Vec<CollectionDetails> = list.iter().map(|c| CollectionDetails::from_db(c, &db.tokens)).collect();
+            let ret: Vec<CollectionDetails> = list
+                .iter()
+                .map(|c| CollectionDetails::from_db(c, &db.tokens))
+                .collect();
             let ret = VecWithTotal { count, items: ret };
-            Ok(Box::from(
-                warp::reply::with_status(
-                    warp::reply::json(&ret), 
-                    StatusCode::OK)
-            ))
+            Ok(Box::from(warp::reply::with_status(
+                warp::reply::json(&ret),
+                StatusCode::OK,
+            )))
         }
     }
 }
@@ -68,13 +86,25 @@ pub fn get_collection(
         .and_then(get_collection_handler)
 }
 
-pub async fn get_collection_handler(param: CollectionParam, db: Queries) -> Result<Box<dyn warp::Reply>, Infallible> {
-    match db.get_collection((&param.collection).into()).await {
-        Err(e) => Ok(Box::from(warp::reply::with_status(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))),
-        Ok(None) => Ok(Box::from(warp::reply::with_status(String::default(), StatusCode::BAD_REQUEST))),
+pub async fn get_collection_handler(
+    param: CollectionParam,
+    db: Queries,
+) -> Result<Box<dyn warp::Reply>, Infallible> {
+    match db.get_collection(&param.collection).await {
+        Err(e) => Ok(Box::from(warp::reply::with_status(
+            e.to_string(),
+            StatusCode::INTERNAL_SERVER_ERROR,
+        ))),
+        Ok(None) => Ok(Box::from(warp::reply::with_status(
+            String::default(),
+            StatusCode::BAD_REQUEST,
+        ))),
         Ok(Some(col)) => {
             let ret = CollectionDetails::from_db(&col, &db.tokens);
-            Ok(Box::from(warp::reply::with_status(warp::reply::json(&ret), StatusCode::OK)))
+            Ok(Box::from(warp::reply::with_status(
+                warp::reply::json(&ret),
+                StatusCode::OK,
+            )))
         }
     }
 }
@@ -97,25 +127,45 @@ pub fn get_collections_by_owner(
         .and_then(get_collections_by_owner_handler)
 }
 
-pub async fn get_collections_by_owner_handler(params: OwnerParam, db: Queries) -> Result<Box<dyn warp::Reply>, Infallible> {
+pub async fn get_collections_by_owner_handler(
+    params: OwnerParam,
+    db: Queries,
+) -> Result<Box<dyn warp::Reply>, Infallible> {
     let owner = params.owner;
     let limit = params.limit.unwrap_or(100);
     let offset = params.offset.unwrap_or_default();
     let count = match db.list_collections_by_owner_count(&owner).await {
-        Err(e) => return Ok(Box::from(warp::reply::with_status(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))),
+        Err(e) => {
+            return Ok(Box::from(warp::reply::with_status(
+                e.to_string(),
+                StatusCode::INTERNAL_SERVER_ERROR,
+            )))
+        }
         Ok(cnt) => cnt,
     };
     match db.list_collections_by_owner(&owner, limit, offset).await {
-        Err(e) => Ok(Box::from(warp::reply::with_status(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))),
+        Err(e) => Ok(Box::from(warp::reply::with_status(
+            e.to_string(),
+            StatusCode::INTERNAL_SERVER_ERROR,
+        ))),
         Ok(list) => {
-            let ret: Vec<Collection> = list.iter().map(|col| Collection::from_db(col, &db.tokens)).collect();
+            let ret: Vec<Collection> = list
+                .iter()
+                .map(|col| Collection::from_db(col, &db.tokens))
+                .collect();
             let ret = VecWithTotal { count, items: ret };
-            Ok(Box::from(warp::reply::with_status(warp::reply::json(&ret), StatusCode::OK)))
+            Ok(Box::from(warp::reply::with_status(
+                warp::reply::json(&ret),
+                StatusCode::OK,
+            )))
         }
     }
 }
 
-pub async fn collect_collections(db: &Queries, ids: &Vec<String>) -> anyhow::Result<HashMap<String, Collection>> {
+pub async fn collect_collections(
+    db: &Queries,
+    ids: &Vec<String>,
+) -> anyhow::Result<HashMap<String, Collection>> {
     let dblist = db.collect_collections(ids).await?;
     let list = dblist
         .iter()

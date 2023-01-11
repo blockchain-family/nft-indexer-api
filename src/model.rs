@@ -1,8 +1,10 @@
-use crate::{db::{Address, EventType, EventCategory, AuctionStatus, DirectSellState, DirectBuyState}, token::TokenDict};
-use serde::{Serialize, Deserialize};
-use std::collections::HashMap;
 use crate::db::NftEventType;
-
+use crate::{
+    db::{Address, AuctionStatus, DirectBuyState, DirectSellState, EventCategory, EventType},
+    token::TokenDict,
+};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct VecWithTotal<T> {
@@ -52,12 +54,11 @@ pub struct NFTPrice {
     pub ts: i64,
 }
 
-
 #[derive(Debug, Clone, Serialize)]
 pub struct NFT {
     #[serde(flatten)]
     pub contract: Contract,
-    
+
     pub collection: Address,
     pub image: Option<String>,
     pub mimetype: Option<String>,
@@ -81,7 +82,7 @@ pub struct NFT {
 pub struct Collection {
     #[serde(flatten)]
     pub contract: Contract,
-    
+
     pub verified: Option<bool>,
 
     #[serde(rename = "createdAt")]
@@ -207,7 +208,7 @@ pub struct DirectBuy {
 #[derive(Debug, Clone, Serialize)]
 pub struct CollectionAttributes {
     pub collection: Address,
-    pub attributes: HashMap<String, serde_json::Value>
+    pub attributes: HashMap<String, serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -227,27 +228,40 @@ impl CollectionAttributes {
             let col = attr.collection.clone().unwrap();
             match collection.as_ref() {
                 None => collection = Some(col),
-                Some(c) if *c == col => { attributes.insert(attr.trait_type.clone(), attr.values.clone().expect("values is null")); },
+                Some(c) if *c == col => {
+                    attributes.insert(
+                        attr.trait_type.clone(),
+                        attr.values.clone().expect("values is null"),
+                    );
+                }
                 Some(_) => {
-                    res.push(CollectionAttributes { collection: collection.unwrap(), attributes: attributes.clone() });
+                    res.push(CollectionAttributes {
+                        collection: collection.unwrap(),
+                        attributes: attributes.clone(),
+                    });
                     collection = Some(col);
                     attributes.clear();
-                    attributes.insert(attr.trait_type.clone(), attr.values.clone().expect("values is null"));
+                    attributes.insert(
+                        attr.trait_type.clone(),
+                        attr.values.clone().expect("values is null"),
+                    );
                 }
             }
         }
-        res.push(CollectionAttributes { collection: collection.unwrap(), attributes: attributes.clone() });
+        res.push(CollectionAttributes {
+            collection: collection.unwrap(),
+            attributes: attributes.clone(),
+        });
         res
     }
 }
-
 
 impl NFT {
     pub fn from_db(nft: &crate::db::NftDetails, _tokens: &TokenDict) -> Self {
         let parsed = nft.parse_meta();
         NFT {
-            contract: Contract { 
-                address: Address::from(nft.address.clone().expect("null nft address")),
+            contract: Contract {
+                address: nft.address.clone().expect("null nft address"),
                 name: nft.name.clone(),
                 description: nft.description.clone(),
                 owner: nft.owner.clone().map(Address::from),
@@ -264,7 +278,6 @@ impl NFT {
             best_offer: nft.best_offer.clone(),
             current_price: None,
             last_price: None,
-
         }
     }
 }
@@ -272,11 +285,11 @@ impl NFT {
 impl Collection {
     pub fn from_db(db: &crate::db::NftCollection, _tokens: &TokenDict) -> Self {
         Collection {
-            contract: Contract { 
-                address: Address::from(db.address.clone()),
+            contract: Contract {
+                address: db.address.clone(),
                 name: Some(db.name.clone().unwrap_or_default()),
                 description: Some(db.description.clone().unwrap_or_default()),
-                owner: Some(Address::from(db.owner.clone())),
+                owner: Some(db.owner.clone()),
                 verified: Some(db.verified),
             },
             verified: Some(db.verified),
@@ -295,14 +308,14 @@ impl CollectionDetails {
     pub fn from_db(db: &crate::db::NftCollectionDetails, _tokens: &TokenDict) -> Self {
         CollectionDetails {
             collection: Collection {
-                contract: Contract { 
-                    address: Address::from(db.address.clone().unwrap_or_default()),
+                contract: Contract {
+                    address: db.address.clone().unwrap_or_default(),
                     name: Some(db.name.clone().unwrap_or_default()),
                     description: Some(db.description.clone().unwrap_or_default()),
-                    owner: Some(Address::from(db.owner.clone().unwrap_or_default())),
-                    verified: db.verified.clone(),
+                    owner: Some(db.owner.clone().unwrap_or_default()),
+                    verified: db.verified,
                 },
-                verified: db.verified.clone(),
+                verified: db.verified,
                 created_at: db.created.unwrap_or_default().timestamp() as usize,
                 logo: db.logo.clone(),
                 wallpaper: db.wallpaper.clone(),
@@ -314,7 +327,6 @@ impl CollectionDetails {
             floor_price_usd: db.floor_price_usd.clone().map(|x| x.to_string()),
             total_volume_usd: db.total_volume_usd.clone().map(|x| x.to_string()),
         }
-
     }
 }
 
@@ -327,7 +339,10 @@ impl Auction {
             nft: db.nft.clone().unwrap_or_default(),
             bid_token: token.clone(),
             wallet_for_bids: db.wallet_for_bids.clone(),
-            start_bid: db.start_price.clone().map(|x| tokens.format_value(&token, &x)),
+            start_bid: db
+                .start_price
+                .clone()
+                .map(|x| tokens.format_value(&token, &x)),
             start_usd_bid: db.start_usd_price.as_ref().map(|x| x.to_string()),
             max_bid: db.max_bid.clone().map(|x| tokens.format_value(&token, &x)),
             min_bid: db.min_bid.clone().map(|x| tokens.format_value(&token, &x)),
@@ -361,10 +376,7 @@ impl AuctionBid {
         }
     }
 
-    pub fn from_extended(
-        bid: &crate::db::NftAuctionBidExt,
-        tokens: &TokenDict,
-    ) -> Self {
+    pub fn from_extended(bid: &crate::db::NftAuctionBidExt, tokens: &TokenDict) -> Self {
         let token = bid.price_token.clone().unwrap_or_default();
         AuctionBid {
             from: bid.buyer.clone(),
@@ -379,16 +391,13 @@ impl AuctionBid {
 }
 
 impl DirectSell {
-    pub fn from_db(
-        val: &crate::db::NftDirectSell,
-        tokens: &TokenDict,
-    ) -> Self {
-        DirectSell { 
+    pub fn from_db(val: &crate::db::NftDirectSell, tokens: &TokenDict) -> Self {
+        DirectSell {
             address: val.address.clone(),
             nft: val.nft.clone(),
             status: val.state.clone(),
             seller: val.seller.clone(),
-            price: Price { 
+            price: Price {
                 token: val.price_token.clone(),
                 price: tokens.format_value(&val.price_token, &val.price),
                 usd_price: val.usd_price.as_ref().map(|x| x.to_string()),
@@ -401,16 +410,13 @@ impl DirectSell {
 }
 
 impl DirectBuy {
-    pub fn from_db(
-        val: &crate::db::NftDirectBuy,
-        tokens: &TokenDict,
-    ) -> Self {
-        DirectBuy { 
+    pub fn from_db(val: &crate::db::NftDirectBuy, tokens: &TokenDict) -> Self {
+        DirectBuy {
             address: val.address.clone(),
             nft: val.nft.clone(),
             buyer: val.buyer.clone(),
             status: val.state.clone(),
-            price: Price { 
+            price: Price {
                 token: val.price_token.clone(),
                 price: tokens.format_value(&val.price_token, &val.price),
                 usd_price: val.usd_price.as_ref().map(|x| x.to_string()),
@@ -423,10 +429,9 @@ impl DirectBuy {
 }
 
 impl NFTPrice {
-    pub fn from_db(
-        val: &crate::db::NftPrice,
-    ) -> Self {
-        let usd_price = val.usd_price
+    pub fn from_db(val: &crate::db::NftPrice) -> Self {
+        let usd_price = val
+            .usd_price
             .as_ref()
             .expect("null usd_price in price history")
             .round(0)
@@ -437,9 +442,7 @@ impl NFTPrice {
 }
 
 impl SearchResult {
-    pub fn from_db(
-        val: &crate::db::SearchResult,
-    ) -> Self {
+    pub fn from_db(val: &crate::db::SearchResult) -> Self {
         Self {
             address: val.address.clone(),
             image: val.image.clone(),
@@ -448,19 +451,12 @@ impl SearchResult {
     }
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct NftEvents {
     data: Vec<NftEvent>,
-    total_rows: i64
+    total_rows: i64,
 }
-
-impl Default for NftEvents {
-    fn default() -> Self {
-        Self{data: vec![], total_rows: 0}
-    }
-}
-
 
 #[derive(Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -490,6 +486,7 @@ pub struct NftEventDirectSell {
     usd_price: Option<String>,
     status: i64,
     payment_token: String,
+    new_owner: Option<String>,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -498,11 +495,12 @@ pub struct NftEventDirectBuy {
     creator: String,
     start_time: i64,
     end_time: i64,
-    duration_time: i64,
+    duration_time: Option<i64>,
     price: String,
     usd_price: Option<String>,
     status: i64,
     spent_token: String,
+    old_owner: Option<String>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -510,7 +508,7 @@ pub struct NftEventDirectBuy {
 struct NftEventAuction {
     auction_active: Option<AuctionActive>,
     auction_complete: Option<AuctionComplete>,
-    auction_cancelled: Option<AuctionCanceled>,
+    auction_canceled: Option<AuctionCanceled>,
     auction_bid_placed: Option<AuctionBidPlaced>,
 }
 

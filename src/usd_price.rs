@@ -1,7 +1,10 @@
-use serde::Serialize;
-use std::{collections::HashMap, str::FromStr, time::Duration};
 use crate::db::{Queries, TokenUsdPrice};
-use sqlx::types::{BigDecimal, chrono::{NaiveDateTime, Local}};
+use serde::Serialize;
+use sqlx::types::{
+    chrono::{Local, NaiveDateTime},
+    BigDecimal,
+};
+use std::{collections::HashMap, str::FromStr, time::Duration};
 
 #[derive(Debug, Clone)]
 pub struct CurrencyClient {
@@ -19,12 +22,13 @@ pub type TokenUsdPricesResponse = HashMap<String, String>;
 impl CurrencyClient {
     pub fn new(db: Queries) -> reqwest::Result<Self> {
         let http_client = reqwest::Client::builder().build()?;
-        Ok(CurrencyClient{ http_client, db })
+        Ok(CurrencyClient { http_client, db })
     }
 
     pub async fn get_prices(&self) -> reqwest::Result<TokenUsdPricesResponse> {
-        self.http_client.post("https://api.flatqube.io/v1/currencies_usdt_prices")
-            .json(&TokenUsdPricesRequest{
+        self.http_client
+            .post("https://api.flatqube.io/v1/currencies_usdt_prices")
+            .json(&TokenUsdPricesRequest {
                 currency_addresses: self.db.tokens.addresses(),
             })
             .send()
@@ -38,13 +42,15 @@ impl CurrencyClient {
         log::debug!("update_prices: {:?}", prices);
         let ts: NaiveDateTime = NaiveDateTime::from_timestamp(Local::now().timestamp(), 0);
         let ten: u32 = 10;
-        let db_prices = prices.iter()
+        let db_prices = prices
+            .iter()
             .map(|(token, price)| {
-                let decimals = self.db.tokens.get(token).clone().expect("unknown token").decimals as u32;
+                let decimals = self.db.tokens.get(token).expect("unknown token").decimals as u32;
                 let scale = BigDecimal::from(ten.pow(decimals));
                 let usd_price = BigDecimal::from_str(price).unwrap_or_default() / scale;
                 TokenUsdPrice {
-                    ts, usd_price,
+                    ts,
+                    usd_price,
                     token: token.clone(),
                 }
             })

@@ -1,10 +1,10 @@
+use config::{self, ConfigError, Environment};
 use serde::Deserialize;
-use std::net::{SocketAddr, SocketAddrV4, Ipv4Addr};
-use config::{self, Environment, ConfigError};
 use sqlx::{
     postgres::{PgPool, PgPoolOptions},
     Error,
 };
+use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
 
 fn default_http_address() -> SocketAddr {
     SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, 8080))
@@ -45,7 +45,6 @@ impl Default for DatabaseConfig {
     }
 }
 
-
 #[derive(Debug, Deserialize, Clone)]
 pub struct ApiConfig {
     #[serde(default = "default_http_address")]
@@ -67,16 +66,17 @@ impl ApiConfig {
         //         .add_source(config::File::with_name("./Settings.toml"))
         //         .build()?
         //         .try_deserialize()
-        // } else { r }
+        // } else {
+        //     r
+        // }
     }
 }
 
 impl Default for ApiConfig {
     fn default() -> Self {
-        ApiConfig { 
+        ApiConfig {
             http_address: default_http_address(),
             database: DatabaseConfig::default(),
         }
     }
 }
-

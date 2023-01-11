@@ -1,15 +1,13 @@
-use serde::Deserialize;
-use std::{collections::HashMap, sync::Arc};
-use sqlx::types::BigDecimal;
 use crate::db::Address;
-
+use serde::Deserialize;
+use sqlx::types::BigDecimal;
+use std::{collections::HashMap, sync::Arc};
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Manifest {
     pub name: String,
     pub tokens: Vec<Token>,
 }
-
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Token {
@@ -25,7 +23,6 @@ pub struct Token {
     pub verified: bool,
 }
 
-
 #[derive(Debug, Clone)]
 pub struct TokenDict(Arc<HashMap<Address, Token>>);
 
@@ -39,7 +36,9 @@ impl TokenDict {
     }
 
     pub async fn load() -> anyhow::Result<Self> {
-        let resp = reqwest::get("https://raw.githubusercontent.com/broxus/ton-assets/master/manifest.json")
+        let resp = reqwest::get(
+            "https://raw.githubusercontent.com/broxus/ton-assets/master/manifest.json",
+        )
         .await?
         .json::<Manifest>()
         .await?;
@@ -50,7 +49,7 @@ impl TokenDict {
         self.0.get(token)
     }
 
-    pub fn format_value(&self, _token: &String, val: &BigDecimal) -> String {
+    pub fn format_value(&self, _token: &str, val: &BigDecimal) -> String {
         let s = val.round(0).to_string();
         /*if let Some(t) = self.0.get(token) {
             if s.len() > t.decimals {

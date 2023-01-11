@@ -14,7 +14,10 @@ mod owner;
 pub use self::owner::*;
 
 use std::convert::Infallible;
-use warp::{Filter, http::{StatusCode, Response}};
+use warp::{
+    http::{Response, StatusCode},
+    Filter,
+};
 
 lazy_static::lazy_static! {
     static ref SWAGGER: Vec<u8> = {
@@ -30,11 +33,10 @@ pub fn get_swagger() -> impl Filter<Extract = impl warp::Reply, Error = warp::Re
 }
 
 async fn get_swagger_handler() -> Result<Box<dyn warp::Reply>, Infallible> {
-    Ok(Box::from(
-            warp::reply::with_status(
-                Response::builder()
-                    .header("Content-Type", "application/yaml")
-                    .body::<&[u8]>(SWAGGER.as_ref()),
-            StatusCode::OK)
-    ))
+    Ok(Box::from(warp::reply::with_status(
+        Response::builder()
+            .header("Content-Type", "application/yaml")
+            .body::<&[u8]>(SWAGGER.as_ref()),
+        StatusCode::OK,
+    )))
 }

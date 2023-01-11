@@ -1,8 +1,8 @@
-use sqlx::types::BigDecimal;
-use chrono::NaiveDateTime;
-use serde::{Serialize, Deserialize};
-use serde_json::Value;
 use super::*;
+use chrono::NaiveDateTime;
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+use sqlx::types::BigDecimal;
 
 pub type Address = String;
 
@@ -15,7 +15,6 @@ pub struct SearchResult {
     pub collection: Option<Address>,
     pub image: Option<String>,
 }
-
 
 // #[derive(Debug, Clone, sqlx::FromRow)]
 // pub struct Event {
@@ -242,7 +241,7 @@ pub struct MetaParsed {
     pub image: Option<String>,
     pub mimetype: Option<String>,
     pub attributes: Option<serde_json::Value>,
-    pub typ: Option<String>
+    pub typ: Option<String>,
 }
 
 impl NftDetails {
@@ -251,28 +250,37 @@ impl NftDetails {
             Some(meta) if meta.is_object() => meta.as_object().unwrap().clone(),
             _ => serde_json::Map::default(),
         };
-        let attributes = meta_obj.get("attributes").map(|a| a.clone());
-        let typ = meta_obj.get("type").map(|a| a.as_str().unwrap_or_default().to_string());
+        let attributes = meta_obj.get("attributes").cloned();
+        let typ = meta_obj
+            .get("type")
+            .map(|a| a.as_str().unwrap_or_default().to_string());
         let mut image = meta_obj.get("image").map(|i| i.to_string());
         let mut mimetype: Option<String> = None;
         if image.is_none() {
             // https://github.com/nftalliance/docs/blob/main/src/standard/TIP-4/2.md
             image = meta_obj.get("preview").and_then(|p| {
-                p.as_object().and_then(|o|
-                    o.get("source").map(|x| x.as_str().unwrap_or_default().to_string())
-                )
+                p.as_object().and_then(|o| {
+                    o.get("source")
+                        .map(|x| x.as_str().unwrap_or_default().to_string())
+                })
             });
             mimetype = meta_obj.get("preview").and_then(|p| {
-                p.as_object().and_then(|o|
-                    o.get("mimetype").map(|x| x.as_str().unwrap_or_default().to_string())
-                )
+                p.as_object().and_then(|o| {
+                    o.get("mimetype")
+                        .map(|x| x.as_str().unwrap_or_default().to_string())
+                })
             });
         }
-        MetaParsed { image, mimetype, attributes, typ }
+        MetaParsed {
+            image,
+            mimetype,
+            attributes,
+            typ,
+        }
     }
 }
 
 #[derive(Deserialize, Debug, Serialize, sqlx::FromRow)]
 pub struct NftEventsRecord {
-    pub content: Option<Value>
+    pub content: Option<Value>,
 }
