@@ -60,7 +60,11 @@ with result as (
                         ne.args ->> 'creator',
                         ne.args ->> 'buyer',
                         ne.args ->> 'seller',
-                        auction.args ->> 'subject_owner'
+                        ne.args ->> 'old_owner',
+                        ne.args ->> 'new_owner',
+                        auction.args ->> 'subject_owner',
+                        direct_buy_chaned_owner.old_owner,
+                        direct_sell_chaned_owner.new_owner
                 )
             or $3 is null))
       and (ne.nft = $4 or $4 is null)
