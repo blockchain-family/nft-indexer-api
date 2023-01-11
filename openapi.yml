@@ -152,7 +152,7 @@ components:
         - state
         - paymentToken
         - price
-    auctionCancelled:
+    auctionCanceled:
       type: object
       properties:
         nftOwner:
@@ -249,8 +249,8 @@ components:
           $ref: '#/components/schemas/auctionActive'
         auctionComplete:
           $ref: '#/components/schemas/auctionComplete'
-        auctionCancelled:
-          $ref: '#/components/schemas/auctionCancelled'
+        auctionCanceled:
+          $ref: '#/components/schemas/auctionCanceled'
         auctionBidPlaced:
           $ref: '#/components/schemas/auctionBidPlaced'
     nftEvent:
