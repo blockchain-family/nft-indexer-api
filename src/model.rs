@@ -559,7 +559,7 @@ struct AuctionBidPlaced {
     bid_sender: String,
     payment_token: String,
     bid_value: String,
-    usd_price: String,
+    usd_price: Option<String>,
 }
 
 #[derive(Serialize, Deserialize)]
