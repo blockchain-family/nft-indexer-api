@@ -1,4 +1,4 @@
-use crate::db::NftEventType;
+use crate::db::{MetricsSummaryRecord, NftEventType};
 use crate::{
     db::{Address, AuctionStatus, DirectBuyState, DirectSellState, EventCategory, EventType},
     token::TokenDict,
@@ -574,4 +574,53 @@ struct NftEventMint {
 struct NftEventTransfer {
     from: String,
     to: String,
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MetricsSummaryBase {
+    total_rows_count: i32,
+    data: Vec<MetricsSummary>,
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct MetricsSummary {
+    pub collection: String,
+    pub name: Option<String>,
+    pub logo: Option<String>,
+    pub floor_price: String,
+    pub total_volume_usd_now: String,
+    pub total_volume_usd_previous: String,
+    pub owners_count: i32,
+    pub nfts_count: i32,
+}
+
+impl From<Vec<MetricsSummaryRecord>> for MetricsSummaryBase {
+    fn from(values: Vec<MetricsSummaryRecord>) -> Self {
+        let total_rows_count = match values.first() {
+            None => 0,
+            Some(first_value) => first_value.total_rows_count,
+        };
+
+        Self {
+            total_rows_count,
+            data: values.into_iter().map(|v| v.into()).collect(),
+        }
+    }
+}
+
+impl From<MetricsSummaryRecord> for MetricsSummary {
+    fn from(value: MetricsSummaryRecord) -> Self {
+        Self {
+            collection: value.collection,
+            name: value.name,
+            logo: value.logo,
+            floor_price: value.floor_price.to_string(),
+            total_volume_usd_now: value.total_volume_usd_now.to_string(),
+            total_volume_usd_previous: value.total_volume_usd_previous.to_string(),
+            owners_count: value.owners_count,
+            nfts_count: value.nfts_count,
+        }
+    }
 }

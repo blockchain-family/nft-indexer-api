@@ -306,7 +306,6 @@ components:
         - nft
         - price
         - createdAt
-
     directBuy:
       type: object
       properties:
@@ -332,7 +331,6 @@ components:
         - nft
         - price
         - createdAt
-
     directBuyStatus:
       type: string
       enum:
@@ -342,7 +340,6 @@ components:
         - filled
         - cancelled
         - expired
-
     directSell:
       type: object
       properties:
@@ -370,7 +367,6 @@ components:
         - nft
         - price
         - createdAt
-
     directSellStatus:
       type: string
       enum:
@@ -379,7 +375,6 @@ components:
         - active
         - cancelled
         - expired
-
     auction:
       type: object
       properties:
@@ -421,7 +416,6 @@ components:
         - address
         - nft
         - bidToken
-
     auctionStatus:
       type: string
       enum:
@@ -429,7 +423,6 @@ components:
         - cancelled
         - completed
         - expired
-
     contract:
       type: object
       properties:
@@ -447,7 +440,6 @@ components:
         - address
         - name
         - owner
-
     nft:
       allOf:
         - $ref: '#/components/schemas/contract'
@@ -482,7 +474,6 @@ components:
             - image
             - collection
             - attributes
-
     collection:
       allOf:
         - $ref: '#/components/schemas/contract'
@@ -511,7 +502,6 @@ components:
           required:
             - ownersCount
             - createdAt
-
     eventType:
       type: string
       enum:
@@ -583,6 +573,68 @@ components:
 
 
 paths:
+  /metrics/summary:
+    get:
+      operationId: metricsSummary
+      parameters:
+        - in: query
+          name: from
+          schema:
+            type: integer
+            description: From timestamp ms
+        - in: query
+          name: to
+          schema:
+            type: integer
+            description: To timestamp ms
+        - in: query
+          name: offset
+          schema:
+            type: integer
+          description: The number of items to skip before starting to collect the result set
+        - in: query
+          name: limit
+          schema:
+            type: integer
+          description: The numbers of items to return
+      responses:
+        '200':
+          description: OK
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  totalRowsCount:
+                    type: integer
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - collection
+                        - floorPrice
+                        - totalVolumeUsdNow
+                        - totalVolumeUsdPrevious
+                        - ownersCount
+                        - nftsCount
+                      properties:
+                        collection:
+                          type: string
+                        name:
+                          type: string
+                        logo:
+                          type: string
+                        floorPrice:
+                          type: string
+                        totalVolumeUsdNow:
+                          type: string
+                        totalVolumeUsdPrevious:
+                          type: string
+                        ownersCount:
+                          type: integer
+                        nftsCount:
+                          type: integer
   /search:
     post:
       operationId: searchEverything

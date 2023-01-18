@@ -284,3 +284,16 @@ impl NftDetails {
 pub struct NftEventsRecord {
     pub content: Option<Value>,
 }
+
+#[derive(Debug, sqlx::FromRow)]
+pub struct MetricsSummaryRecord {
+    pub collection: String,
+    pub name: Option<String>,
+    pub logo: Option<String>,
+    pub floor_price: BigDecimal,
+    pub total_volume_usd_now: BigDecimal,
+    pub total_volume_usd_previous: BigDecimal,
+    pub owners_count: i32,
+    pub nfts_count: i32,
+    pub total_rows_count: i32,
+}

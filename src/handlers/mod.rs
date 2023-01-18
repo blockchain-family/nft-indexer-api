@@ -13,6 +13,9 @@ pub use self::collection::*;
 mod owner;
 pub use self::owner::*;
 
+mod metrics;
+pub use self::metrics::*;
+
 use std::convert::Infallible;
 use warp::{
     http::{Response, StatusCode},

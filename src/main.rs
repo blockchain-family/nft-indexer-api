@@ -2,9 +2,9 @@ use api::cfg::ApiConfig;
 use api::db::Queries;
 use api::handlers::*;
 use api::token::TokenDict;
-use api::usd_price::CurrencyClient;
 use std::sync::Arc;
 use warp::{http::StatusCode, Filter};
+use api::usd_price::CurrencyClient;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
@@ -63,6 +63,7 @@ async fn main() {
                 .or(get_auction(service.clone()))
                 .or(get_auction_bids(service.clone()))
                 .or(get_events(service.clone()))
+                .or(get_metrics_summary(service.clone()))
                 .or(search_all(service.clone())),
         )
         .with(cors);

@@ -60,15 +60,14 @@ impl ApiConfig {
             .add_source(Environment::with_prefix(&prefix).separator("_"))
             .build()?
             .try_deserialize();
-        r
-        // if r.is_err() {
-        //     config::Config::builder()
-        //         .add_source(config::File::with_name("./Settings.toml"))
-        //         .build()?
-        //         .try_deserialize()
-        // } else {
-        //     r
-        // }
+        if r.is_err() {
+            config::Config::builder()
+                .add_source(config::File::with_name("./Settings.toml"))
+                .build()?
+                .try_deserialize()
+        } else {
+            r
+        }
     }
 }
 

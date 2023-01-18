@@ -1169,4 +1169,23 @@ impl Queries {
         }
         Ok(())
     }
+
+    pub async fn get_metrics_summary(
+        &self,
+        from: NaiveDateTime,
+        to: NaiveDateTime,
+        limit: i64,
+        offset: i64,
+    ) -> sqlx::Result<Vec<MetricsSummaryRecord>> {
+        sqlx::query_file_as!(
+            MetricsSummaryRecord,
+            "src/db/sql/metrics_summary.sql",
+            from,
+            to,
+            limit,
+            offset
+        )
+        .fetch_all(self.db.as_ref())
+        .await
+    }
 }
