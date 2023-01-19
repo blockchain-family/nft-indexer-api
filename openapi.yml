@@ -570,6 +570,32 @@ components:
         - cat
         - address
         - ts
+    metricsSummary:
+      type: object
+      required:
+        - collection
+        - floorPrice
+        - totalVolumeUsdNow
+        - totalVolumeUsdPrevious
+        - ownersCount
+        - nftsCount
+      properties:
+        collection:
+          type: string
+        name:
+          type: string
+        logo:
+          type: string
+        floorPrice:
+          type: string
+        totalVolumeUsdNow:
+          type: string
+        totalVolumeUsdPrevious:
+          type: string
+        ownersCount:
+          type: integer
+        nftsCount:
+          type: integer
 
 
 paths:
@@ -610,31 +636,7 @@ paths:
                   data:
                     type: array
                     items:
-                      type: object
-                      required:
-                        - collection
-                        - floorPrice
-                        - totalVolumeUsdNow
-                        - totalVolumeUsdPrevious
-                        - ownersCount
-                        - nftsCount
-                      properties:
-                        collection:
-                          type: string
-                        name:
-                          type: string
-                        logo:
-                          type: string
-                        floorPrice:
-                          type: string
-                        totalVolumeUsdNow:
-                          type: string
-                        totalVolumeUsdPrevious:
-                          type: string
-                        ownersCount:
-                          type: integer
-                        nftsCount:
-                          type: integer
+                      $ref: '#/components/schemas/metricsSummary'
   /search:
     post:
       operationId: searchEverything
