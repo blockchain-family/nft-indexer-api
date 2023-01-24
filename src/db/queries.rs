@@ -1,7 +1,9 @@
 use super::*;
+use crate::handlers::AttributeFilter;
 use crate::{handlers::AuctionsSortOrder, token::TokenDict};
 use chrono::NaiveDateTime;
 use sqlx::{self, postgres::PgPool};
+use std::fmt::Write;
 use std::sync::Arc;
 
 #[derive(Debug, Clone)]
@@ -70,11 +72,11 @@ impl Queries {
     pub async fn get_nft_details(&self, address: &String) -> sqlx::Result<Option<NftDetails>> {
         sqlx::query_as!(
             NftDetails,
-            "
-        SELECT *
-        FROM nft_details
-        WHERE address = $1
-        ",
+            r#"
+                SELECT n.*, 1::bigint as "total_count!"
+                FROM nft_details n
+                WHERE n.address = $1
+            "#,
             address
         )
         .fetch_optional(self.db.as_ref())
@@ -203,9 +205,11 @@ impl Queries {
     pub async fn collect_nfts(&self, ids: &[String]) -> sqlx::Result<Vec<NftDetails>> {
         sqlx::query_as!(
             NftDetails,
-            "SELECT *
-            FROM nft_details
-            WHERE address = ANY($1)",
+            r#"
+                SELECT n.*, 1::bigint as "total_count!"
+                FROM nft_details n
+                WHERE n.address = ANY($1)
+            "#,
             ids
         )
         .fetch_all(self.db.as_ref())
@@ -374,75 +378,68 @@ impl Queries {
         verified: Option<bool>,
         limit: usize,
         offset: usize,
+        attributes: &Vec<AttributeFilter>,
     ) -> sqlx::Result<Vec<NftDetails>> {
-        sqlx::query_as!(NftDetails, "
-        SELECT DISTINCT n.*
-        FROM nft_details n
-        INNER JOIN nft_collection c ON n.collection = c.address
-        WHERE
-        (n.owner = ANY($1) OR array_length($1::varchar[], 1) is null)
-        and (n.collection = ANY($2) OR array_length($2::varchar[], 1) is null)
-        and n.burned = false
-        and (($3::bool is null and $4::bool is null)
-            or ($3::bool is not null and $4::bool is not null
-                and (($4::bool and n.forsale is not null and n.\"forsale_status: _\" = 'active') or (not $4::bool and n.forsale is null)
-                or ($3::bool and n.auction is not null and n.\"auction_status: _\" = 'active') or (not $3::bool and n.auction is null))
+        let mut sql = r#"
+            SELECT DISTINCT n.*,
+            n."auction_status: _" as auction_status,
+            n."forsale_status: _" as forsale_status,
+            count(1) over () as total_count
+            FROM nft_details n
+            INNER JOIN nft_collection c ON n.collection = c.address
+            WHERE
+            (n.owner = ANY($1) OR array_length($1::varchar[], 1) is null)
+            and (n.collection = ANY($2) OR array_length($2::varchar[], 1) is null)
+            and n.burned = false
+            and (($3::bool is null and $4::bool is null)
+                or ($3::bool is not null and $4::bool is not null
+                    and (($4::bool and n.forsale is not null and n."forsale_status: _" = 'active') or (not $4::bool and n.forsale is null)
+                    or ($3::bool and n.auction is not null and n."auction_status: _" = 'active') or (not $3::bool and n.auction is null))
+                )
+                or (
+                    $3::bool is null
+                    and (($4::bool and n.forsale is not null and n."forsale_status: _" = 'active') or (not $4::bool and n.forsale is null))
+                )
+                or (
+                    $4::bool is null
+                    and (($3::bool and n.auction is not null and n."auction_status: _" = 'active') or (not $3::bool and n.auction is null))
+                )
             )
-            or (
-                $3::bool is null
-                and (($4::bool and n.forsale is not null and n.\"forsale_status: _\" = 'active') or (not $4::bool and n.forsale is null))
-            )
-            or (
-                $4::bool is null
-                and (($3::bool and n.auction is not null and n.\"auction_status: _\" = 'active') or (not $3::bool and n.auction is null))
-            )
-        )
-        and ($5::boolean is false OR c.verified is true)
-        ORDER BY n.name, n.address
-        LIMIT $6 OFFSET $7
-        ", owners, collections, auction, forsale, verified, limit as i64, offset as i64)
+            and ($5::boolean is false OR c.verified is true)
+        "#.to_string();
+
+        for attribute in attributes {
+            // TODO need index trim(na.value #>> '{}')
+            let _ = write!(
+                sql,
+                r#" and exists(
+                select 1 from nft_attributes na
+                where
+                    na.nft = n.address and (lower(na.trait_type) = lower('{0}') and lower(trim(na.value #>> '{{}}')) = lower('{1}'))
+                )
+            "#,
+                attribute.trait_type, attribute.trait_value
+            );
+        }
+
+        let _ = write!(
+            sql,
+            r#"
+                ORDER BY n.name, n.address
+                LIMIT $6 OFFSET $7
+            "#
+        );
+
+        sqlx::query_as(&sql)
+            .bind(owners)
+            .bind(collections)
+            .bind(auction)
+            .bind(forsale)
+            .bind(verified)
+            .bind(limit as i64)
+            .bind(offset as i64)
             .fetch_all(self.db.as_ref())
             .await
-    }
-
-    pub async fn nft_search_count(
-        &self,
-        owners: &[Address],
-        collections: &[Address],
-        _price_from: Option<u64>,
-        _price_to: Option<u64>,
-        _price_token: Option<Address>,
-        forsale: Option<bool>,
-        auction: Option<bool>,
-        verified: Option<bool>,
-    ) -> sqlx::Result<i64> {
-        sqlx::query!("
-        SELECT DISTINCT count(n.*)
-        FROM nft_details n
-        INNER JOIN nft_collection c ON n.collection = c.address
-        WHERE
-        (n.owner = ANY($1) OR array_length($1::varchar[], 1) is null)
-        and (n.collection = ANY($2) OR array_length($2::varchar[], 1) is null)
-        and n.burned = false
-        and (($3::bool is null and $4::bool is null)
-            or ($3::bool is not null and $4::bool is not null
-                and (($4::bool and n.forsale is not null and n.\"forsale_status: _\" = 'active') or (not $4::bool and n.forsale is null)
-                or ($3::bool and n.auction is not null and n.\"auction_status: _\" = 'active') or (not $3::bool and n.auction is null))
-            )
-            or (
-                $3::bool is null
-                and (($4::bool and n.forsale is not null and n.\"forsale_status: _\" = 'active') or (not $4::bool and n.forsale is null))
-            )
-            or (
-                $4::bool is null
-                and (($3::bool and n.auction is not null and n.\"auction_status: _\" = 'active') or (not $3::bool and n.auction is null))
-            )
-        )
-        and ($5::boolean is false OR c.verified is true)
-        ", owners, collections, auction, forsale, verified)
-            .fetch_one(self.db.as_ref())
-            .await
-            .map(|r| r.count.unwrap_or_default())
     }
 
     pub async fn get_nft_auction(&self, address: &String) -> sqlx::Result<Option<NftAuction>> {

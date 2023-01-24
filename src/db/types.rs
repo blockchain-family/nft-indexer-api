@@ -46,6 +46,7 @@ pub struct NftDetails {
     pub best_offer: Option<String>,
     pub floor_price_usd: Option<BigDecimal>,
     pub deal_price_usd: Option<BigDecimal>,
+    pub total_count: i64,
 }
 
 #[derive(Clone, Debug)]

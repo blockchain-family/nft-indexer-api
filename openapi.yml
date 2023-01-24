@@ -511,6 +511,13 @@ components:
           type: array
           items:
             type: string
+    singleAttribute:
+      type: object
+      properties:
+        traitType:
+          type: string
+        traitValue:
+          type: string
     collectionDetail:
       allOf:
         - $ref: '#/components/schemas/contract'
@@ -951,6 +958,10 @@ paths:
                 offset:
                   type: integer
                   default: 0
+                attributes:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/singleAttribute'
 
       responses:
         '200':

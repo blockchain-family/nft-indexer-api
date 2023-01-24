@@ -302,32 +302,9 @@ pub async fn get_nft_list_handler(
     params: NFTListQuery,
     db: Queries,
 ) -> Result<Box<dyn warp::Reply>, Infallible> {
-    //log::warn!("/nfts handler start");
     let owners = params.owners.as_deref().unwrap_or(&[]);
     let collections = params.collections.as_deref().unwrap_or(&[]);
     let verified = Some(params.verified.unwrap_or(true));
-    let count = match db
-        .nft_search_count(
-            owners,
-            collections,
-            params.price_from,
-            params.price_to,
-            params.price_token.clone(),
-            params.forsale,
-            params.auction,
-            verified,
-        )
-        .await
-    {
-        Err(e) => {
-            return Ok(Box::from(warp::reply::with_status(
-                e.to_string(),
-                StatusCode::INTERNAL_SERVER_ERROR,
-            )))
-        }
-        Ok(cnt) => cnt,
-    };
-    //log::warn!("/nfts handler count={}", count);
 
     match db
         .nft_search(
@@ -341,6 +318,7 @@ pub async fn get_nft_list_handler(
             verified,
             params.limit.unwrap_or(100),
             params.offset.unwrap_or_default(),
+            &params.attributes.unwrap_or_default(),
         )
         .await
     {
@@ -349,6 +327,10 @@ pub async fn get_nft_list_handler(
             StatusCode::INTERNAL_SERVER_ERROR,
         ))),
         Ok(list) => {
+            let count = match list.first() {
+                None => 0,
+                Some(first) => first.total_count,
+            };
             //log::warn!("/nfts rselected {} rows", list.len());
             let ret: Vec<NFT> = list.iter().map(|x| NFT::from_db(x, &db.tokens)).collect();
             let collection_ids = ret.iter().map(|x| x.collection.clone()).collect();
@@ -424,6 +406,14 @@ pub async fn get_nft_list_handler(
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct AttributeFilter {
+    #[serde(rename = "traitType")]
+    pub trait_type: String,
+    #[serde(rename = "traitValue")]
+    pub trait_value: String,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct NFTListQuery {
     pub owners: Option<Vec<String>>,
 
@@ -443,6 +433,7 @@ pub struct NFTListQuery {
     pub verified: Option<bool>,
     pub limit: Option<usize>,
     pub offset: Option<usize>,
+    pub attributes: Option<Vec<AttributeFilter>>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
