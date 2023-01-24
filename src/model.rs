@@ -4,6 +4,7 @@ use crate::{
     token::TokenDict,
 };
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize)]
@@ -114,6 +115,7 @@ pub struct CollectionDetails {
 
     #[serde(rename = "totalVolumeUsd")]
     pub total_volume_usd: Option<String>,
+    pub attributes: Option<Value>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -305,7 +307,7 @@ impl Collection {
 }
 
 impl CollectionDetails {
-    pub fn from_db(db: &crate::db::NftCollectionDetails, _tokens: &TokenDict) -> Self {
+    pub fn from_db(db: crate::db::NftCollectionDetails, _tokens: &TokenDict) -> Self {
         CollectionDetails {
             collection: Collection {
                 contract: Contract {
@@ -326,6 +328,7 @@ impl CollectionDetails {
             },
             floor_price_usd: db.floor_price_usd.clone().map(|x| x.to_string()),
             total_volume_usd: db.total_volume_usd.clone().map(|x| x.to_string()),
+            attributes: db.attributes,
         }
     }
 }

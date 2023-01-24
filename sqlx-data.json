@@ -2184,7 +2184,7 @@
     },
     "query": "\n        SELECT s.address as \"address!\", s.created as \"created!\", s.updated as \"updated!\", s.tx_lt as \"tx_lt!\",\n        s.nft as \"nft!\", s.collection,\n        s.buyer,\n        s.price_token as \"price_token!\", s.price as \"price!\",\n        s.usd_price,\n        s.finished_at, s.expired_at,\n        s.state as \"state!: _\"\n        FROM nft_direct_buy_usd s\n        INNER JOIN nft n ON n.address = s.nft\n        WHERE n.owner = $1\n            AND (s.collection = ANY($2) OR array_length($2::varchar[], 1) is null)\n            AND (array_length($3::varchar[], 1) is null OR s.state::varchar = ANY($3))\n        ORDER BY s.updated DESC LIMIT $4 OFFSET $5\n        "
   },
-  "b02db64280cd208ae0e18b798481c6b58df9f5220cd6bf0055e4cad9a5438fdf": {
+  "b55747d5a96f9d56201a216708de1dd46cd0584299b83b7fb4d95bc974c3fbd0": {
     "describe": {
       "columns": [
         {
@@ -2261,9 +2261,15 @@
           "name": "total_volume_usd",
           "ordinal": 14,
           "type_info": "Numeric"
+        },
+        {
+          "name": "attributes",
+          "ordinal": 15,
+          "type_info": "Json"
         }
       ],
       "nullable": [
+        true,
         true,
         true,
         true,
@@ -2291,7 +2297,7 @@
         ]
       }
     },
-    "query": "\n        SELECT c.*\n        FROM nft_collection_details c\n        WHERE (c.owner = ANY($3) OR array_length($3::varchar[], 1) is null)\n            AND ($4::boolean is false OR c.verified is true)\n            AND ($5::varchar is null OR c.name ILIKE $5)\n            AND (c.address = ANY($6) OR array_length($6::varchar[], 1) is null)\n        ORDER BY c.owners_count DESC\n        LIMIT $1 OFFSET $2\n        "
+    "query": "\n                SELECT c.*\n                FROM nft_collection_details c\n                WHERE (c.owner = ANY($3) OR array_length($3::varchar[], 1) is null)\n                    AND ($4::boolean is false OR c.verified is true)\n                    AND ($5::varchar is null OR c.name ILIKE $5)\n                    AND (c.address = ANY($6) OR array_length($6::varchar[], 1) is null)\n                ORDER BY c.owners_count DESC\n                LIMIT $1 OFFSET $2\n             "
   },
   "be43bf26568887714b141d50b4ce9b7a567a3eba13c085dac8275a78a8bc355f": {
     "describe": {
@@ -3277,7 +3283,27 @@
     },
     "query": "\n        SELECT * FROM nft_auction_search WHERE address = $1"
   },
-  "f57addcaca41ea942557b84764126ef446a9d684c11a1052e1e75b351f9b97e1": {
+  "f6858c9dce311f7326bb214088885e592b5c653e19644c1d3b54e8f739cf263f": {
+    "describe": {
+      "columns": [
+        {
+          "name": "count",
+          "ordinal": 0,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "SELECT count(*) FROM nft_collection WHERE owner = $1"
+  },
+  "f6d809f1113e42f61e897d86c50731bdc47358f4ae6612813317f7c7feeee44f": {
     "describe": {
       "columns": [
         {
@@ -3354,9 +3380,15 @@
           "name": "total_volume_usd",
           "ordinal": 14,
           "type_info": "Numeric"
+        },
+        {
+          "name": "attributes",
+          "ordinal": 15,
+          "type_info": "Json"
         }
       ],
       "nullable": [
+        true,
         true,
         true,
         true,
@@ -3379,27 +3411,7 @@
         ]
       }
     },
-    "query": "\n        SELECT c.*\n        FROM nft_collection_details c\n        WHERE c.address = $1"
-  },
-  "f6858c9dce311f7326bb214088885e592b5c653e19644c1d3b54e8f739cf263f": {
-    "describe": {
-      "columns": [
-        {
-          "name": "count",
-          "ordinal": 0,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "Text"
-        ]
-      }
-    },
-    "query": "SELECT count(*) FROM nft_collection WHERE owner = $1"
+    "query": "\n                SELECT c.*\n                FROM nft_collection_details c\n                WHERE c.address = $1 and c.verified=true"
   },
   "fe78df6d7b55dd00c11241cc0b4d397a058ef08aad785e266616eba14bc54796": {
     "describe": {

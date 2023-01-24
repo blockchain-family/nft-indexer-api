@@ -102,6 +102,7 @@ pub struct NftCollectionDetails {
     pub total_price: Option<BigDecimal>,
     pub floor_price_usd: Option<BigDecimal>,
     pub total_volume_usd: Option<BigDecimal>,
+    pub attributes: Option<Value>,
 }
 
 #[derive(Clone, Debug)]

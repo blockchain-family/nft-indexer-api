@@ -98,9 +98,9 @@ impl Queries {
         sqlx::query_as!(
             NftCollectionDetails,
             "
-        SELECT c.*
-        FROM nft_collection_details c
-        WHERE c.address = $1",
+                SELECT c.*
+                FROM nft_collection_details c
+                WHERE c.address = $1 and c.verified=true",
             address
         )
         .fetch_optional(self.db.as_ref())
@@ -316,15 +316,15 @@ impl Queries {
         sqlx::query_as!(
             NftCollectionDetails,
             "
-        SELECT c.*
-        FROM nft_collection_details c
-        WHERE (c.owner = ANY($3) OR array_length($3::varchar[], 1) is null)
-            AND ($4::boolean is false OR c.verified is true)
-            AND ($5::varchar is null OR c.name ILIKE $5)
-            AND (c.address = ANY($6) OR array_length($6::varchar[], 1) is null)
-        ORDER BY c.owners_count DESC
-        LIMIT $1 OFFSET $2
-        ",
+                SELECT c.*
+                FROM nft_collection_details c
+                WHERE (c.owner = ANY($3) OR array_length($3::varchar[], 1) is null)
+                    AND ($4::boolean is false OR c.verified is true)
+                    AND ($5::varchar is null OR c.name ILIKE $5)
+                    AND (c.address = ANY($6) OR array_length($6::varchar[], 1) is null)
+                ORDER BY c.owners_count DESC
+                LIMIT $1 OFFSET $2
+             ",
             limit as i64,
             offset as i64,
             owners,

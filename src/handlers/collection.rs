@@ -58,7 +58,7 @@ pub async fn list_collections_handler(
         ))),
         Ok(list) => {
             let ret: Vec<CollectionDetails> = list
-                .iter()
+                .into_iter()
                 .map(|c| CollectionDetails::from_db(c, &db.tokens))
                 .collect();
             let ret = VecWithTotal { count, items: ret };
@@ -100,7 +100,7 @@ pub async fn get_collection_handler(
             StatusCode::BAD_REQUEST,
         ))),
         Ok(Some(col)) => {
-            let ret = CollectionDetails::from_db(&col, &db.tokens);
+            let ret = CollectionDetails::from_db(col, &db.tokens);
             Ok(Box::from(warp::reply::with_status(
                 warp::reply::json(&ret),
                 StatusCode::OK,

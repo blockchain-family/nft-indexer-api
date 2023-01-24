@@ -2,9 +2,9 @@ use api::cfg::ApiConfig;
 use api::db::Queries;
 use api::handlers::*;
 use api::token::TokenDict;
+use api::usd_price::CurrencyClient;
 use std::sync::Arc;
 use warp::{http::StatusCode, Filter};
-use api::usd_price::CurrencyClient;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
@@ -21,9 +21,11 @@ async fn main() {
         .expect("error loading tokens dictionary");
     let db_pool = cfg.database.init().await.expect("err init database");
     let service = Queries::new(Arc::new(db_pool), tokens);
-    CurrencyClient::new(service.clone()).expect("err initialize currency client")
+    CurrencyClient::new(service.clone())
+        .expect("err initialize currency client")
         .start(std::time::Duration::from_secs(5 * 60)) // 5 minutes
-        .await.expect("err start currency client");
+        .await
+        .expect("err start currency client");
 
     let cors = warp::cors()
         .allow_any_origin()

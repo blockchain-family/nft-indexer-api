@@ -502,6 +502,31 @@ components:
           required:
             - ownersCount
             - createdAt
+    attribute:
+      type: object
+      properties:
+        traitType:
+          type: string
+        traitValues:
+          type: array
+          items:
+            type: string
+    collectionDetail:
+      allOf:
+        - $ref: '#/components/schemas/contract'
+        - $ref: '#/components/schemas/collection'
+        - type: object
+          properties:
+            floorPriceUsd:
+              type: string
+            totalVolumeUsd:
+              type: string
+            attrubites:
+              type: array
+              items:
+                $ref: '#/components/schemas/attribute'
+          required:
+            - totalVolumeUsd
     eventType:
       type: string
       enum:
@@ -719,7 +744,7 @@ paths:
                   items:
                     type: array
                     items:
-                      $ref: '#/components/schemas/collection'
+                      $ref: '#/components/schemas/collectionDetail'
                 required:
                   - totalCount
                   - items
@@ -885,7 +910,7 @@ paths:
           content:
             'application/json':
               schema:
-                $ref: '#/components/schemas/collection'
+                $ref: '#/components/schemas/collectionDetail'
 
   /nfts/:
     post:
