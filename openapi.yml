@@ -534,6 +534,22 @@ components:
                 $ref: '#/components/schemas/attribute'
           required:
             - totalVolumeUsd
+    collectionDetailSimple:
+      type: object
+      properties:
+        address:
+          $ref: '#/components/schemas/address'
+        name:
+          type: string
+        description:
+          type: string
+        verified:
+          type: boolean
+        logo:
+          type: string
+      required:
+        - verified
+
     eventType:
       type: string
       enum:
@@ -709,8 +725,6 @@ paths:
                             - auction
                             - directBuy
                             - directSell
-
-
   /collections:
     post:
       operationId: listCollections
@@ -799,6 +813,42 @@ paths:
                     type: object
                     additionalProperties:
                       $ref: '#/components/schemas/collection'
+  /collections/simple:
+    post:
+      operationId: listCollectionsSimple
+      requestBody:
+        required: false
+        content:
+          'application/json':
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                verified:
+                  type: boolean
+                  default: true
+                limit:
+                  type: integer
+                offset:
+                  type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  totalCount:
+                    type: integer
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/collectionDetailSimple'
+                required:
+                  - totalCount
+                  - items
 
   /nft/price-history:
     post:

@@ -81,9 +81,20 @@ pub struct NftCollection {
     pub wallpaper: Option<String>,
     pub logo: Option<String>,
     pub owners_count: Option<i32>,
-    pub nft_count: Option<i64>,
+    pub nft_count: i64,
     pub max_price: Option<BigDecimal>,
     pub total_price: Option<BigDecimal>,
+    pub cnt: i64,
+}
+
+#[derive(Clone, Debug)]
+pub struct NftCollectionSimple {
+    pub address: Address,
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub verified: bool,
+    pub logo: Option<String>,
+    pub cnt: i64,
 }
 
 #[derive(Clone, Debug)]
@@ -104,6 +115,7 @@ pub struct NftCollectionDetails {
     pub floor_price_usd: Option<BigDecimal>,
     pub total_volume_usd: Option<BigDecimal>,
     pub attributes: Option<Value>,
+    pub cnt: i64,
 }
 
 #[derive(Clone, Debug)]
@@ -127,6 +139,7 @@ pub struct NftAuction {
     pub last_bid_ts: Option<NaiveDateTime>,
     pub last_bid_value: Option<BigDecimal>,
     pub last_bid_usd_value: Option<BigDecimal>,
+    pub cnt: i64,
 }
 
 #[derive(Clone, Debug)]
@@ -140,6 +153,7 @@ pub struct NftAuctionBid {
     pub created_at: NaiveDateTime,
     pub tx_lt: i64,
     pub active: bool,
+    pub cnt: i64,
 }
 
 #[derive(Clone, Debug)]
@@ -156,6 +170,7 @@ pub struct NftAuctionBidExt {
     pub active: Option<bool>,
     pub nft: Option<Address>,
     pub collection: Option<Address>,
+    pub cnt: i64,
 }
 
 #[derive(Clone, Debug)]
@@ -173,6 +188,7 @@ pub struct NftDirectSell {
     pub finished_at: Option<NaiveDateTime>,
     pub expired_at: Option<NaiveDateTime>,
     pub tx_lt: i64,
+    pub cnt: i64,
 }
 
 #[derive(Clone, Debug)]
@@ -190,6 +206,7 @@ pub struct NftDirectBuy {
     pub finished_at: Option<NaiveDateTime>,
     pub expired_at: Option<NaiveDateTime>,
     pub tx_lt: i64,
+    pub cnt: i64,
 }
 
 #[derive(Clone, Debug)]

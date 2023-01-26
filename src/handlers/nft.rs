@@ -184,21 +184,13 @@ pub async fn get_nft_direct_buy_handler(
     let offset = params.offset.unwrap_or_default();
     let nft = params.nft;
     let status = params.status.as_deref().unwrap_or_default();
-    let count = match db.list_nft_direct_buy_count(&nft, status).await {
-        Err(e) => {
-            return Ok(Box::from(warp::reply::with_status(
-                e.to_string(),
-                StatusCode::INTERNAL_SERVER_ERROR,
-            )))
-        }
-        Ok(cnt) => cnt,
-    };
     match db.list_nft_direct_buy(&nft, status, limit, offset).await {
         Err(e) => Ok(Box::from(warp::reply::with_status(
             e.to_string(),
             StatusCode::INTERNAL_SERVER_ERROR,
         ))),
         Ok(list) => {
+            let count = list.first().map(|it| it.cnt).unwrap_or_default();
             let ret: Vec<DirectBuy> = list
                 .iter()
                 .map(|x| DirectBuy::from_db(x, &db.tokens))

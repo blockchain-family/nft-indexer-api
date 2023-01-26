@@ -54,6 +54,7 @@ async fn main() {
                 .or(get_nft_price_history(service.clone()))
                 .or(post_nft_reload_meta(service.clone()))
                 .or(list_collections(service.clone()))
+                .or(list_collections_simple(service.clone()))
                 .or(get_collection(service.clone()))
                 .or(get_collections_by_owner(service.clone()))
                 .or(get_owner_bids_out(service.clone()))

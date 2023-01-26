@@ -23,18 +23,6 @@ pub async fn get_auctions_handler(
     let collections = params.collections.as_deref().unwrap_or(&[]);
     let tokens = params.tokens.as_deref().unwrap_or(&[]);
     let sort = params.sort.clone().unwrap_or(AuctionsSortOrder::StartDate);
-    let count = match db
-        .list_nft_auctions_count(owners, collections, tokens)
-        .await
-    {
-        Err(e) => {
-            return Ok(Box::from(warp::reply::with_status(
-                e.to_string(),
-                StatusCode::INTERNAL_SERVER_ERROR,
-            )))
-        }
-        Ok(cnt) => cnt,
-    };
     match db
         .list_nft_auctions(
             owners,
@@ -51,6 +39,7 @@ pub async fn get_auctions_handler(
             StatusCode::INTERNAL_SERVER_ERROR,
         ))),
         Ok(list) => {
+            let count = list.first().map(|it| it.cnt).unwrap_or_default();
             let ret: Vec<Auction> = list
                 .iter()
                 .map(|col| Auction::from_db(col, &db.tokens))
@@ -215,15 +204,7 @@ pub async fn get_auction_bids_handler(
         }
         Ok(Some(a)) => a,
     };
-    let count = match db.list_nft_auction_bids_count(&params.auction).await {
-        Err(e) => {
-            return Ok(Box::from(warp::reply::with_status(
-                e.to_string(),
-                StatusCode::INTERNAL_SERVER_ERROR,
-            )))
-        }
-        Ok(cnt) => cnt,
-    };
+
     match db
         .list_nft_auction_bids(
             &params.auction,
@@ -237,6 +218,8 @@ pub async fn get_auction_bids_handler(
             StatusCode::INTERNAL_SERVER_ERROR,
         ))),
         Ok(bids) => {
+            let count = bids.first().map(|it| it.cnt).unwrap_or_default();
+
             let ret: Vec<AuctionBid> = bids
                 .iter()
                 .map(|b| AuctionBid::from_db(b, &auc, &db.tokens))
@@ -244,7 +227,7 @@ pub async fn get_auction_bids_handler(
 
             let auction_ids: Vec<String> = ret.iter().map(|x| x.auction.clone()).collect();
             let (nft, collection, auctions) =
-                match super::collect_auctions_nfts_collections(&db, &auction_ids).await {
+                match collect_auctions_nfts_collections(&db, &auction_ids).await {
                     Err(e) => {
                         return Ok(Box::from(warp::reply::with_status(
                             e.to_string(),

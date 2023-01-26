@@ -119,6 +119,27 @@ pub struct CollectionDetails {
 }
 
 #[derive(Debug, Clone, Serialize)]
+pub struct CollectionSimple {
+    pub address: Address,
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub verified: bool,
+    pub logo: Option<String>,
+}
+
+impl CollectionSimple {
+    pub fn from_db(db: crate::db::NftCollectionSimple) -> Self {
+        Self {
+            address: db.address,
+            name: Some(db.name.unwrap_or_default()),
+            description: Some(db.description.unwrap_or_default()),
+            verified: db.verified,
+            logo: db.logo,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
 pub struct Event {
     pub id: i64,
     #[serde(rename = "type")]
@@ -285,49 +306,49 @@ impl NFT {
 }
 
 impl Collection {
-    pub fn from_db(db: &crate::db::NftCollection, _tokens: &TokenDict) -> Self {
+    pub fn from_db(db: crate::db::NftCollection) -> Self {
         Collection {
             contract: Contract {
-                address: db.address.clone(),
-                name: Some(db.name.clone().unwrap_or_default()),
-                description: Some(db.description.clone().unwrap_or_default()),
-                owner: Some(db.owner.clone()),
+                address: db.address,
+                name: Some(db.name.unwrap_or_default()),
+                description: Some(db.description.unwrap_or_default()),
+                owner: Some(db.owner),
                 verified: Some(db.verified),
             },
             verified: Some(db.verified),
             created_at: db.created.timestamp() as usize,
-            logo: db.logo.clone(),
-            wallpaper: db.wallpaper.clone(),
+            logo: db.logo,
+            wallpaper: db.wallpaper,
             owners_count: db.owners_count.unwrap_or_default() as usize,
-            nft_count: db.nft_count.unwrap_or_default() as usize,
-            total_price: db.total_price.clone().map(|x| x.to_string()),
+            nft_count: db.nft_count as usize,
+            total_price: db.total_price.map(|x| x.to_string()),
             lowest_price: None,
         }
     }
 }
 
 impl CollectionDetails {
-    pub fn from_db(db: crate::db::NftCollectionDetails, _tokens: &TokenDict) -> Self {
+    pub fn from_db(db: crate::db::NftCollectionDetails) -> Self {
         CollectionDetails {
             collection: Collection {
                 contract: Contract {
-                    address: db.address.clone().unwrap_or_default(),
-                    name: Some(db.name.clone().unwrap_or_default()),
-                    description: Some(db.description.clone().unwrap_or_default()),
-                    owner: Some(db.owner.clone().unwrap_or_default()),
+                    address: db.address.unwrap_or_default(),
+                    name: Some(db.name.unwrap_or_default()),
+                    description: Some(db.description.unwrap_or_default()),
+                    owner: Some(db.owner.unwrap_or_default()),
                     verified: db.verified,
                 },
                 verified: db.verified,
                 created_at: db.created.unwrap_or_default().timestamp() as usize,
-                logo: db.logo.clone(),
-                wallpaper: db.wallpaper.clone(),
+                logo: db.logo,
+                wallpaper: db.wallpaper,
                 owners_count: db.owners_count.unwrap_or_default() as usize,
                 nft_count: db.nft_count.unwrap_or_default() as usize,
-                total_price: db.total_price.clone().map(|x| x.to_string()),
+                total_price: db.total_price.map(|x| x.to_string()),
                 lowest_price: None,
             },
-            floor_price_usd: db.floor_price_usd.clone().map(|x| x.to_string()),
-            total_volume_usd: db.total_volume_usd.clone().map(|x| x.to_string()),
+            floor_price_usd: db.floor_price_usd.map(|x| x.to_string()),
+            total_volume_usd: db.total_volume_usd.map(|x| x.to_string()),
             attributes: db.attributes,
         }
     }

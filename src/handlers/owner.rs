@@ -31,18 +31,6 @@ pub async fn get_owner_bids_out_handler(
     let owner = query.owner;
     let limit = query.limit.unwrap_or(100);
     let offset = query.offset.unwrap_or_default();
-    let count = match db
-        .list_owner_auction_bids_out_count(&owner, collections, &query.lastbid)
-        .await
-    {
-        Err(e) => {
-            return Ok(Box::from(warp::reply::with_status(
-                e.to_string(),
-                StatusCode::INTERNAL_SERVER_ERROR,
-            )))
-        }
-        Ok(cnt) => cnt,
-    };
     match db
         .list_owner_auction_bids_out(&owner, collections, &query.lastbid, limit, offset)
         .await
@@ -52,6 +40,7 @@ pub async fn get_owner_bids_out_handler(
             StatusCode::INTERNAL_SERVER_ERROR,
         ))),
         Ok(list) => {
+            let count = list.first().map(|it| it.cnt).unwrap_or_default();
             let ret: Vec<AuctionBid> = list
                 .iter()
                 .map(|x| AuctionBid::from_extended(x, &db.tokens))
@@ -114,18 +103,6 @@ pub async fn get_owner_bids_in_handler(
     let active = &query.active;
     let limit = query.limit.unwrap_or(100);
     let offset = query.offset.unwrap_or_default();
-    let count = match db
-        .list_owner_auction_bids_in_count(&owner, collections, active)
-        .await
-    {
-        Err(e) => {
-            return Ok(Box::from(warp::reply::with_status(
-                e.to_string(),
-                StatusCode::INTERNAL_SERVER_ERROR,
-            )))
-        }
-        Ok(cnt) => cnt,
-    };
     match db
         .list_owner_auction_bids_in(&owner, collections, active, limit, offset)
         .await
@@ -135,6 +112,7 @@ pub async fn get_owner_bids_in_handler(
             StatusCode::INTERNAL_SERVER_ERROR,
         ))),
         Ok(list) => {
+            let count = list.first().map(|it| it.cnt).unwrap_or_default();
             let ret: Vec<AuctionBid> = list
                 .iter()
                 .map(|x| AuctionBid::from_extended(x, &db.tokens))
@@ -197,18 +175,6 @@ pub async fn get_owner_direct_buy_handler(
     let status = query.status.as_deref().unwrap_or_default();
     let limit = query.limit.unwrap_or(100);
     let offset = query.offset.unwrap_or_default();
-    let count = match db
-        .list_owner_direct_buy_count(&owner, collections, status)
-        .await
-    {
-        Err(e) => {
-            return Ok(Box::from(warp::reply::with_status(
-                e.to_string(),
-                StatusCode::INTERNAL_SERVER_ERROR,
-            )))
-        }
-        Ok(cnt) => cnt,
-    };
     match db
         .list_owner_direct_buy(&owner, collections, status, limit, offset)
         .await
@@ -218,6 +184,7 @@ pub async fn get_owner_direct_buy_handler(
             StatusCode::INTERNAL_SERVER_ERROR,
         ))),
         Ok(list) => {
+            let count = list.first().map(|it| it.cnt).unwrap_or_default();
             let ret: Vec<DirectBuy> = list
                 .iter()
                 .map(|x| DirectBuy::from_db(x, &db.tokens))
@@ -271,18 +238,6 @@ pub async fn get_owner_direct_buy_in_handler(
     let status = query.status.as_deref().unwrap_or_default();
     let limit = query.limit.unwrap_or(100);
     let offset = query.offset.unwrap_or_default();
-    let count = match db
-        .list_owner_direct_buy_in_count(&owner, collections, status)
-        .await
-    {
-        Err(e) => {
-            return Ok(Box::from(warp::reply::with_status(
-                e.to_string(),
-                StatusCode::INTERNAL_SERVER_ERROR,
-            )))
-        }
-        Ok(cnt) => cnt,
-    };
     match db
         .list_owner_direct_buy_in(&owner, collections, status, limit, offset)
         .await
@@ -292,6 +247,7 @@ pub async fn get_owner_direct_buy_in_handler(
             StatusCode::INTERNAL_SERVER_ERROR,
         ))),
         Ok(list) => {
+            let count = list.first().map(|it| it.cnt).unwrap_or_default();
             let ret: Vec<DirectBuy> = list
                 .iter()
                 .map(|x| DirectBuy::from_db(x, &db.tokens))
@@ -344,18 +300,6 @@ pub async fn get_owner_direct_sell_handler(
     let status = query.status.as_deref().unwrap_or_default();
     let limit = query.limit.unwrap_or(100);
     let offset = query.offset.unwrap_or_default();
-    let count = match db
-        .list_owner_direct_sell_count(&owner, collections, status)
-        .await
-    {
-        Err(e) => {
-            return Ok(Box::from(warp::reply::with_status(
-                e.to_string(),
-                StatusCode::INTERNAL_SERVER_ERROR,
-            )))
-        }
-        Ok(cnt) => cnt,
-    };
     match db
         .list_owner_direct_sell(&owner, collections, status, limit, offset)
         .await
@@ -365,6 +309,7 @@ pub async fn get_owner_direct_sell_handler(
             StatusCode::INTERNAL_SERVER_ERROR,
         ))),
         Ok(list) => {
+            let count = list.first().map(|it| it.cnt).unwrap_or_default();
             let ret: Vec<DirectSell> = list
                 .iter()
                 .map(|x| DirectSell::from_db(x, &db.tokens))
