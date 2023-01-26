@@ -100,7 +100,7 @@ impl Queries {
         sqlx::query_as!(
             NftCollectionDetails,
             r#"
-                SELECT c.*, 1::bigint as "cnt!"
+                SELECT c.*, 1::bigint as "cnt!", '[]'::json as "previews!"
                 FROM nft_collection_details c
                 WHERE c.address = $1"#,
             address
@@ -319,12 +319,26 @@ impl Queries {
             NftCollectionDetails,
             r#"
                 SELECT c.*,
-                count(1) over () as "cnt!"
+                       count(1) over ()  as "cnt!",
+                       previews.previews as "previews!"
                 FROM nft_collection_details c
-                WHERE (c.owner = ANY($3) OR array_length($3::varchar[], 1) is null)
-                    AND ($4::boolean is false OR c.verified is true)
-                    AND ($5::varchar is null OR c.name ILIKE $5)
-                    AND (c.address = ANY($6) OR array_length($6::varchar[], 1) is null)
+                         left join lateral (
+                    select json_agg(ag2.preview_url) as previews
+                    from (select ag.preview_url
+                          from (
+                                   select nm.meta -> 'preview' as preview_url
+                                   from nft n
+                                            join nft_metadata nm on n.address = nm.nft
+                                       and nm.meta != 'null'
+                                   where n.collection = c.address
+                                   limit 50) ag
+                          order by random()
+                          limit 3) ag2
+                    ) previews on true
+                WHERE (c.owner = ANY ($3) OR array_length($3::varchar[], 1) is null)
+                  AND ($4::boolean is false OR c.verified is true)
+                  AND ($5::varchar is null OR c.name ILIKE $5)
+                  AND (c.address = ANY ($6) OR array_length($6::varchar[], 1) is null)
                 ORDER BY c.owners_count DESC
                 LIMIT $1 OFFSET $2
              "#,
@@ -354,8 +368,10 @@ impl Queries {
                        c.description,
                        c.logo,
                        c.verified       as "verified!",
-                       count(1) over () as "cnt!"
+                       count(1) over () as "cnt!",
+                       nft.count as "nft_count!"
                 FROM nft_collection c
+                LEFT JOIN lateral ( select count(1) as count from nft n where n.collection = c.address) nft on true
                 where ($3::boolean is false OR c.verified is true)
                 AND ($4::varchar is null OR c.name ILIKE $4)
                 order by c.owners_count desc

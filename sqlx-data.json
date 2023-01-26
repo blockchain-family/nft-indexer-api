@@ -1020,6 +1020,128 @@
     },
     "query": "\n                        SELECT a.*, count(1) over () as \"cnt!\"\n                        FROM nft_auction_search a\n                        INNER JOIN nft n ON a.nft = n.address\n                        WHERE\n                        (n.owner = ANY($1) OR array_length($1::varchar[], 1) is null)\n                        AND (n.collection = ANY($2) OR array_length($2::varchar[], 1) is null)\n                        AND (a.nft = ANY($3) OR array_length($3::varchar[], 1) is null)\n                        ORDER BY a.created_at DESC\n                        LIMIT $4 OFFSET $5"
   },
+  "3dc7bbee29ff4af67cf10763ee4b5d42601ff7ae00435d99248fd3055bfe0fbb": {
+    "describe": {
+      "columns": [
+        {
+          "name": "address",
+          "ordinal": 0,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "owner",
+          "ordinal": 1,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "name",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "description",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "created",
+          "ordinal": 4,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "updated",
+          "ordinal": 5,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "wallpaper",
+          "ordinal": 6,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "logo",
+          "ordinal": 7,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "total_price",
+          "ordinal": 8,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "max_price",
+          "ordinal": 9,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "owners_count",
+          "ordinal": 10,
+          "type_info": "Int4"
+        },
+        {
+          "name": "verified",
+          "ordinal": 11,
+          "type_info": "Bool"
+        },
+        {
+          "name": "nft_count",
+          "ordinal": 12,
+          "type_info": "Int8"
+        },
+        {
+          "name": "floor_price_usd",
+          "ordinal": 13,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "total_volume_usd",
+          "ordinal": 14,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "attributes",
+          "ordinal": 15,
+          "type_info": "Json"
+        },
+        {
+          "name": "cnt!",
+          "ordinal": 16,
+          "type_info": "Int8"
+        },
+        {
+          "name": "previews!",
+          "ordinal": 17,
+          "type_info": "Json"
+        }
+      ],
+      "nullable": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        null,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "\n                SELECT c.*, 1::bigint as \"cnt!\", '[]'::json as \"previews!\"\n                FROM nft_collection_details c\n                WHERE c.address = $1"
+  },
   "41064f02c889dc9dd1992574cd29ef4c01e49e691c2a1e2f416628d3bc46b665": {
     "describe": {
       "columns": [
@@ -1669,127 +1791,6 @@
       }
     },
     "query": "SELECT * FROM nft_metadata WHERE nft_metadata.nft = $1"
-  },
-  "701e60bcd5b17bac848584ae19a369ac14ad3bef711c633455fdf4e31e2dbe92": {
-    "describe": {
-      "columns": [
-        {
-          "name": "address",
-          "ordinal": 0,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "owner",
-          "ordinal": 1,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "name",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "description",
-          "ordinal": 3,
-          "type_info": "Text"
-        },
-        {
-          "name": "created",
-          "ordinal": 4,
-          "type_info": "Timestamp"
-        },
-        {
-          "name": "updated",
-          "ordinal": 5,
-          "type_info": "Timestamp"
-        },
-        {
-          "name": "wallpaper",
-          "ordinal": 6,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "logo",
-          "ordinal": 7,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "total_price",
-          "ordinal": 8,
-          "type_info": "Numeric"
-        },
-        {
-          "name": "max_price",
-          "ordinal": 9,
-          "type_info": "Numeric"
-        },
-        {
-          "name": "owners_count",
-          "ordinal": 10,
-          "type_info": "Int4"
-        },
-        {
-          "name": "verified",
-          "ordinal": 11,
-          "type_info": "Bool"
-        },
-        {
-          "name": "nft_count",
-          "ordinal": 12,
-          "type_info": "Int8"
-        },
-        {
-          "name": "floor_price_usd",
-          "ordinal": 13,
-          "type_info": "Numeric"
-        },
-        {
-          "name": "total_volume_usd",
-          "ordinal": 14,
-          "type_info": "Numeric"
-        },
-        {
-          "name": "attributes",
-          "ordinal": 15,
-          "type_info": "Json"
-        },
-        {
-          "name": "cnt!",
-          "ordinal": 16,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "Int8",
-          "Int8",
-          "TextArray",
-          "Bool",
-          "Varchar",
-          "TextArray"
-        ]
-      }
-    },
-    "query": "\n                SELECT c.*,\n                count(1) over () as \"cnt!\"\n                FROM nft_collection_details c\n                WHERE (c.owner = ANY($3) OR array_length($3::varchar[], 1) is null)\n                    AND ($4::boolean is false OR c.verified is true)\n                    AND ($5::varchar is null OR c.name ILIKE $5)\n                    AND (c.address = ANY($6) OR array_length($6::varchar[], 1) is null)\n                ORDER BY c.owners_count DESC\n                LIMIT $1 OFFSET $2\n             "
   },
   "789c6b422a236e4d0f74e02cebdee60339e397441d1ebefddb30355ad9fba171": {
     "describe": {
@@ -2561,6 +2562,192 @@
     },
     "query": "\n                SELECT a.*, count(1) over () as \"cnt!\" FROM nft_auction_search a\n                WHERE a.nft = $1 and a.\"status: _\" in ('active', 'expired')\n                order by a.created_at DESC limit 1"
   },
+  "a649e5a8e89577f7438c0f655f0152a6d7318dad46cca027ebea319311ad6e9b": {
+    "describe": {
+      "columns": [
+        {
+          "name": "address!",
+          "ordinal": 0,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "description",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "logo",
+          "ordinal": 3,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "verified!",
+          "ordinal": 4,
+          "type_info": "Bool"
+        },
+        {
+          "name": "cnt!",
+          "ordinal": 5,
+          "type_info": "Int8"
+        },
+        {
+          "name": "nft_count!",
+          "ordinal": 6,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        false,
+        true,
+        true,
+        true,
+        false,
+        null,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8",
+          "Bool",
+          "Varchar"
+        ]
+      }
+    },
+    "query": "\n                SELECT c.address        as \"address!\",\n                       c.name,\n                       c.description,\n                       c.logo,\n                       c.verified       as \"verified!\",\n                       count(1) over () as \"cnt!\",\n                       nft.count as \"nft_count!\"\n                FROM nft_collection c\n                LEFT JOIN lateral ( select count(1) as count from nft n where n.collection = c.address) nft on true\n                where ($3::boolean is false OR c.verified is true)\n                AND ($4::varchar is null OR c.name ILIKE $4)\n                order by c.owners_count desc\n                limit $1 offset $2\n             "
+  },
+  "aff52bc98d9dff5af6c500b9d5a4358c78570ded4f688eb28b4d79dc285323c9": {
+    "describe": {
+      "columns": [
+        {
+          "name": "address",
+          "ordinal": 0,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "owner",
+          "ordinal": 1,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "name",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "description",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "created",
+          "ordinal": 4,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "updated",
+          "ordinal": 5,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "wallpaper",
+          "ordinal": 6,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "logo",
+          "ordinal": 7,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "total_price",
+          "ordinal": 8,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "max_price",
+          "ordinal": 9,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "owners_count",
+          "ordinal": 10,
+          "type_info": "Int4"
+        },
+        {
+          "name": "verified",
+          "ordinal": 11,
+          "type_info": "Bool"
+        },
+        {
+          "name": "nft_count",
+          "ordinal": 12,
+          "type_info": "Int8"
+        },
+        {
+          "name": "floor_price_usd",
+          "ordinal": 13,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "total_volume_usd",
+          "ordinal": 14,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "attributes",
+          "ordinal": 15,
+          "type_info": "Json"
+        },
+        {
+          "name": "cnt!",
+          "ordinal": 16,
+          "type_info": "Int8"
+        },
+        {
+          "name": "previews!",
+          "ordinal": 17,
+          "type_info": "Json"
+        }
+      ],
+      "nullable": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        null,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8",
+          "TextArray",
+          "Bool",
+          "Varchar",
+          "TextArray"
+        ]
+      }
+    },
+    "query": "\n                SELECT c.*,\n                       count(1) over ()  as \"cnt!\",\n                       previews.previews as \"previews!\"\n                FROM nft_collection_details c\n                         left join lateral (\n                    select json_agg(ag2.preview_url) as previews\n                    from (select ag.preview_url\n                          from (\n                                   select nm.meta -> 'preview' as preview_url\n                                   from nft n\n                                            join nft_metadata nm on n.address = nm.nft\n                                       and nm.meta != 'null'\n                                   where n.collection = c.address\n                                   limit 50) ag\n                          order by random()\n                          limit 3) ag2\n                    ) previews on true\n                WHERE (c.owner = ANY ($3) OR array_length($3::varchar[], 1) is null)\n                  AND ($4::boolean is false OR c.verified is true)\n                  AND ($5::varchar is null OR c.name ILIKE $5)\n                  AND (c.address = ANY ($6) OR array_length($6::varchar[], 1) is null)\n                ORDER BY c.owners_count DESC\n                LIMIT $1 OFFSET $2\n             "
+  },
   "b7f3640aec78dc5f99bbfb2fa94cd2f11dd249494f7b702699dbb86561d03644": {
     "describe": {
       "columns": [
@@ -3038,59 +3225,6 @@
     },
     "query": "\n        select distinct a.nft\n        from nft_attributes a\n        where a.collection = $1\n        and a.trait_type = $2\n        and a.value = ANY($3::jsonb[])\n        order by 1 asc"
   },
-  "f2cbd26037577f36f70548f9c3ef7cef63e6837cdc21c829aebfef4a93aecf87": {
-    "describe": {
-      "columns": [
-        {
-          "name": "address!",
-          "ordinal": 0,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "name",
-          "ordinal": 1,
-          "type_info": "Text"
-        },
-        {
-          "name": "description",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "logo",
-          "ordinal": 3,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "verified!",
-          "ordinal": 4,
-          "type_info": "Bool"
-        },
-        {
-          "name": "cnt!",
-          "ordinal": 5,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        false,
-        true,
-        true,
-        true,
-        false,
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "Int8",
-          "Int8",
-          "Bool",
-          "Varchar"
-        ]
-      }
-    },
-    "query": "\n                SELECT c.address        as \"address!\",\n                       c.name,\n                       c.description,\n                       c.logo,\n                       c.verified       as \"verified!\",\n                       count(1) over () as \"cnt!\"\n                FROM nft_collection c\n                where ($3::boolean is false OR c.verified is true)\n                AND ($4::varchar is null OR c.name ILIKE $4)\n                order by c.owners_count desc\n                limit $1 offset $2\n             "
-  },
   "f2e3b4928313463fe9184a1e0ad167d84729d9dffe27fedd684229fd51e78104": {
     "describe": {
       "columns": [
@@ -3239,122 +3373,6 @@
       }
     },
     "query": "\n                SELECT n.*, 1::bigint as \"total_count!\"\n                FROM nft_details n\n                WHERE n.address = $1\n            "
-  },
-  "f64fb10709ed6390eb9d7d1e6e1c7a4e04e23300199bfd3141a92b69598e8dc7": {
-    "describe": {
-      "columns": [
-        {
-          "name": "address",
-          "ordinal": 0,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "owner",
-          "ordinal": 1,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "name",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "description",
-          "ordinal": 3,
-          "type_info": "Text"
-        },
-        {
-          "name": "created",
-          "ordinal": 4,
-          "type_info": "Timestamp"
-        },
-        {
-          "name": "updated",
-          "ordinal": 5,
-          "type_info": "Timestamp"
-        },
-        {
-          "name": "wallpaper",
-          "ordinal": 6,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "logo",
-          "ordinal": 7,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "total_price",
-          "ordinal": 8,
-          "type_info": "Numeric"
-        },
-        {
-          "name": "max_price",
-          "ordinal": 9,
-          "type_info": "Numeric"
-        },
-        {
-          "name": "owners_count",
-          "ordinal": 10,
-          "type_info": "Int4"
-        },
-        {
-          "name": "verified",
-          "ordinal": 11,
-          "type_info": "Bool"
-        },
-        {
-          "name": "nft_count",
-          "ordinal": 12,
-          "type_info": "Int8"
-        },
-        {
-          "name": "floor_price_usd",
-          "ordinal": 13,
-          "type_info": "Numeric"
-        },
-        {
-          "name": "total_volume_usd",
-          "ordinal": 14,
-          "type_info": "Numeric"
-        },
-        {
-          "name": "attributes",
-          "ordinal": 15,
-          "type_info": "Json"
-        },
-        {
-          "name": "cnt!",
-          "ordinal": 16,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "Text"
-        ]
-      }
-    },
-    "query": "\n                SELECT c.*, 1::bigint as \"cnt!\"\n                FROM nft_collection_details c\n                WHERE c.address = $1"
   },
   "f6fc807f569577b0cb26ce27ecd1bd1c86672c2eb0ccd3afc1b2f952e686fba6": {
     "describe": {

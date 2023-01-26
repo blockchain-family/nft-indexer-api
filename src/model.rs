@@ -105,6 +105,13 @@ pub struct Collection {
     pub total_price: Option<String>,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct CollectionDetailsPreviewMeta {
+    pub source: Option<String>,
+    pub mimetype: Option<String>,
+}
+
+
 #[derive(Debug, Clone, Serialize)]
 pub struct CollectionDetails {
     #[serde(flatten)]
@@ -116,6 +123,7 @@ pub struct CollectionDetails {
     #[serde(rename = "totalVolumeUsd")]
     pub total_volume_usd: Option<String>,
     pub attributes: Option<Value>,
+    pub previews: Vec<CollectionDetailsPreviewMeta>
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -125,6 +133,8 @@ pub struct CollectionSimple {
     pub description: Option<String>,
     pub verified: bool,
     pub logo: Option<String>,
+    #[serde(rename = "nftCount")]
+    pub nft_count: i64
 }
 
 impl CollectionSimple {
@@ -135,6 +145,7 @@ impl CollectionSimple {
             description: Some(db.description.unwrap_or_default()),
             verified: db.verified,
             logo: db.logo,
+            nft_count: db.nft_count
         }
     }
 }
@@ -350,6 +361,7 @@ impl CollectionDetails {
             floor_price_usd: db.floor_price_usd.map(|x| x.to_string()),
             total_volume_usd: db.total_volume_usd.map(|x| x.to_string()),
             attributes: db.attributes,
+            previews: serde_json::from_value(db.previews).unwrap_or_default()
         }
     }
 }

@@ -518,6 +518,13 @@ components:
           type: string
         traitValue:
           type: string
+    collectionDetailPreview:
+      type: object
+      properties:
+        source:
+          type: string
+        mimetype:
+          type: string
     collectionDetail:
       allOf:
         - $ref: '#/components/schemas/contract'
@@ -532,6 +539,11 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/attribute'
+            previews:
+              type: array
+              items:
+                $ref: '#/components/schemas/collectionDetailPreview'
+
           required:
             - totalVolumeUsd
     collectionDetailSimple:
@@ -547,8 +559,12 @@ components:
           type: boolean
         logo:
           type: string
+        nftCount:
+          type: integer
       required:
         - verified
+        - address
+        - nftCount
 
     eventType:
       type: string
@@ -832,6 +848,9 @@ paths:
                   type: integer
                 offset:
                   type: integer
+              required:
+                - limit
+                - offset
       responses:
         '200':
           description: OK

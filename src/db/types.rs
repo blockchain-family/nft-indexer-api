@@ -95,6 +95,7 @@ pub struct NftCollectionSimple {
     pub verified: bool,
     pub logo: Option<String>,
     pub cnt: i64,
+    pub nft_count: i64
 }
 
 #[derive(Clone, Debug)]
@@ -116,6 +117,7 @@ pub struct NftCollectionDetails {
     pub total_volume_usd: Option<BigDecimal>,
     pub attributes: Option<Value>,
     pub cnt: i64,
+    pub previews: Value
 }
 
 #[derive(Clone, Debug)]
