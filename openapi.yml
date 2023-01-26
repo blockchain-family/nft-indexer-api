@@ -535,7 +535,7 @@ components:
               type: string
             totalVolumeUsd:
               type: string
-            attrubites:
+            attributes:
               type: array
               items:
                 $ref: '#/components/schemas/attribute'
