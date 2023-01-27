@@ -15,7 +15,7 @@ select c.address                             as              "collection!",
        coalesce(nft_counter.cnt, 0)::integer as              "nfts_count!",
        (count(1) over ())::integer           as              "total_rows_count!"
 from nft_collection c
-         left join lateral (select min(na.min_bid * tup.usd_price) as price_usd
+         left join lateral (select min(case when n.address is not null then tup.usd_price * na.min_bid else 0 end) as price_usd
                             from nft_auction na
                                      join nft n
                                           on n.address = na.nft
@@ -24,7 +24,8 @@ from nft_collection c
                                                on tup.token = na.price_token
                             where na.status = 'active'
     ) as auction on true
-         left join lateral (select min(ds.price * tup.usd_price) as price_usd
+         left join lateral (select min(case when n.address is not null then tup.usd_price * ds.price else 0 end) as price_usd
+
                             from nft_direct_sell ds
                                      join nft n
                                           on n.address = ds.nft
@@ -54,7 +55,8 @@ from nft_collection c
                       left join nft n on ndb.nft = n.address and n.collection = c.address
 
              union all
-             select p.period_type, tup.usd_price * nds.price
+             select p.period_type,
+             case when n.address is not null then tup.usd_price * nds.price else 0 end as price_usd
              from periods p
                       left join nft_direct_sell nds
                                 on nds.state = 'filled'
