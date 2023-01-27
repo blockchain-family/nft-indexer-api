@@ -18,7 +18,7 @@ from nft_collection c
          left join lateral (select min(na.min_bid * tup.usd_price) as price_usd
                             from nft_auction na
                                      join nft n
-                                          on n.address = na.address
+                                          on n.address = na.nft
                                               and n.collection = c.address
                                      left join token_usd_prices tup
                                                on tup.token = na.price_token
@@ -26,10 +26,12 @@ from nft_collection c
     ) as auction on true
          left join lateral (select min(ds.price * tup.usd_price) as price_usd
                             from nft_direct_sell ds
+                                     join nft n
+                                          on n.address = ds.nft
+                                              and n.collection = c.address
                                      left join token_usd_prices tup
                                                on tup.token = ds.price_token
                             where ds.state = 'active'
-                              and ds.collection = c.address
     ) as direct_sell on true
 
          left join lateral (
@@ -57,9 +59,8 @@ from nft_collection c
                       left join nft_direct_sell nds
                                 on nds.state = 'filled'
                                     and nds.finished_at between p.date_from and p.date_to
-                                    and nds.collection = c.address
-
                       left join token_usd_prices tup on tup.token = nds.price_token
+                      left join nft n on nds.nft = n.address and n.collection = c.address
              union all
              select p.period_type,
                     case when n.address is not null then tup.usd_price * na.max_bid else 0 end as price_usd
