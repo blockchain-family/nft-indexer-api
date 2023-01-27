@@ -789,7 +789,7 @@ impl Queries {
         FROM nft_direct_buy_usd s
         INNER JOIN nft n ON n.address = s.nft
         WHERE n.owner = $1
-            AND (s.collection = ANY($2) OR array_length($2::varchar[], 1) is null)
+            AND (n.collection = ANY($2) OR array_length($2::varchar[], 1) is null)
             AND (array_length($3::varchar[], 1) is null OR s.state::varchar = ANY($3))
         ORDER BY s.updated DESC LIMIT $4 OFFSET $5
         "#, owner, collections, &status_str, limit as i64, offset as i64)
@@ -849,25 +849,26 @@ impl Queries {
         sqlx::query_as!(
             NftAuctionBidExt,
             r#"
-        SELECT
-        x.auction as "auction!",
-        x.buyer as "buyer!",
-        x.price as "price!",
-        x.price_token,
-        x.created_at as "created_at!",
-        x.next_bid_value,
-        x.tx_lt,
-        x.active,
-        x.usd_price,
-        x.next_bid_usd_value,
-        x.nft,
-        x.collection,
-         count (1) over () as "cnt!"
-        FROM nft_auction_bids_view x
-        WHERE x.owner = $1
-            AND (x.collection = ANY($2) OR array_length($2::varchar[], 1) is null)
-            AND ($3::bool is null OR $3::bool = false OR x.active is true)
-        ORDER BY x.created_at DESC LIMIT $4 OFFSET $5
+            SELECT
+            x.auction as "auction!",
+            x.buyer as "buyer!",
+            x.price as "price!",
+            x.price_token,
+            x.created_at as "created_at!",
+            x.next_bid_value,
+            x.tx_lt,
+            x.active,
+            x.usd_price,
+            x.next_bid_usd_value,
+            x.nft,
+            x.collection,
+             count (1) over () as "cnt!"
+            FROM nft_auction_bids_view x
+                join nft n on x.nft = n.address
+                and (x.collection = ANY($2) OR array_length($2::varchar[], 1) is null)
+            WHERE x.owner = $1
+                and (x.active = true OR ($3::bool IS NULL OR $3::bool = false))
+            ORDER BY x.created_at DESC LIMIT $4 OFFSET $5
         "#,
             owner,
             collections,
