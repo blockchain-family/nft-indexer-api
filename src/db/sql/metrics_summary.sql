@@ -19,7 +19,7 @@ from nft_collection c
                             from nft_auction na
                                      join nft n
                                           on n.address = na.nft
-                                              and n.collection = c.address
+                                              and n.collection = c.address and not n.burned
                                      left join token_usd_prices tup
                                                on tup.token = na.price_token
                             where na.status = 'active'
@@ -29,7 +29,7 @@ from nft_collection c
                             from nft_direct_sell ds
                                      join nft n
                                           on n.address = ds.nft
-                                              and n.collection = c.address
+                                              and n.collection = c.address and not n.burned
                                      left join token_usd_prices tup
                                                on tup.token = ds.price_token
                             where ds.state = 'active'
@@ -52,7 +52,7 @@ from nft_collection c
                                     and ndb.state = 'filled'
                       left join token_usd_prices tup
                                 on tup.token = ndb.price_token
-                      left join nft n on ndb.nft = n.address and n.collection = c.address
+                      left join nft n on ndb.nft = n.address and n.collection = c.address and not n.burned
 
              union all
              select p.period_type,
@@ -62,7 +62,7 @@ from nft_collection c
                                 on nds.state = 'filled'
                                     and nds.finished_at between p.date_from and p.date_to
                       left join token_usd_prices tup on tup.token = nds.price_token
-                      left join nft n on nds.nft = n.address and n.collection = c.address
+                      left join nft n on nds.nft = n.address and n.collection = c.address and not n.burned
              union all
              select p.period_type,
                     case when n.address is not null then tup.usd_price * na.max_bid else 0 end as price_usd
@@ -70,7 +70,7 @@ from nft_collection c
                       left join public.nft_auction na
                                 on na.status = 'completed'
                                     and na.finished_at between p.date_from and p.date_to
-                      left join nft n on na.nft = n.address
+                      left join nft n on na.nft = n.address and not n.burned
                  and n.collection = c.address
                       left join token_usd_prices tup
                                 on tup.token = na.price_token
