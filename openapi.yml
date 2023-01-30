@@ -458,10 +458,10 @@ components:
               type: array
               items:
                 type: object
-            currentPrice:
+            floorPrice:
               $ref: '#/components/schemas/price'
-            lastPrice:
-              $ref: '#/components/schemas/price'
+            dealPriceUsd:
+              type: string
             auction:
               $ref: '#/components/schemas/address'
             forsale:
@@ -1024,6 +1024,22 @@ paths:
                   type: array
                   items:
                     $ref: '#/components/schemas/attribute'
+                order:
+                  type: object
+                  properties:
+                    field:
+                      type: string
+                      enum:
+                        - floorPriceUsd
+                        - dealPriceUsd
+                    direction:
+                      type: string
+                      enum:
+                        - asc
+                        - desc
+                  required:
+                    - field
+                    - direction
 
       responses:
         '200':
