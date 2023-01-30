@@ -17,10 +17,13 @@ mod metrics;
 pub use self::metrics::*;
 
 use std::convert::Infallible;
+use std::fmt::Display;
 use warp::{
     http::{Response, StatusCode},
     Filter,
 };
+
+use serde::{Deserialize, Serialize};
 
 lazy_static::lazy_static! {
     static ref SWAGGER: Vec<u8> = {
@@ -42,4 +45,21 @@ async fn get_swagger_handler() -> Result<Box<dyn warp::Reply>, Infallible> {
             .body::<&[u8]>(SWAGGER.as_ref()),
         StatusCode::OK,
     )))
+}
+
+#[derive(Clone, Deserialize, Serialize)]
+pub enum OrderDirection {
+    #[serde(rename = "asc")]
+    Asc,
+    #[serde(rename = "desc")]
+    Desc,
+}
+
+impl Display for OrderDirection {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            OrderDirection::Asc => write!(f, "asc"),
+            OrderDirection::Desc => write!(f, "desc"),
+        }
+    }
 }

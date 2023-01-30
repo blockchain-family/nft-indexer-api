@@ -67,16 +67,17 @@ pub struct NFT {
     pub typ: Option<String>,
     pub attributes: Option<serde_json::Value>,
 
-    #[serde(rename = "currentPrice")]
-    pub current_price: Option<Price>,
-    #[serde(rename = "lastPrice")]
-    pub last_price: Option<Price>,
-
+    // #[serde(rename = "currentPrice")]
+    // pub current_price: Option<Price>,
+    // #[serde(rename = "lastPrice")]
+    // pub last_price: Option<Price>,
     pub auction: Option<Address>,
     pub forsale: Option<Address>,
     #[serde(rename = "bestOffer")]
     pub best_offer: Option<Address>,
     pub manager: Option<Address>,
+    pub deal_price_usd: Option<String>,
+    pub floor_price: Option<Price>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -290,27 +291,37 @@ impl CollectionAttributes {
 }
 
 impl NFT {
-    pub fn from_db(nft: &crate::db::NftDetails, _tokens: &TokenDict) -> Self {
+    pub fn from_db(nft: crate::db::NftDetails) -> Self {
         let parsed = nft.parse_meta();
+
+        let floor_price = match (nft.floor_price, nft.floor_price_usd, nft.floor_price_token) {
+            (Some(floor_price), Some(floor_price_usd), Some(floor_price_token)) => Some(Price {
+                token: floor_price_token,
+                price: floor_price.to_string(),
+                usd_price: Some(floor_price_usd.to_string()),
+            }),
+            _ => None,
+        };
         NFT {
             contract: Contract {
-                address: nft.address.clone().expect("null nft address"),
-                name: nft.name.clone(),
-                description: nft.description.clone(),
-                owner: nft.owner.clone().map(Address::from),
+                address: nft.address.expect("null nft address"),
+                name: nft.name,
+                description: nft.description,
+                owner: nft.owner.map(Address::from),
                 verified: None,
             },
-            collection: nft.collection.clone().unwrap_or_default(),
+            collection: nft.collection.unwrap_or_default(),
             manager: nft.manager.as_ref().map(Address::from),
             image: parsed.image,
             mimetype: parsed.mimetype,
             typ: parsed.typ,
             attributes: parsed.attributes,
-            auction: nft.auction.clone(),
-            forsale: nft.forsale.clone(),
+            auction: nft.auction,
+            forsale: nft.forsale,
             best_offer: nft.best_offer.clone(),
-            current_price: None,
-            last_price: None,
+            deal_price_usd: nft.deal_price_usd.map(|it| it.to_string()),
+            floor_price, // current_price: None,
+                         // last_price: None,
         }
     }
 }
@@ -624,7 +635,7 @@ struct MetricsSummary {
     pub collection: String,
     pub name: Option<String>,
     pub logo: Option<String>,
-    pub floor_price: String,
+    pub floor_price: Option<String>,
     pub total_volume_usd_now: String,
     pub total_volume_usd_previous: String,
     pub owners_count: i32,
@@ -651,7 +662,7 @@ impl From<MetricsSummaryRecord> for MetricsSummary {
             collection: value.collection,
             name: value.name,
             logo: value.logo,
-            floor_price: value.floor_price.to_string(),
+            floor_price: value.floor_price.map(|t| t.to_string()),
             total_volume_usd_now: value.total_volume_usd_now.to_string(),
             total_volume_usd_previous: value.total_volume_usd_previous.to_string(),
             owners_count: value.owners_count,

@@ -1,3 +1,4 @@
+use crate::handlers::OrderDirection;
 use crate::model::{DirectBuy, NFTPrice, VecWith, NFT};
 use crate::{
     db::{Address, DirectBuyState, Queries},
@@ -6,6 +7,7 @@ use crate::{
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::convert::Infallible;
+use std::fmt::Display;
 use warp::http::StatusCode;
 use warp::Filter;
 
@@ -132,7 +134,7 @@ pub async fn get_nft_handler(
             }
 
             let ret = GetNFTResult {
-                nft: NFT::from_db(&nft, &db.tokens),
+                nft: NFT::from_db(nft /*, &db.tokens*/),
                 collection,
                 auction,
                 direct_buy,
@@ -311,6 +313,7 @@ pub async fn get_nft_list_handler(
             params.limit.unwrap_or(100),
             params.offset.unwrap_or_default(),
             &params.attributes.unwrap_or_default(),
+            params.order,
         )
         .await
     {
@@ -323,11 +326,9 @@ pub async fn get_nft_list_handler(
                 None => 0,
                 Some(first) => first.total_count,
             };
-            //log::warn!("/nfts rselected {} rows", list.len());
-            let ret: Vec<NFT> = list.iter().map(|x| NFT::from_db(x, &db.tokens)).collect();
+            let ret: Vec<NFT> = list.iter().map(|it| NFT::from_db(it.clone())).collect();
             let collection_ids = ret.iter().map(|x| x.collection.clone()).collect();
-            //log::warn!("/nfts before collections select");
-            let collection = match super::collect_collections(&db, &collection_ids).await {
+            let collection = match collect_collections(&db, &collection_ids).await {
                 Err(e) => {
                     return Ok(Box::from(warp::reply::with_status(
                         e.to_string(),
@@ -336,10 +337,8 @@ pub async fn get_nft_list_handler(
                 }
                 Ok(m) => m,
             };
-            //log::warn!("/nfts {} collections selected", collection.len());
 
             let auction_ids: Vec<String> = list.iter().filter_map(|x| x.auction.clone()).collect();
-            //log::warn!("/nfts before auctions select");
             let auction = match super::collect_auctions(&db, &auction_ids).await {
                 Err(e) => {
                     return Ok(Box::from(warp::reply::with_status(
@@ -349,11 +348,9 @@ pub async fn get_nft_list_handler(
                 }
                 Ok(m) => m,
             };
-            //log::warn!("/nfts {} auctions selected", auction.len());
 
             let direct_sell_ids: Vec<String> =
                 list.iter().filter_map(|x| x.forsale.clone()).collect();
-            //log::warn!("/nfts before direct_sell select");
             let direct_sell = match super::collect_direct_sell(&db, &direct_sell_ids).await {
                 Err(e) => {
                     return Ok(Box::from(warp::reply::with_status(
@@ -363,11 +360,9 @@ pub async fn get_nft_list_handler(
                 }
                 Ok(m) => m,
             };
-            //log::warn!("/nfts {} direct_sell selected", direct_sell.len());
 
             let direct_buy_ids: Vec<String> =
                 list.iter().filter_map(|x| x.best_offer.clone()).collect();
-            //log::warn!("/nfts before direct_buy select");
             let direct_buy = match super::collect_direct_buy(&db, &direct_buy_ids).await {
                 Err(e) => {
                     return Ok(Box::from(warp::reply::with_status(
@@ -377,7 +372,6 @@ pub async fn get_nft_list_handler(
                 }
                 Ok(m) => m,
             };
-            //log::warn!("/nfts {} direct_but selected", direct_buy.len());
 
             let ret = VecWith {
                 count,
@@ -405,27 +399,46 @@ pub struct AttributeFilter {
     pub trait_values: Vec<String>,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct NFTListQuery {
     pub owners: Option<Vec<String>>,
-
     pub collections: Option<Vec<String>>,
-
     #[serde(rename = "priceFrom")]
     pub price_from: Option<u64>,
-
     #[serde(rename = "priceTo")]
     pub price_to: Option<u64>,
-
     #[serde(rename = "priceToken")]
     pub price_token: Option<String>,
-
     pub forsale: Option<bool>,
     pub auction: Option<bool>,
     pub verified: Option<bool>,
     pub limit: Option<usize>,
     pub offset: Option<usize>,
     pub attributes: Option<Vec<AttributeFilter>>,
+    pub order: Option<NFTListOrder>,
+}
+
+#[derive(Clone, Deserialize, Serialize)]
+pub enum NFTListOrderField {
+    #[serde(rename = "floorPriceUsd")]
+    FloorPriceUsd,
+    #[serde(rename = "dealPriceUsd")]
+    DealPriceUsd,
+}
+
+impl Display for NFTListOrderField {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            NFTListOrderField::FloorPriceUsd => write!(f, "floor_price_usd"),
+            NFTListOrderField::DealPriceUsd => write!(f, "deal_price_usd"),
+        }
+    }
+}
+
+#[derive(Clone, Deserialize, Serialize)]
+pub struct NFTListOrder {
+    pub field: NFTListOrderField,
+    pub direction: OrderDirection,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -452,7 +465,7 @@ pub struct NftPriceHistoryQuery {
 
 pub async fn collect_nfts(db: &Queries, ids: &[String]) -> anyhow::Result<HashMap<String, NFT>> {
     let dblist = db.collect_nfts(ids).await?;
-    let list = dblist.iter().map(|col| NFT::from_db(col, &db.tokens));
+    let list = dblist.into_iter().map(|col| NFT::from_db(col));
     let mut map = HashMap::new();
     for item in list {
         map.insert(item.contract.address.clone(), item.clone());

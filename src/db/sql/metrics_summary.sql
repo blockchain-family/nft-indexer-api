@@ -8,7 +8,7 @@ with periods as (
 select c.address                             as              "collection!",
        c.name,
        c.logo,
-       coalesce(direct_sell.price_usd, auction.price_usd, 0) "floor_price!",
+       least(direct_sell.price_usd, auction.price_usd)       "floor_price",
        coalesce(total_volume.cur, 0)         as              "total_volume_usd_now!",
        coalesce(total_volume.prev, 0)        as              "total_volume_usd_previous!",
        coalesce(c.owners_count, 0)::integer  as              "owners_count!",

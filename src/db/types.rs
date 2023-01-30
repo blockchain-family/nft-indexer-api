@@ -47,6 +47,8 @@ pub struct NftDetails {
     pub floor_price_usd: Option<BigDecimal>,
     pub deal_price_usd: Option<BigDecimal>,
     pub total_count: i64,
+    pub floor_price: Option<BigDecimal>,
+    pub floor_price_token: Option<Address>,
 }
 
 #[derive(Clone, Debug)]
@@ -311,7 +313,7 @@ pub struct MetricsSummaryRecord {
     pub collection: String,
     pub name: Option<String>,
     pub logo: Option<String>,
-    pub floor_price: BigDecimal,
+    pub floor_price: Option<BigDecimal>,
     pub total_volume_usd_now: BigDecimal,
     pub total_volume_usd_previous: BigDecimal,
     pub owners_count: i32,

@@ -1,5 +1,5 @@
 use super::*;
-use crate::handlers::AttributeFilter;
+use crate::handlers::{AttributeFilter, NFTListOrder, OrderDirection};
 use crate::{handlers::AuctionsSortOrder, token::TokenDict};
 use chrono::NaiveDateTime;
 use sqlx::{self, postgres::PgPool};
@@ -399,9 +399,10 @@ impl Queries {
         limit: usize,
         offset: usize,
         attributes: &Vec<AttributeFilter>,
+        order: Option<NFTListOrder>,
     ) -> sqlx::Result<Vec<NftDetails>> {
         let mut sql = r#"
-            SELECT DISTINCT n.*,
+            SELECT n.*,
             n."auction_status: _" as auction_status,
             n."forsale_status: _" as forsale_status,
             count(1) over () as total_count
@@ -449,13 +450,37 @@ impl Queries {
             );
         }
 
+        match order {
+            None => {
+                let _ = write!(
+                    sql,
+                    r#"
+                        ORDER BY n.name, n.address
+                    "#
+                );
+            }
+            Some(order) => {
+                let field = order.field.to_string();
+
+                match order.direction {
+                    OrderDirection::Asc => {
+                        let _ = write!(sql, "order by n.{field}");
+                    }
+                    OrderDirection::Desc => {
+                        let _ = write!(sql, "order by coalesce(n.{field}, 0) desc");
+                    }
+                }
+            }
+        };
+
         let _ = write!(
             sql,
             r#"
-                ORDER BY n.name, n.address
                 LIMIT $6 OFFSET $7
             "#
         );
+
+        println!("{}", sql);
 
         sqlx::query_as(&sql)
             .bind(owners)
