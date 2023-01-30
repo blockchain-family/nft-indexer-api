@@ -429,16 +429,23 @@ impl Queries {
         "#.to_string();
 
         for attribute in attributes {
+            let values = attribute
+                .trait_values
+                .iter()
+                .enumerate()
+                .map(|it| format!("'{}'", it.1.to_lowercase()))
+                .collect::<Vec<String>>()
+                .join(",");
             // TODO need index trim(na.value #>> '{}')
             let _ = write!(
                 sql,
                 r#" and exists(
                 select 1 from nft_attributes na
                 where
-                    na.nft = n.address and (lower(na.trait_type) = lower('{0}') and lower(trim(na.value #>> '{{}}')) = lower('{1}'))
+                    na.nft = n.address and (lower(na.trait_type) = lower('{0}') and lower(trim(na.value #>> '{{}}')) in ({1}))
                 )
             "#,
-                attribute.trait_type, attribute.trait_value
+                attribute.trait_type, values
             );
         }
 

@@ -401,8 +401,8 @@ pub async fn get_nft_list_handler(
 pub struct AttributeFilter {
     #[serde(rename = "traitType")]
     pub trait_type: String,
-    #[serde(rename = "traitValue")]
-    pub trait_value: String,
+    #[serde(rename = "traitValues")]
+    pub trait_values: Vec<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

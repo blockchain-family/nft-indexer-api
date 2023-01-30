@@ -511,13 +511,6 @@ components:
           type: array
           items:
             type: string
-    singleAttribute:
-      type: object
-      properties:
-        traitType:
-          type: string
-        traitValue:
-          type: string
     collectionDetailPreview:
       type: object
       properties:
@@ -1030,7 +1023,7 @@ paths:
                 attributes:
                   type: array
                   items:
-                    $ref: '#/components/schemas/singleAttribute'
+                    $ref: '#/components/schemas/attribute'
 
       responses:
         '200':
