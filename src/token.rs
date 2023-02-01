@@ -50,7 +50,7 @@ impl TokenDict {
     }
 
     pub fn format_value(&self, _token: &str, val: &BigDecimal) -> String {
-        let s = val.round(0).to_string();
+        val.round(0).to_string()
         /*if let Some(t) = self.0.get(token) {
             if s.len() > t.decimals {
                 s.insert(s.len() - t.decimals, '.')
@@ -67,7 +67,6 @@ impl TokenDict {
             }
         }
         s*/
-        s
     }
 
     pub fn addresses(&self) -> Vec<String> {

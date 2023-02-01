@@ -49,6 +49,7 @@ async fn main() {
                 .or(warp::path!("healthz").map(warp::reply))
                 .or(get_swagger())
                 .or(get_nft(service.clone()))
+                .or(get_nft_top_list(service.clone()))
                 .or(get_nft_list(service.clone()))
                 .or(get_nft_direct_buy(service.clone()))
                 .or(get_nft_price_history(service.clone()))

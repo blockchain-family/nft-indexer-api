@@ -1074,6 +1074,55 @@ paths:
                 required:
                   - totalCount
                   - items
+  /nfts/top:
+    post:
+      operationId: listTopNFT
+      requestBody:
+        required: true
+        content:
+          'application/json':
+            schema:
+              type: object
+              properties:
+                from:
+                  type: integer
+                limit:
+                  type: integer
+                offset:
+                  type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  totalCount:
+                    type: integer
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/nft'
+                  collection:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/collection'
+                  auction:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/auction'
+                  directSell:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/directSell'
+                  directBuy:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/directBuy'
+                required:
+                  - totalCount
+                  - items
 
   /collections/by-owner:
     post:

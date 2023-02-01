@@ -3497,5 +3497,168 @@
       }
     },
     "query": "\n                SELECT c.*, nft.count as \"nft_count!\",\n                count(1) over () as \"cnt!\"\n                FROM nft_collection c\n                         LEFT JOIN lateral ( select count(1) as count from nft n where n.collection = c.address) nft on true\n                WHERE c.owner = $1\n                LIMIT $2 OFFSET $3\n            "
+  },
+  "fd7d364268523599b4153d63f455e4c58d966a175e6f2127d79acd12d7cdc4e3": {
+    "describe": {
+      "columns": [
+        {
+          "name": "address",
+          "ordinal": 0,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "collection",
+          "ordinal": 1,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "owner",
+          "ordinal": 2,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "manager",
+          "ordinal": 3,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "name",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "description",
+          "ordinal": 5,
+          "type_info": "Text"
+        },
+        {
+          "name": "burned",
+          "ordinal": 6,
+          "type_info": "Bool"
+        },
+        {
+          "name": "updated",
+          "ordinal": 7,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "tx_lt",
+          "ordinal": 8,
+          "type_info": "Int8"
+        },
+        {
+          "name": "meta",
+          "ordinal": 9,
+          "type_info": "Jsonb"
+        },
+        {
+          "name": "auction",
+          "ordinal": 10,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "auction_status: _",
+          "ordinal": 11,
+          "type_info": {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "created",
+                  "active",
+                  "cancelled",
+                  "completed",
+                  "expired"
+                ]
+              },
+              "name": "auction_status"
+            }
+          }
+        },
+        {
+          "name": "forsale",
+          "ordinal": 12,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "forsale_status: _",
+          "ordinal": 13,
+          "type_info": {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "create",
+                  "await_nft",
+                  "active",
+                  "filled",
+                  "cancelled",
+                  "expired"
+                ]
+              },
+              "name": "direct_sell_state"
+            }
+          }
+        },
+        {
+          "name": "best_offer",
+          "ordinal": 14,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "floor_price_usd",
+          "ordinal": 15,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "deal_price_usd",
+          "ordinal": 16,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "floor_price",
+          "ordinal": 17,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "floor_price_token",
+          "ordinal": 18,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "total_count!",
+          "ordinal": 19,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Timestamp",
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "\n            select n.*, count(1) over () as \"total_count!\"\n                from nft_details n\n                         join nft_collection nc\n                              on nc.address = n.collection\n                                  and nc.verified\n                         left join lateral ( select count(1) as cnt\n                                             from nft_auction na\n                                             where n.address = na.nft\n                                               and na.status = 'completed'\n                                               and na.finished_at >= $1) auc on true\n                         left join lateral ( select count(1) as cnt\n                                             from nft_direct_sell na\n                                             where n.address = na.nft\n                                               and na.state = 'filled'\n                                               and na.finished_at >= $1) ds on true\n                         left join lateral ( select count(1) as cnt\n                                             from nft_direct_buy na\n                                             where n.address = na.nft\n                                               and na.state = 'filled'\n                                               and na.finished_at >= $1) db on true\n                where n.updated >= $1\n                order by auc.cnt + ds.cnt + db.cnt desc, n.updated desc, n.address desc\n                limit $2 offset $3\n            "
   }
 }

@@ -386,6 +386,48 @@ impl Queries {
         .await
     }
 
+    pub async fn nft_top_search(
+        &self,
+        from: NaiveDateTime,
+        limit: i64,
+        offset: i64,
+    ) -> sqlx::Result<Vec<NftDetails>> {
+        sqlx::query_as!(
+            NftDetails,
+            r#"
+            select n.*, count(1) over () as "total_count!"
+                from nft_details n
+                         join nft_collection nc
+                              on nc.address = n.collection
+                                  and nc.verified
+                         left join lateral ( select count(1) as cnt
+                                             from nft_auction na
+                                             where n.address = na.nft
+                                               and na.status = 'completed'
+                                               and na.finished_at >= $1) auc on true
+                         left join lateral ( select count(1) as cnt
+                                             from nft_direct_sell na
+                                             where n.address = na.nft
+                                               and na.state = 'filled'
+                                               and na.finished_at >= $1) ds on true
+                         left join lateral ( select count(1) as cnt
+                                             from nft_direct_buy na
+                                             where n.address = na.nft
+                                               and na.state = 'filled'
+                                               and na.finished_at >= $1) db on true
+                where n.updated >= $1
+                order by auc.cnt + ds.cnt + db.cnt desc, n.updated desc, n.address desc
+                limit $2 offset $3
+            "#,
+            from,
+            limit,
+            offset
+        )
+        .fetch_all(self.db.as_ref())
+        .await
+    }
+
+    #[allow(clippy::too_many_arguments)]
     pub async fn nft_search(
         &self,
         owners: &[Address],
@@ -656,6 +698,7 @@ impl Queries {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub async fn list_events(
         &self,
         nft: Option<&String>,
