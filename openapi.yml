@@ -877,7 +877,6 @@ paths:
                 scale:
                   description: periods by days/hours
                   type: string
-                  default: d
                   enum:
                     - d
                     - h
@@ -885,6 +884,11 @@ paths:
                   $ref: '#/components/schemas/ts'
                 to:
                   $ref: '#/components/schemas/ts'
+              required:
+                - nft
+                - scale
+                - from
+                - to
       responses:
         '200':
           description: OK

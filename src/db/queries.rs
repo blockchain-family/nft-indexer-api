@@ -955,61 +955,38 @@ impl Queries {
         .await
     }
 
-    pub async fn list_nft_price_history_hours(
+    pub async fn list_nft_price_history(
         &self,
-        nft: &String,
-        from: Option<usize>,
-        to: Option<usize>,
+        nft: &str,
+        from: NaiveDateTime,
+        to: NaiveDateTime,
+        scale: &str,
     ) -> sqlx::Result<Vec<NftPrice>> {
-        let from = from.map(|x| NaiveDateTime::from_timestamp(x as i64, 0));
-        let to = to.map(|x| NaiveDateTime::from_timestamp(x as i64, 0));
         sqlx::query_as!(
             NftPrice,
-            "
-        SELECT
-            date_trunc('hour', p.ts) as ts,
-            AVG(p.usd_price) as usd_price,
-            count(*) as count
-        FROM nft_price_history_usd p
-        WHERE p.nft = $1 AND p.price_token is not null
-        AND ($2::timestamp is null or p.ts >= $2::timestamp)
-        AND ($3::timestamp is null or p.ts < $3::timestamp)
-        GROUP BY 1
-        ORDER BY 1 ASC
-        ",
-            Some(nft),
+            r#"
+                select date_trunc($4, ag.dt) as ts, avg(price * tup.usd_price) as usd_price, count(1) as count
+                from (
+                     select t.finished_at dt, t.price_token, t.price
+                     from nft_direct_sell t
+                     where t.nft = $1 and t.finished_at between $2 and $3 and t.state = 'filled'
+                     union all
+                     select t.finished_at, t.price_token, t.price
+                     from nft_direct_buy t
+                     where t.nft = $1 and t.finished_at between $2 and $3 and t.state = 'filled'
+                     union all
+                     select t.finished_at, t.price_token, t.max_bid
+                     from nft_auction t
+                     where t.nft = $1 and t.finished_at between $2 and $3 and t.status = 'completed') as ag
+                     join token_usd_prices tup
+                          on tup.token = ag.price_token
+                group by 1
+                order by 1
+            "#,
+            nft,
             from,
-            to
-        )
-        .fetch_all(self.db.as_ref())
-        .await
-    }
-
-    pub async fn list_nft_price_history_days(
-        &self,
-        nft: &String,
-        from: Option<usize>,
-        to: Option<usize>,
-    ) -> sqlx::Result<Vec<NftPrice>> {
-        let from = from.map(|x| NaiveDateTime::from_timestamp(x as i64, 0));
-        let to = to.map(|x| NaiveDateTime::from_timestamp(x as i64, 0));
-        sqlx::query_as!(
-            NftPrice,
-            "
-        SELECT
-            date_trunc('day', p.ts) as ts,
-            AVG(p.usd_price) as usd_price,
-            count(*) as count
-        FROM nft_price_history_usd p
-        WHERE p.nft = $1 AND p.price_token is not null
-        AND ($2::timestamp is null or p.ts >= $2::timestamp)
-        AND ($3::timestamp is null or p.ts < $3::timestamp)
-        GROUP BY 1
-        ORDER BY 1 ASC
-        ",
-            Some(nft),
-            from,
-            to
+            to,
+            scale
         )
         .fetch_all(self.db.as_ref())
         .await

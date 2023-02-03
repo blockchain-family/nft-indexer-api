@@ -9,7 +9,7 @@ use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::convert::Infallible;
-use std::fmt::Display;
+use std::fmt::{Display, Formatter};
 use warp::http::StatusCode;
 use warp::Filter;
 
@@ -241,16 +241,13 @@ pub async fn get_nft_price_history_handler(
     query: NftPriceHistoryQuery,
     db: Queries,
 ) -> Result<Box<dyn warp::Reply>, Infallible> {
-    let ret = match query.scale.unwrap_or_default() {
-        PriceHistoryScale::Days => {
-            db.list_nft_price_history_days(&query.nft, query.from, query.to)
-                .await
-        }
-        PriceHistoryScale::Hours => {
-            db.list_nft_price_history_hours(&query.nft, query.from, query.to)
-                .await
-        }
-    };
+    let from = NaiveDateTime::from_timestamp(query.from, 0);
+    let to = NaiveDateTime::from_timestamp(query.to, 0);
+    let scale = query.scale.unwrap_or_default();
+
+    let ret =
+        db.list_nft_price_history(&query.nft, from, to, &scale.to_string())
+            .await;
     match ret {
         Err(e) => Ok(Box::from(warp::reply::with_status(
             e.to_string(),
@@ -469,6 +466,15 @@ pub enum PriceHistoryScale {
     Days,
 }
 
+impl Display for PriceHistoryScale {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            PriceHistoryScale::Days => write!(f, "day"),
+            PriceHistoryScale::Hours => write!(f, "hour"),
+        }
+    }
+}
+
 impl Default for PriceHistoryScale {
     fn default() -> Self {
         Self::Days
@@ -479,8 +485,8 @@ impl Default for PriceHistoryScale {
 pub struct NftPriceHistoryQuery {
     pub nft: Address,
     pub scale: Option<PriceHistoryScale>,
-    pub from: Option<usize>,
-    pub to: Option<usize>,
+    pub from: i64,
+    pub to: i64,
 }
 
 pub async fn collect_nfts(db: &Queries, ids: &[String]) -> anyhow::Result<HashMap<String, NFT>> {
