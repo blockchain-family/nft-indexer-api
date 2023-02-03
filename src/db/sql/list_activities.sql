@@ -68,7 +68,7 @@ with result as (
                 )
             or $3 is null))
       and (ne.nft = $4 or $4 is null)
-      and (ne.collection = any ($5) or $5 = '{}')
+      and (n.collection = any ($5) or $5 = '{}')
       and (ne.event_cat::text = any ($1) or $1 = '{}')
       and (
             ((ne.args ->> 'from')::integer = 0 and (ne.args ->> 'to')::integer = 2) or
