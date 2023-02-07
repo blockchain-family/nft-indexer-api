@@ -1,5 +1,5 @@
 use super::*;
-use crate::handlers::{AttributeFilter, NFTListOrder, OrderDirection};
+use crate::handlers::{AttributeFilter, CollectionListOrder, NFTListOrder, OrderDirection};
 use crate::{handlers::AuctionsSortOrder, token::TokenDict};
 use chrono::NaiveDateTime;
 use sqlx::{self, postgres::PgPool};
@@ -195,7 +195,21 @@ impl Queries {
         sqlx::query_as!(
             NftCollection,
             r#"
-                SELECT c.*, nft.count as "nft_count!",
+                SELECT
+                   c.address as "address!",
+                   c.owner as "owner!",
+                   c.name,
+                   c.description,
+                   c.updated as "updated!",
+                   c.wallpaper,
+                   c.logo,
+                   c.total_price,
+                   c.max_price,
+                   c.owners_count,
+                   c.verified as "verified!",
+                   c.created as "created!",
+                   c.first_mint
+                , nft.count as "nft_count!",
                 count(1) over () as "cnt!"
                 FROM nft_collection c
                          LEFT JOIN lateral ( select count(1) as count from nft n where n.collection = c.address) nft on true
@@ -291,8 +305,22 @@ impl Queries {
         sqlx::query_as!(
             NftCollection,
             r#"
-                SELECT c.*, nft.count as "nft_count!",
-                count(1) over () as "cnt!"
+                 SELECT
+                   c.address as "address!",
+                   c.owner as "owner!",
+                   c.name,
+                   c.description,
+                   c.updated as "updated!",
+                   c.wallpaper,
+                   c.logo,
+                   c.total_price,
+                   c.max_price,
+                   c.owners_count,
+                   c.verified as "verified!",
+                   c.created as "created!",
+                   c.first_mint,
+                   nft.count as "nft_count!",
+                   count(1) over () as "cnt!"
                 FROM nft_collection c
                          LEFT JOIN lateral ( select count(1) as count from nft n where n.collection = c.address) nft on true
                 WHERE c.owner = $1
@@ -314,13 +342,21 @@ impl Queries {
         collections: &[Address],
         limit: usize,
         offset: usize,
+        order: Option<CollectionListOrder>,
     ) -> sqlx::Result<Vec<NftCollectionDetails>> {
-        sqlx::query_as!(
-            NftCollectionDetails,
+        let order = match order {
+            None => "c.owners_count DESC".to_string(),
+            Some(order) => {
+                let field = order.field.to_string();
+                format!("c.{field} {}", order.direction.to_string())
+            }
+        };
+
+        let query = format!(
             r#"
                 SELECT c.*,
-                       count(1) over ()  as "cnt!",
-                       previews.previews as "previews!"
+                       count(1) over ()  as "cnt",
+                       previews.previews as "previews"
                 FROM nft_collection_details c
                          left join lateral (
                     select json_agg(ag2.preview_url) as previews
@@ -339,18 +375,20 @@ impl Queries {
                   AND ($4::boolean is false OR c.verified is true)
                   AND ($5::varchar is null OR c.name ILIKE $5)
                   AND (c.address = ANY ($6) OR array_length($6::varchar[], 1) is null)
-                ORDER BY c.owners_count DESC
+                ORDER BY {order}
                 LIMIT $1 OFFSET $2
-             "#,
-            limit as i64,
-            offset as i64,
-            owners,
-            verified,
-            name,
-            collections
-        )
-        .fetch_all(self.db.as_ref())
-        .await
+             "#
+        );
+
+        sqlx::query_as(&query)
+            .bind(limit as i64)
+            .bind(offset as i64)
+            .bind(owners)
+            .bind(verified)
+            .bind(name)
+            .bind(collections)
+            .fetch_all(self.db.as_ref())
+            .await
     }
 
     pub async fn list_collections_simple(

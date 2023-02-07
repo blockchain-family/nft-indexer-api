@@ -1,11 +1,33 @@
 use crate::db::{Address, Queries};
+use crate::handlers::OrderDirection;
 use crate::model::{Collection, CollectionDetails, CollectionSimple, VecWithTotal};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
+use std::fmt::Display;
 use std::{collections::HashMap, convert::Infallible};
 use warp::http::StatusCode;
 use warp::Filter;
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Clone, Deserialize, Serialize)]
+pub enum CollectionListOrderField {
+    #[serde(rename = "firstMint")]
+    FirstMint,
+}
+
+impl Display for CollectionListOrderField {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            CollectionListOrderField::FirstMint => write!(f, "first_mint"),
+        }
+    }
+}
+
+#[derive(Clone, Deserialize, Serialize)]
+pub struct CollectionListOrder {
+    pub field: CollectionListOrderField,
+    pub direction: OrderDirection,
+}
+
+#[derive(Clone, Deserialize)]
 pub struct ListCollectionsParams {
     pub name: Option<String>,
     pub owners: Option<Vec<String>>,
@@ -13,6 +35,7 @@ pub struct ListCollectionsParams {
     pub collections: Option<Vec<String>>,
     pub limit: Option<usize>,
     pub offset: Option<usize>,
+    pub order: Option<CollectionListOrder>,
 }
 
 /// POST /collections
@@ -38,7 +61,15 @@ pub async fn list_collections_handler(
     let offset = params.offset.unwrap_or_default();
 
     match db
-        .list_collections(name, owners, verified.as_ref(), collections, limit, offset)
+        .list_collections(
+            name,
+            owners,
+            verified.as_ref(),
+            collections,
+            limit,
+            offset,
+            params.order,
+        )
         .await
     {
         Err(e) => Ok(Box::from(warp::reply::with_status(

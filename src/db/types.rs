@@ -87,6 +87,7 @@ pub struct NftCollection {
     pub max_price: Option<BigDecimal>,
     pub total_price: Option<BigDecimal>,
     pub cnt: i64,
+    pub first_mint: Option<NaiveDateTime>,
 }
 
 #[derive(Clone, Debug)]
@@ -100,7 +101,7 @@ pub struct NftCollectionSimple {
     pub nft_count: i64,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, sqlx::FromRow)]
 pub struct NftCollectionDetails {
     pub address: Option<Address>,
     pub owner: Option<Address>,
@@ -120,6 +121,7 @@ pub struct NftCollectionDetails {
     pub attributes: Option<Value>,
     pub cnt: i64,
     pub previews: Value,
+    pub first_mint: Option<NaiveDateTime>,
 }
 
 #[derive(Clone, Debug)]

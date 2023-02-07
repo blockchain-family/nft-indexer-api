@@ -244,9 +244,7 @@ pub async fn get_nft_price_history_handler(
     let from = NaiveDateTime::from_timestamp(query.from, 0);
     let to = NaiveDateTime::from_timestamp(query.to, 0);
 
-    let ret =
-        db.list_nft_price_history(&query.nft, from, to)
-            .await;
+    let ret = db.list_nft_price_history(&query.nft, from, to).await;
     match ret {
         Err(e) => Ok(Box::from(warp::reply::with_status(
             e.to_string(),

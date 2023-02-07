@@ -497,8 +497,12 @@ components:
             nftCount:
               type: integer
               format: int32
+            firstMint:
+              $ref: '#/components/schemas/ts'
           required:
             - ownersCount
+            - nftCount
+            - verified
             - createdAt
     attribute:
       type: object
@@ -759,6 +763,21 @@ paths:
                   type: integer
                 offset:
                   type: integer
+                order:
+                  type: object
+                  properties:
+                    field:
+                      type: string
+                      enum:
+                        - created
+                    direction:
+                      type: string
+                      enum:
+                        - asc
+                        - desc
+                  required:
+                    - field
+                    - direction
       responses:
         '200':
           description: OK

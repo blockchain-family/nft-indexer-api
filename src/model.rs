@@ -104,6 +104,9 @@ pub struct Collection {
 
     #[serde(rename = "totalPrice")]
     pub total_price: Option<String>,
+
+    #[serde(rename = "firstMint")]
+    pub first_mint: Option<i64>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -344,6 +347,7 @@ impl Collection {
             nft_count: db.nft_count as usize,
             total_price: db.total_price.map(|x| x.to_string()),
             lowest_price: None,
+            first_mint: db.first_mint.map(|i| i.timestamp()),
         }
     }
 }
@@ -367,6 +371,7 @@ impl CollectionDetails {
                 nft_count: db.nft_count.unwrap_or_default() as usize,
                 total_price: db.total_price.map(|x| x.to_string()),
                 lowest_price: None,
+                first_mint: db.first_mint.map(|i| i.timestamp()),
             },
             floor_price_usd: db.floor_price_usd.map(|x| x.to_string()),
             total_volume_usd: db.total_volume_usd.map(|x| x.to_string()),
