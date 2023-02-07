@@ -228,9 +228,8 @@ pub struct NftPriceHistory {
 
 #[derive(Clone, Debug)]
 pub struct NftPrice {
-    pub ts: Option<NaiveDateTime>,
-    pub usd_price: Option<BigDecimal>,
-    pub count: Option<i64>,
+    pub ts: NaiveDateTime,
+    pub usd_price: BigDecimal,
 }
 
 #[derive(Clone, Debug)]

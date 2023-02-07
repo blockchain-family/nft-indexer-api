@@ -65,7 +65,7 @@ impl CurrencyClient {
                 if let Err(e) = self.update_prices().await {
                     log::error!("usd prices update task error: {}", e);
                 }
-                tokio::time::sleep(tokio::time::Duration::from_secs(5 * 60)).await;
+                tokio::time::sleep(Duration::from_secs(5 * 60)).await;
             }
         });
         Ok(())

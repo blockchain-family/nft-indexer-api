@@ -243,10 +243,9 @@ pub async fn get_nft_price_history_handler(
 ) -> Result<Box<dyn warp::Reply>, Infallible> {
     let from = NaiveDateTime::from_timestamp(query.from, 0);
     let to = NaiveDateTime::from_timestamp(query.to, 0);
-    let scale = query.scale.unwrap_or_default();
 
     let ret =
-        db.list_nft_price_history(&query.nft, from, to, &scale.to_string())
+        db.list_nft_price_history(&query.nft, from, to)
             .await;
     match ret {
         Err(e) => Ok(Box::from(warp::reply::with_status(
@@ -254,7 +253,7 @@ pub async fn get_nft_price_history_handler(
             StatusCode::INTERNAL_SERVER_ERROR,
         ))),
         Ok(list) => {
-            let ret: Vec<NFTPrice> = list.iter().map(NFTPrice::from_db).collect();
+            let ret: Vec<NFTPrice> = list.into_iter().map(NFTPrice::from_db).collect();
             Ok(Box::from(warp::reply::with_status(
                 warp::reply::json(&ret),
                 StatusCode::OK,

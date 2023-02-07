@@ -475,14 +475,9 @@ impl DirectBuy {
 }
 
 impl NFTPrice {
-    pub fn from_db(val: &crate::db::NftPrice) -> Self {
-        let usd_price = val
-            .usd_price
-            .as_ref()
-            .expect("null usd_price in price history")
-            .round(0)
-            .to_string();
-        let ts = val.ts.expect("null ts in price history").timestamp();
+    pub fn from_db(val: crate::db::NftPrice) -> Self {
+        let usd_price = val.usd_price.to_string();
+        let ts = val.ts.timestamp();
         NFTPrice { usd_price, ts }
     }
 }

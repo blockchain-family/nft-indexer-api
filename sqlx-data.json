@@ -147,41 +147,6 @@
     },
     "query": "SELECT a.*, count(1) over() as \"cnt!\" FROM nft_auction_search a WHERE a.address = ANY($1)"
   },
-  "053f8eef6ecdefb48282a043633f0caeab65ed45c5e24d9ec44d89b42dd12c44": {
-    "describe": {
-      "columns": [
-        {
-          "name": "ts",
-          "ordinal": 0,
-          "type_info": "Timestamp"
-        },
-        {
-          "name": "usd_price",
-          "ordinal": 1,
-          "type_info": "Numeric"
-        },
-        {
-          "name": "count",
-          "ordinal": 2,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        null,
-        null,
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "Text",
-          "Timestamp",
-          "Timestamp",
-          "Text"
-        ]
-      }
-    },
-    "query": "\n                select date_trunc($4, ag.dt) as ts, avg(price * tup.usd_price) as usd_price, count(1) as count\n                from (\n                     select t.finished_at dt, t.price_token, t.price\n                     from nft_direct_sell t\n                     where t.nft = $1 and t.finished_at between $2 and $3 and t.state = 'filled'\n                     union all\n                     select t.finished_at, t.price_token, t.price\n                     from nft_direct_buy t\n                     where t.nft = $1 and t.finished_at between $2 and $3 and t.state = 'filled'\n                     union all\n                     select t.finished_at, t.price_token, t.max_bid\n                     from nft_auction t\n                     where t.nft = $1 and t.finished_at between $2 and $3 and t.status = 'completed') as ag\n                     join token_usd_prices tup\n                          on tup.token = ag.price_token\n                group by 1\n                order by 1\n            "
-  },
   "0792a1dc9978f2934563972a308041c7a8df29307a3d80d2981469f7d3280482": {
     "describe": {
       "columns": [
@@ -1603,28 +1568,6 @@
       }
     },
     "query": "SELECT * FROM nft_metadata WHERE nft_metadata.nft = $1"
-  },
-  "789c6b422a236e4d0f74e02cebdee60339e397441d1ebefddb30355ad9fba171": {
-    "describe": {
-      "columns": [
-        {
-          "name": "count",
-          "ordinal": 0,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "Varchar",
-          "Varchar",
-          "VarcharArray"
-        ]
-      }
-    },
-    "query": "\n        SELECT count(*)\n        FROM nft_events e\n        WHERE\n            ($1::varchar is null OR e.nft = $1)\n            AND ($2::varchar is null OR e.collection = $2)\n            AND (array_length($3::varchar[], 1) is null OR e.event_type::varchar = ANY($3))\n        "
   },
   "7a6bae3e67fd2980ae73f9be9bf077dea7b70f2a88a1cdce9796f7ba38d86cce": {
     "describe": {
@@ -3204,6 +3147,28 @@
     },
     "query": "\n        select distinct a.nft\n        from nft_attributes a\n        where a.collection = $1\n        and a.trait_type = $2\n        and a.value = ANY($3::jsonb[])\n        order by 1 asc"
   },
+  "f26e2fa080a9a5a0a3947e3df39c4b0ad52fffe11d1b597e87d784713e5d6cb4": {
+    "describe": {
+      "columns": [
+        {
+          "name": "count",
+          "ordinal": 0,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Varchar",
+          "Varchar",
+          "VarcharArray"
+        ]
+      }
+    },
+    "query": "\n            SELECT count(*)\n            FROM nft_events e\n            WHERE\n                ($1::varchar is null OR e.nft = $1)\n                AND ($2::varchar is null OR e.collection = $2)\n                AND (array_length($3::varchar[], 1) is null OR e.event_type::varchar = ANY($3))\n            "
+  },
   "f2e3b4928313463fe9184a1e0ad167d84729d9dffe27fedd684229fd51e78104": {
     "describe": {
       "columns": [
@@ -3464,6 +3429,34 @@
       }
     },
     "query": "\n                SELECT c.*, nft.count as \"nft_count!\",\n                count(1) over () as \"cnt!\"\n                FROM nft_collection c\n                         LEFT JOIN lateral ( select count(1) as count from nft n where n.collection = c.address) nft on true\n                WHERE c.owner = $1\n                LIMIT $2 OFFSET $3\n            "
+  },
+  "f8a6b04233a45f48e8cb793d3ef1004eeed76964b297a9495b0a0e15d886b59f": {
+    "describe": {
+      "columns": [
+        {
+          "name": "ts!",
+          "ordinal": 0,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "usd_price!",
+          "ordinal": 1,
+          "type_info": "Numeric"
+        }
+      ],
+      "nullable": [
+        null,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Timestamp",
+          "Timestamp"
+        ]
+      }
+    },
+    "query": "\n                 select ag.dt as \"ts!\", (price * tup.usd_price) as \"usd_price!\"\n                 from (\n                 select t.finished_at dt, t.price_token, t.price\n                 from nft_direct_sell t\n                 where t.nft = $1\n                   and t.finished_at between $2 and $3\n                   and t.state = 'filled'\n                 union all\n                 select t.finished_at, t.price_token, t.price\n                 from nft_direct_buy t\n                 where t.nft = $1\n                   and t.finished_at between $2 and $3\n                   and t.state = 'filled'\n                 union all\n                 select t.finished_at, t.price_token, t.max_bid\n                 from nft_auction t\n                 where t.nft = $1\n                   and t.finished_at between $2 and $3\n                   and t.status = 'completed') as ag\n                 join token_usd_prices tup\n                      on tup.token = ag.price_token\n                      where (price * tup.usd_price) is not null\n                 order by 1\n            "
   },
   "fd7d364268523599b4153d63f455e4c58d966a175e6f2127d79acd12d7cdc4e3": {
     "describe": {

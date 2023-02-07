@@ -10,12 +10,10 @@ components:
     address:
       type: string
       description: contract address
-
     ts:
       type: integer
       format: int32
       description: unix timestamp
-
     profile:
       type: object
       required:
@@ -874,19 +872,12 @@ paths:
               properties:
                 nft:
                   $ref: '#/components/schemas/address'
-                scale:
-                  description: periods by days/hours
-                  type: string
-                  enum:
-                    - d
-                    - h
                 from:
                   $ref: '#/components/schemas/ts'
                 to:
                   $ref: '#/components/schemas/ts'
               required:
                 - nft
-                - scale
                 - from
                 - to
       responses:
@@ -944,8 +935,6 @@ paths:
                     type: object
                     additionalProperties:
                       $ref: '#/components/schemas/collection'
-
-
   /nft/reload-meta:
     post:
       requestBody:
@@ -964,7 +953,6 @@ paths:
             'application/json':
               schema:
                 $ref: '#/components/schemas/nft'
-
 
   /collection/details:
     post:

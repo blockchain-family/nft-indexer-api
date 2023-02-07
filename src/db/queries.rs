@@ -744,13 +744,13 @@ impl Queries {
         let typ_str: Vec<String> = typ.iter().map(|x| x.to_string()).collect();
         sqlx::query!(
             "
-        SELECT count(*)
-        FROM nft_events e
-        WHERE
-            ($1::varchar is null OR e.nft = $1)
-            AND ($2::varchar is null OR e.collection = $2)
-            AND (array_length($3::varchar[], 1) is null OR e.event_type::varchar = ANY($3))
-        ",
+            SELECT count(*)
+            FROM nft_events e
+            WHERE
+                ($1::varchar is null OR e.nft = $1)
+                AND ($2::varchar is null OR e.collection = $2)
+                AND (array_length($3::varchar[], 1) is null OR e.event_type::varchar = ANY($3))
+            ",
             nft,
             collection,
             &typ_str
@@ -960,33 +960,37 @@ impl Queries {
         nft: &str,
         from: NaiveDateTime,
         to: NaiveDateTime,
-        scale: &str,
     ) -> sqlx::Result<Vec<NftPrice>> {
         sqlx::query_as!(
             NftPrice,
             r#"
-                select date_trunc($4, ag.dt) as ts, avg(price * tup.usd_price) as usd_price, count(1) as count
-                from (
-                     select t.finished_at dt, t.price_token, t.price
-                     from nft_direct_sell t
-                     where t.nft = $1 and t.finished_at between $2 and $3 and t.state = 'filled'
-                     union all
-                     select t.finished_at, t.price_token, t.price
-                     from nft_direct_buy t
-                     where t.nft = $1 and t.finished_at between $2 and $3 and t.state = 'filled'
-                     union all
-                     select t.finished_at, t.price_token, t.max_bid
-                     from nft_auction t
-                     where t.nft = $1 and t.finished_at between $2 and $3 and t.status = 'completed') as ag
-                     join token_usd_prices tup
-                          on tup.token = ag.price_token
-                group by 1
-                order by 1
+                 select ag.dt as "ts!", (price * tup.usd_price) as "usd_price!"
+                 from (
+                 select t.finished_at dt, t.price_token, t.price
+                 from nft_direct_sell t
+                 where t.nft = $1
+                   and t.finished_at between $2 and $3
+                   and t.state = 'filled'
+                 union all
+                 select t.finished_at, t.price_token, t.price
+                 from nft_direct_buy t
+                 where t.nft = $1
+                   and t.finished_at between $2 and $3
+                   and t.state = 'filled'
+                 union all
+                 select t.finished_at, t.price_token, t.max_bid
+                 from nft_auction t
+                 where t.nft = $1
+                   and t.finished_at between $2 and $3
+                   and t.status = 'completed') as ag
+                 join token_usd_prices tup
+                      on tup.token = ag.price_token
+                      where (price * tup.usd_price) is not null
+                 order by 1
             "#,
             nft,
             from,
             to,
-            scale
         )
         .fetch_all(self.db.as_ref())
         .await
