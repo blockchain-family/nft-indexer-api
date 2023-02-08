@@ -251,9 +251,13 @@ pub struct CollectionAttributes {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SearchResult {
     pub address: Address,
+    #[serde(rename = "objectType")]
+    pub object_type: String,
+    #[serde(rename = "nftName")]
+    pub nft_name: Option<String>,
+    #[serde(rename = "collectionName")]
+    pub collection_name: Option<String>,
     pub image: Option<String>,
-    #[serde(rename = "contractType")]
-    pub contract_type: EventCategory,
 }
 
 impl CollectionAttributes {
@@ -488,11 +492,13 @@ impl NFTPrice {
 }
 
 impl SearchResult {
-    pub fn from_db(val: &crate::db::SearchResult) -> Self {
+    pub fn from_db(val: crate::db::SearchResult) -> Self {
         Self {
-            address: val.address.clone(),
-            image: val.image.clone(),
-            contract_type: val.typ.clone(),
+            address: val.address,
+            image: val.image,
+            object_type: val.object_type,
+            nft_name: val.nft_name,
+            collection_name: val.collection_name,
         }
     }
 }

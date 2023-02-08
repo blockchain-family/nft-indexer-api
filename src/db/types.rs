@@ -9,10 +9,9 @@ pub type Address = String;
 #[derive(Debug, Clone, sqlx::FromRow)]
 pub struct SearchResult {
     pub address: Address,
-    pub typ: EventCategory,
-    pub name: Option<String>,
-    pub nft: Option<Address>,
-    pub collection: Option<Address>,
+    pub object_type: String,
+    pub nft_name: Option<String>,
+    pub collection_name: Option<String>,
     pub image: Option<String>,
 }
 

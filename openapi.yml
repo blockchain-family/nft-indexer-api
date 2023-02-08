@@ -721,21 +721,22 @@ paths:
                       type: object
                       required:
                         - address
-                        - contractType
+                        - objectType
                       properties:
                         image:
                           type: string
                           format: uri
                         address:
+                          $ref: '#/components/schemas/address'
+                        nftName:
                           type: string
-                        contractType:
+                        collectionName:
+                          type: string
+                        objectType:
                           type: string
                           enum:
                             - nft
                             - collection
-                            - auction
-                            - directBuy
-                            - directSell
   /collections:
     post:
       operationId: listCollections

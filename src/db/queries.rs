@@ -18,51 +18,56 @@ impl Queries {
     }
 
     pub async fn search_all(&self, search_str: &String) -> sqlx::Result<Vec<SearchResult>> {
-        let is_address = sqlx::query_as!(
-            SearchResult,
-            r#"SELECT
-                s.address,
-                s.name,
-                s.typ as "typ: _",
-                s.nft,
-                s.collection,
-                CASE WHEN m.meta is not null THEN m.meta::jsonb->'preview'->>'source'
-                        WHEN s.collection is not null THEN c.logo
-                        ELSE null
-                END as "image"
-            FROM search_index s
-            LEFT JOIN nft n ON n.address = s.nft
-            LEFT JOIN nft_metadata m ON m.nft = n.address
-            LEFT JOIN nft_collection c ON c.address = s.collection
-            WHERE s.address = $1
-            "#,
-            search_str
-        )
-        .fetch_optional(self.db.as_ref())
-        .await?;
-        if let Some(r) = is_address {
-            return Ok(vec![r]);
-        }
-
         sqlx::query_as!(
             SearchResult,
-            r#"SELECT
-            s.address,
-            s.name,
-            s.typ as "typ: _",
-            s.nft,
-            s.collection,
-            CASE WHEN m.meta is not null THEN m.meta::jsonb->'preview'->>'source'
-                    WHEN s.collection is not null THEN c.logo
-                    ELSE null
-            END as "image"
-        FROM search_index s
-        LEFT JOIN nft n ON n.address = s.nft
-        LEFT JOIN nft_metadata m ON m.nft = n.address
-        LEFT JOIN nft_collection c ON c.address = s.collection
-        WHERE s.search @@ websearch_to_tsquery($1)
-        ORDER BY ts_rank_cd(s.search, websearch_to_tsquery($1), 32)
-        LIMIT 100"#,
+            r#"
+                select ag.address as "address!", nft_name, collection_name, object_type as "object_type!", image
+                from (
+                         select n.address,
+                                n.name     nft_name,
+                                nc.name    collection_name,
+                                'nft'   as object_type,
+                                CASE
+                                    WHEN m.meta is not null THEN m.meta::jsonb -> 'preview' ->> 'source'
+                                    END as "image",
+                                case
+                                    when lower(n.address) = lower($1) then 10
+                                    when lower(n.name) = lower($1) then 9
+                                    when n.address ilike '%'||$1||'%' then 17
+                                    when n.name like '%'||$1||'%' then 7
+                                    else 1
+                                    end    priority
+                         from nft n
+                                  left join nft_metadata m on n.address = m.nft
+                                  join nft_collection nc on n.collection = nc.address and nc.verified
+                         where (n.name ilike '%'||$1||'%'
+                             or n.description ilike '%'||$1||'%'
+                             or n.address ilike '%'||$1||'%')
+                           and not n.burned
+
+                         union all
+
+                         select c.address,
+                                null            nft_name,
+                                c.name          collection_name,
+                                'collection' as object_type,
+                                c.logo          "image",
+                                case
+                                    when lower(c.address) = lower($1) then 20
+                                    when lower(c.name) = lower($1) then 19
+                                    when c.address ilike $1 then 18
+                                    when c.name like $1 then 8
+                                    else 2
+                                    end         priority
+                         from nft_collection c
+                         where (c.name ilike '%'||$1||'%'
+                             or c.description ilike '%'||$1||'%'
+                             or c.address ilike '%'||$1||'%')
+                           and c.verified
+                     ) ag
+                order by ag.priority desc
+                limit 100
+            "#,
             search_str
         )
         .fetch_all(self.db.as_ref())

@@ -1693,69 +1693,6 @@
     },
     "query": "\n        SELECT\n        s.address as \"address!\",\n        s.created as \"created!\",\n        s.updated as \"updated!\",\n        s.tx_lt as \"tx_lt!\",\n        s.nft as \"nft!\",\n        s.collection,\n        s.seller,\n        s.price_token as \"price_token!\",\n        s.price as \"price!\",\n        s.usd_price,\n        s.finished_at,\n        s.expired_at,\n        s.state as \"state!: _\",\n         count (1) over () as \"cnt!\"\n        FROM nft_direct_sell_usd s\n        WHERE s.address = $1"
   },
-  "7b95db45dde267b01541986146895a42ef0925551d3344ba3b07aa79443e2ec3": {
-    "describe": {
-      "columns": [
-        {
-          "name": "address",
-          "ordinal": 0,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "name",
-          "ordinal": 1,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "typ: _",
-          "ordinal": 2,
-          "type_info": {
-            "Custom": {
-              "kind": {
-                "Enum": [
-                  "auction",
-                  "direct_buy",
-                  "direct_sell",
-                  "nft",
-                  "collection"
-                ]
-              },
-              "name": "event_category"
-            }
-          }
-        },
-        {
-          "name": "nft",
-          "ordinal": 3,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "collection",
-          "ordinal": 4,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "image",
-          "ordinal": 5,
-          "type_info": "Text"
-        }
-      ],
-      "nullable": [
-        false,
-        true,
-        false,
-        true,
-        true,
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "Text"
-        ]
-      }
-    },
-    "query": "SELECT\n                s.address,\n                s.name,\n                s.typ as \"typ: _\",\n                s.nft,\n                s.collection,\n                CASE WHEN m.meta is not null THEN m.meta::jsonb->'preview'->>'source'\n                        WHEN s.collection is not null THEN c.logo\n                        ELSE null\n                END as \"image\"\n            FROM search_index s\n            LEFT JOIN nft n ON n.address = s.nft\n            LEFT JOIN nft_metadata m ON m.nft = n.address\n            LEFT JOIN nft_collection c ON c.address = s.collection\n            WHERE s.address = $1\n            "
-  },
   "7eece883c8a0b1f07587fcb6ae4c980f658ce8c7fc4c34de01fd94d1e82a43ad": {
     "describe": {
       "columns": [
@@ -2484,6 +2421,50 @@
     },
     "query": "\n                SELECT c.address        as \"address!\",\n                       c.name,\n                       c.description,\n                       c.logo,\n                       c.verified       as \"verified!\",\n                       count(1) over () as \"cnt!\",\n                       nft.count as \"nft_count!\"\n                FROM nft_collection c\n                LEFT JOIN lateral ( select count(1) as count from nft n where n.collection = c.address) nft on true\n                where ($3::boolean is false OR c.verified is true)\n                AND ($4::varchar is null OR c.name ILIKE $4)\n                order by c.owners_count desc\n                limit $1 offset $2\n             "
   },
+  "b53bcf99b4c0a10798cc499a99c35de509b932887387296acdda35aef3b9c8a0": {
+    "describe": {
+      "columns": [
+        {
+          "name": "address!",
+          "ordinal": 0,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "nft_name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "collection_name",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "object_type!",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "image",
+          "ordinal": 4,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "\n                select ag.address as \"address!\", nft_name, collection_name, object_type as \"object_type!\", image\n                from (\n                         select n.address,\n                                n.name     nft_name,\n                                nc.name    collection_name,\n                                'nft'   as object_type,\n                                CASE\n                                    WHEN m.meta is not null THEN m.meta::jsonb -> 'preview' ->> 'source'\n                                    END as \"image\",\n                                case\n                                    when lower(n.address) = lower($1) then 10\n                                    when lower(n.name) = lower($1) then 9\n                                    when n.address ilike '%'||$1||'%' then 17\n                                    when n.name like '%'||$1||'%' then 7\n                                    else 1\n                                    end    priority\n                         from nft n\n                                  left join nft_metadata m on n.address = m.nft\n                                  join nft_collection nc on n.collection = nc.address and nc.verified\n                         where (n.name ilike '%'||$1||'%'\n                             or n.description ilike '%'||$1||'%'\n                             or n.address ilike '%'||$1||'%')\n                           and not n.burned\n\n                         union all\n\n                         select c.address,\n                                null            nft_name,\n                                c.name          collection_name,\n                                'collection' as object_type,\n                                c.logo          \"image\",\n                                case\n                                    when lower(c.address) = lower($1) then 20\n                                    when lower(c.name) = lower($1) then 19\n                                    when c.address ilike $1 then 18\n                                    when c.name like $1 then 8\n                                    else 2\n                                    end         priority\n                         from nft_collection c\n                         where (c.name ilike '%'||$1||'%'\n                             or c.description ilike '%'||$1||'%'\n                             or c.address ilike '%'||$1||'%')\n                           and c.verified\n                     ) ag\n                order by ag.priority desc\n                limit 100\n            "
+  },
   "b7f3640aec78dc5f99bbfb2fa94cd2f11dd249494f7b702699dbb86561d03644": {
     "describe": {
       "columns": [
@@ -2861,69 +2842,6 @@
       }
     },
     "query": "\n        SELECT a.*, count(1) over () as \"cnt!\" FROM nft_auction_search a WHERE a.address = $1"
-  },
-  "ceba00ce1082e676d38b67ca25179309d201dde9403fda663ba07fe483850906": {
-    "describe": {
-      "columns": [
-        {
-          "name": "address",
-          "ordinal": 0,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "name",
-          "ordinal": 1,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "typ: _",
-          "ordinal": 2,
-          "type_info": {
-            "Custom": {
-              "kind": {
-                "Enum": [
-                  "auction",
-                  "direct_buy",
-                  "direct_sell",
-                  "nft",
-                  "collection"
-                ]
-              },
-              "name": "event_category"
-            }
-          }
-        },
-        {
-          "name": "nft",
-          "ordinal": 3,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "collection",
-          "ordinal": 4,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "image",
-          "ordinal": 5,
-          "type_info": "Text"
-        }
-      ],
-      "nullable": [
-        false,
-        true,
-        false,
-        true,
-        true,
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "Text"
-        ]
-      }
-    },
-    "query": "SELECT\n            s.address,\n            s.name,\n            s.typ as \"typ: _\",\n            s.nft,\n            s.collection,\n            CASE WHEN m.meta is not null THEN m.meta::jsonb->'preview'->>'source'\n                    WHEN s.collection is not null THEN c.logo\n                    ELSE null\n            END as \"image\"\n        FROM search_index s\n        LEFT JOIN nft n ON n.address = s.nft\n        LEFT JOIN nft_metadata m ON m.nft = n.address\n        LEFT JOIN nft_collection c ON c.address = s.collection\n        WHERE s.search @@ websearch_to_tsquery($1)\n        ORDER BY ts_rank_cd(s.search, websearch_to_tsquery($1), 32)\n        LIMIT 100"
   },
   "d1424e402c24deade7fd93d492ad90c2b475e2f452ff7f0148c055d3a4e56028": {
     "describe": {

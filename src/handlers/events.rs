@@ -30,7 +30,7 @@ pub async fn search_all_handler(
                 StatusCode::INTERNAL_SERVER_ERROR,
             )))
         }
-        Ok(ref xs) => xs.iter().map(SearchResult::from_db).collect(),
+        Ok(xs) => xs.into_iter().map(SearchResult::from_db).collect(),
     };
     let count = items.len();
     Ok(Box::from(warp::reply::with_status(
