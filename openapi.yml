@@ -769,7 +769,7 @@ paths:
                     field:
                       type: string
                       enum:
-                        - created
+                        - firstMint
                     direction:
                       type: string
                       enum:
