@@ -485,12 +485,16 @@ impl Queries {
         offset: usize,
         attributes: &Vec<AttributeFilter>,
         order: Option<NFTListOrder>,
+        with_count: bool
     ) -> sqlx::Result<Vec<NftDetails>> {
         let mut sql = r#"
             SELECT n.*,
             n."auction_status: _" as auction_status,
             n."forsale_status: _" as forsale_status,
-            count(1) over () as total_count
+            case when $8 then
+                count(1) over ()
+            else 0
+                end total_count
             FROM nft_details n
             INNER JOIN nft_collection c ON n.collection = c.address
             WHERE
@@ -513,6 +517,8 @@ impl Queries {
             )
             and ($5::boolean is false OR c.verified is true)
         "#.to_string();
+
+
 
         for attribute in attributes {
             let values = attribute
@@ -565,8 +571,6 @@ impl Queries {
             "#
         );
 
-        println!("{}", sql);
-
         sqlx::query_as(&sql)
             .bind(owners)
             .bind(collections)
@@ -575,6 +579,7 @@ impl Queries {
             .bind(verified)
             .bind(limit as i64)
             .bind(offset as i64)
+            .bind(with_count)
             .fetch_all(self.db.as_ref())
             .await
     }
@@ -762,21 +767,18 @@ impl Queries {
             .map(|x| x.to_string())
             .collect::<Vec<String>>()[..];
 
-        let query = include_str!("../db/sql/list_activities.sql");
-
-        let query = match with_count {
-            true => query.replace("#COUNT", "count(1) over ()  as total_rows,"),
-            false => query.replace("#COUNT", "0 as total_rows,"),
-        };
-
-        sqlx::query_as(&query)
-            .bind(categories_slice)
-            .bind(event_types_slice)
-            .bind(owner)
-            .bind(nft)
-            .bind(collections)
-            .bind(limit as i64)
-            .bind(offset as i64)
+        sqlx::query_file_as!(
+            NftEventsRecord,
+            "src/db/sql/list_activities.sql",
+            categories_slice,
+            event_types_slice,
+            owner,
+            nft,
+            collections,
+            limit as i64,
+            offset as i64,
+            with_count
+        )
             .fetch_one(self.db.as_ref())
             .await
     }

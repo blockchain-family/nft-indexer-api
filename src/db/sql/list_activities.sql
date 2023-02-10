@@ -11,7 +11,8 @@ with result as (
            n.owner,
            nm.meta,
            auction.args                          auction_args,
-           #COUNT
+           case when $8 then
+           count(1) over () else 0 end total_rows,
            direct_sell_chaned_owner.new_owner as new_owner,
            direct_buy_chaned_owner.old_owner  as old_owner
     from nft_events ne
@@ -269,7 +270,6 @@ select json_build_object('totalRows', coalesce(max(r.total_rows), 0), 'data',
                                                                                  end
                                                                          ) end
                              )
-
                                       ), '[]'::json))
            content
 from result as r

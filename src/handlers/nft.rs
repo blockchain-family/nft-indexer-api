@@ -338,6 +338,14 @@ pub async fn get_nft_list_handler(
     let owners = params.owners.as_deref().unwrap_or(&[]);
     let collections = params.collections.as_deref().unwrap_or(&[]);
     let verified = Some(params.verified.unwrap_or(true));
+    let offset = params.offset.unwrap_or_default();
+    let with_count = params.with_count.unwrap_or(false);
+    let limit = params.limit.unwrap_or(100);
+
+    let final_limit = match with_count {
+        true => limit,
+        false => limit + 1,
+    };
 
     match db
         .nft_search(
@@ -349,10 +357,11 @@ pub async fn get_nft_list_handler(
             params.forsale,
             params.auction,
             verified,
-            params.limit.unwrap_or(100),
-            params.offset.unwrap_or_default(),
+            final_limit,
+            offset,
             &params.attributes.unwrap_or_default(),
             params.order,
+            with_count
         )
         .await
     {
@@ -364,10 +373,20 @@ pub async fn get_nft_list_handler(
             let response = make_nfts_response(list, db).await;
 
             match response {
-                Ok(response) => Ok(Box::from(warp::reply::with_status(
-                    warp::reply::json(&response),
-                    StatusCode::OK,
-                ))),
+                Ok(mut response) => {
+                    if !with_count {
+                        if response.items.len() < final_limit {
+                            response.count = (response.items.len() + offset) as i64
+                        } else {
+                            response.items.pop();
+                            response.count = (response.items.len() + offset + 1) as i64;
+                        }
+                    }
+                    Ok(Box::from(warp::reply::with_status(
+                        warp::reply::json(&response),
+                        StatusCode::OK,
+                    )))
+                },
                 Err(e) => Ok(Box::from(warp::reply::with_status(
                     e.to_string(),
                     StatusCode::INTERNAL_SERVER_ERROR,
@@ -430,6 +449,8 @@ pub struct NFTListQuery {
     pub offset: Option<usize>,
     pub attributes: Option<Vec<AttributeFilter>>,
     pub order: Option<NFTListOrder>,
+    #[serde(rename = "withCount")]
+    pub with_count: Option<bool>
 }
 
 #[derive(Clone, Deserialize, Serialize)]

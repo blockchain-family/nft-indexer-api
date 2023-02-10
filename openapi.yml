@@ -1036,6 +1036,9 @@ paths:
                   type: array
                   items:
                     $ref: '#/components/schemas/attribute'
+                withCount:
+                  type: boolean
+                  default: false
                 order:
                   type: object
                   properties:
