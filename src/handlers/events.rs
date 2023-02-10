@@ -61,8 +61,24 @@ pub async fn get_events_handler(
     let owner = query.owner.as_ref();
     let limit = query.limit.unwrap_or(100);
     let offset = query.offset.unwrap_or_default();
+    let with_count = query.with_count.unwrap_or(false);
+
+    let final_limit = match with_count {
+        true => limit,
+        false => limit + 1,
+    };
+
     match db
-        .list_events(nft, collection, owner, event_type, category, offset, limit)
+        .list_events(
+            nft,
+            collection,
+            owner,
+            event_type,
+            category,
+            offset,
+            final_limit,
+            with_count,
+        )
         .await
     {
         Err(e) => Ok(Box::from(warp::reply::with_status(
@@ -76,10 +92,20 @@ pub async fn get_events_handler(
             };
 
             match response {
-                Ok(response) => Ok(Box::from(warp::reply::with_status(
-                    warp::reply::json(&response),
-                    StatusCode::OK,
-                ))),
+                Ok(mut response) => {
+                    if !with_count {
+                        if response.data.len() < final_limit {
+                            response.total_rows = (response.data.len() + offset) as i64
+                        } else {
+                            response.data.pop();
+                            response.total_rows = (response.data.len() + offset + 1) as i64;
+                        }
+                    }
+                    Ok(Box::from(warp::reply::with_status(
+                        warp::reply::json(&response),
+                        StatusCode::OK,
+                    )))
+                }
                 Err(e) => Ok(Box::from(warp::reply::with_status(
                     e.to_string(),
                     StatusCode::INTERNAL_SERVER_ERROR,
@@ -99,6 +125,8 @@ pub struct EventsQuery {
     pub event_type: Option<Vec<NftEventType>>,
     pub limit: Option<usize>,
     pub offset: Option<usize>,
+    #[serde(rename = "withCount")]
+    pub with_count: Option<bool>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

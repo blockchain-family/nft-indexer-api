@@ -33,16 +33,16 @@ impl Queries {
                                 case
                                     when lower(n.address) = lower($1) then 10
                                     when lower(n.name) = lower($1) then 9
-                                    when n.address ilike '%'||$1||'%' then 17
-                                    when n.name like '%'||$1||'%' then 7
+                                    when n.address ilike '%' || $1 || '%' then 6
+                                    when n.name like '%' || $1 || '%' then 5
                                     else 1
                                     end    priority
                          from nft n
                                   left join nft_metadata m on n.address = m.nft
                                   join nft_collection nc on n.collection = nc.address and nc.verified
-                         where (n.name ilike '%'||$1||'%'
-                             or n.description ilike '%'||$1||'%'
-                             or n.address ilike '%'||$1||'%')
+                         where (n.name ilike '%' || $1 || '%'
+                             or n.description ilike '%' || $1 || '%'
+                             or n.address ilike '%' || $1 || '%')
                            and not n.burned
 
                          union all
@@ -55,18 +55,18 @@ impl Queries {
                                 case
                                     when lower(c.address) = lower($1) then 20
                                     when lower(c.name) = lower($1) then 19
-                                    when c.address ilike $1 then 18
-                                    when c.name like $1 then 8
+                                    when c.address ilike '%' || $1 || '%' then 8
+                                    when c.name ilike '%' || $1 || '%' then 7
                                     else 2
                                     end         priority
                          from nft_collection c
-                         where (c.name ilike '%'||$1||'%'
-                             or c.description ilike '%'||$1||'%'
-                             or c.address ilike '%'||$1||'%')
+                         where (c.name ilike '%' || $1 || '%'
+                             or c.description ilike '%' || $1 || '%'
+                             or c.address ilike '%' || $1 || '%')
                            and c.verified
                      ) ag
                 order by ag.priority desc
-                limit 100
+                limit 20
             "#,
             search_str
         )
@@ -751,6 +751,7 @@ impl Queries {
         category: &[NftEventCategory],
         offset: usize,
         limit: usize,
+        with_count: bool,
     ) -> sqlx::Result<NftEventsRecord> {
         let event_types_slice = &event_type
             .iter()
@@ -760,21 +761,24 @@ impl Queries {
             .iter()
             .map(|x| x.to_string())
             .collect::<Vec<String>>()[..];
-        let events = sqlx::query_file_as!(
-            NftEventsRecord,
-            "src/db/sql/list_activities.sql",
-            categories_slice,
-            event_types_slice,
-            owner,
-            nft,
-            collections,
-            limit as i64,
-            offset as i64
-        )
-        .fetch_one(self.db.as_ref())
-        .await?;
 
-        Ok(events)
+        let query = include_str!("../db/sql/list_activities.sql");
+
+        let query = match with_count {
+            true => query.replace("#COUNT", "count(1) over ()  as total_rows,"),
+            false => query.replace("#COUNT", "0 as total_rows,"),
+        };
+
+        sqlx::query_as(&query)
+            .bind(categories_slice)
+            .bind(event_types_slice)
+            .bind(owner)
+            .bind(nft)
+            .bind(collections)
+            .bind(limit as i64)
+            .bind(offset as i64)
+            .fetch_one(self.db.as_ref())
+            .await
     }
 
     pub async fn list_events_count(

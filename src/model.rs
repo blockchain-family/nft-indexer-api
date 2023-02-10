@@ -506,8 +506,8 @@ impl SearchResult {
 #[derive(Deserialize, Serialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct NftEvents {
-    data: Vec<NftEvent>,
-    total_rows: i64,
+    pub data: Vec<NftEvent>,
+    pub total_rows: i64,
 }
 
 #[derive(Deserialize, Serialize)]
