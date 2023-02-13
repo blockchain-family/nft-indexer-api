@@ -445,16 +445,19 @@ impl Queries {
                                   and nc.verified
                          left join lateral ( select count(1) as cnt
                                              from nft_auction na
+                                              join events_whitelist ew on na.address = ew.address
                                              where n.address = na.nft
                                                and na.status = 'completed'
                                                and na.finished_at >= $1) auc on true
                          left join lateral ( select count(1) as cnt
                                              from nft_direct_sell na
+                                             join events_whitelist ew on na.address = ew.address
                                              where n.address = na.nft
                                                and na.state = 'filled'
                                                and na.finished_at >= $1) ds on true
                          left join lateral ( select count(1) as cnt
                                              from nft_direct_buy na
+                                             join events_whitelist ew on na.address = ew.address
                                              where n.address = na.nft
                                                and na.state = 'filled'
                                                and na.finished_at >= $1) db on true
@@ -1017,18 +1020,21 @@ impl Queries {
                  from (
                  select t.finished_at dt, t.price_token, t.price
                  from nft_direct_sell t
+                 join events_whitelist ew on t.address = ew.address
                  where t.nft = $1
                    and t.finished_at between $2 and $3
                    and t.state = 'filled'
                  union all
                  select t.finished_at, t.price_token, t.price
                  from nft_direct_buy t
+                 join events_whitelist ew on t.address = ew.address
                  where t.nft = $1
                    and t.finished_at between $2 and $3
                    and t.state = 'filled'
                  union all
                  select t.finished_at, t.price_token, t.max_bid
                  from nft_auction t
+                 join events_whitelist ew on t.address = ew.address
                  where t.nft = $1
                    and t.finished_at between $2 and $3
                    and t.status = 'completed') as ag

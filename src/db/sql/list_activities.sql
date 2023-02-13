@@ -16,11 +16,13 @@ with result as (
            direct_sell_chaned_owner.new_owner as new_owner,
            direct_buy_chaned_owner.old_owner  as old_owner
     from nft_events ne
+             join events_whitelist ew on ne.address = ew.address
              join nft n on ne.nft = n.address
              join nft_metadata nm on ne.nft = nm.nft
              left join lateral (
         select n.args
         from nft_events n
+        join events_whitelist ew on n.address = ew.address
         where n.event_cat = ne.event_cat
           and n.event_type = 'auction_active'
           and n.address = ne.address
@@ -33,6 +35,7 @@ with result as (
              left join lateral (
         select n.args ->> 'new_owner' new_owner
         from nft_events n
+            join events_whitelist ew on n.address = ew.address
         where n.event_cat = 'nft'
           and n.event_type = 'nft_owner_changed'
           and n.nft = ne.nft
@@ -46,6 +49,7 @@ with result as (
              left join lateral (
         select n.args ->> 'old_owner' old_owner
         from nft_events n
+                join events_whitelist ew on n.address = ew.address
         where n.event_cat = 'nft'
           and n.event_type = 'nft_owner_changed'
           and n.nft = ne.nft
