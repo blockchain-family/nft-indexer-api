@@ -16,7 +16,6 @@ with result as (
            direct_sell_chaned_owner.new_owner as new_owner,
            direct_buy_chaned_owner.old_owner  as old_owner
     from nft_events ne
-             join events_whitelist ew on ne.address = ew.address
              join nft n on ne.nft = n.address
              join nft_metadata nm on ne.nft = nm.nft
              left join lateral (
@@ -72,6 +71,7 @@ with result as (
                         direct_sell_chaned_owner.new_owner
                 )
             or $3 is null))
+      and (exists(select 1 from  events_whitelist ew where ne.address = ew.address ) or (ne.event_type in ('nft_owner_changed', 'nft_created')))
       and (ne.nft = $4 or $4 is null)
       and (n.collection = any ($5) or $5 = '{}')
       and (ne.event_cat::text = any ($1) or $1 = '{}')
