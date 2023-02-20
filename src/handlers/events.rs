@@ -1,11 +1,11 @@
+use crate::db::{NftEventCategory, NftEventType};
+use crate::model::NftEvents;
+use crate::{db::Queries, model::SearchResult};
+use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
 use warp::http::StatusCode;
-use crate::{db::{EventType, Queries}, model::{VecWithTotal, SearchResult}};
-use warp::Filter;
-use crate::model::{Event, ContractType};
-use serde::{Serialize, Deserialize};
 use warp::hyper::body::Bytes;
-
+use warp::Filter;
 
 /// POST /search
 pub fn search_all(
@@ -18,70 +18,25 @@ pub fn search_all(
         .and_then(search_all_handler)
 }
 
-pub async fn search_all_handler(query: Bytes, db: Queries) -> Result<Box<dyn warp::Reply>, Infallible> {
+pub async fn search_all_handler(
+    query: Bytes,
+    db: Queries,
+) -> Result<Box<dyn warp::Reply>, Infallible> {
     let query = String::from_utf8(query.into()).expect("err converting to String");
-    let mut items: Vec<SearchResult> = Vec::new();
-    match db.get_collection(&query).await {
-        Err(e) => return Ok(Box::from(warp::reply::with_status(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))),
-        Ok(Some(x)) => {
-            items.push(SearchResult {
-                address: x.address,
-                image: x.logo,
-                contract_type: ContractType::Collection,
-            });
-        },
-        _ => {},
-    };
-    match db.get_nft_details(&query).await {
-        Err(e) => return Ok(Box::from(warp::reply::with_status(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))),
-        Ok(Some(x)) => {
-            items.push(SearchResult {
-                address: x.address.clone().unwrap_or_default(),
-                image: x.parse_meta().image.clone(),
-                contract_type: ContractType::Nft,
-             });
-        },
-        _ => {},
-    };
-    match db.get_nft_auction(&query).await {
-        Err(e) => return Ok(Box::from(warp::reply::with_status(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))),
-        Ok(Some(x)) => {
-            items.push(SearchResult {
-                address: x.address.clone().unwrap_or_default(),
-                image: None,
-                contract_type: ContractType::Auction,
-             });
-        },
-        _ => {},
-    };
-    match db.get_direct_sell(&query).await {
-        Err(e) => return Ok(Box::from(warp::reply::with_status(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))),
-        Ok(Some(x)) => {
-            items.push(SearchResult {
-                address: x.address.clone(),
-                image: None,
-                contract_type: ContractType::DirectSell,
-             });
-        },
-        _ => {},
-    };
-    match db.get_direct_buy(&query).await {
-        Err(e) => return Ok(Box::from(warp::reply::with_status(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))),
-        Ok(Some(x)) => {
-            items.push(SearchResult {
-                address: x.address.clone(),
-                image: None,
-                contract_type: ContractType::DirectBuy,
-             });
-        },
-        _ => {},
+    let items: Vec<SearchResult> = match db.search_all(&query).await {
+        Err(e) => {
+            return Ok(Box::from(warp::reply::with_status(
+                e.to_string(),
+                StatusCode::INTERNAL_SERVER_ERROR,
+            )))
+        }
+        Ok(xs) => xs.into_iter().map(SearchResult::from_db).collect(),
     };
     let count = items.len();
-    Ok(Box::from(
-        warp::reply::with_status(
-            warp::reply::json(&SearchRes{ items, count }), 
-            StatusCode::OK)
-    ))
+    Ok(Box::from(warp::reply::with_status(
+        warp::reply::json(&SearchRes { items, count }),
+        StatusCode::OK,
+    )))
 }
 
 /// POST /events
@@ -95,34 +50,69 @@ pub fn get_events(
         .and_then(get_events_handler)
 }
 
-pub async fn get_events_handler(query: EventsQuery, db: Queries) -> Result<Box<dyn warp::Reply>, Infallible> {
+pub async fn get_events_handler(
+    query: EventsQuery,
+    db: Queries,
+) -> Result<Box<dyn warp::Reply>, Infallible> {
     let nft = query.nft.as_ref();
-    let collection = query.collection.as_ref();
-    let typ = query.typ.as_ref().map(|x| x.as_slice()).unwrap_or(&[]);
+    let event_type = query.event_type.as_deref().unwrap_or(&[]);
+    let category = query.categories.as_deref().unwrap_or(&[]);
+    let collection = query.collections.as_deref().unwrap_or(&[]);
     let owner = query.owner.as_ref();
-    let limit = query.page_size.unwrap_or(100);
+    let limit = query.limit.unwrap_or(100);
     let offset = query.offset.unwrap_or_default();
-    let count = match db.list_events_count(nft, collection, owner, &[]).await {
-        Err(e) => return Ok(Box::from(warp::reply::with_status(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))),
-        Ok(cnt) => cnt,
+    let with_count = query.with_count.unwrap_or(false);
+    let verified = query.verified;
+
+    let final_limit = match with_count {
+        true => limit,
+        false => limit + 1,
     };
-    match db.list_events(nft, collection, owner, typ, offset, limit).await {
-        Err(e) => Ok(Box::from(warp::reply::with_status(e.to_string(), StatusCode::INTERNAL_SERVER_ERROR))),
-        Ok(mut list) => {
-            let ret: Vec<Event> = list.drain(..).map(|ev| Event {
-                id: ev.id,
-                address: ev.address,
-                typ: ev.event_type,
-                cat: ev.event_cat,
-                args: ev.args,
-                ts: ev.created_at as usize,
-            }).collect();
-            let ret = VecWithTotal { count, items: ret };
-            Ok(Box::from(
-                warp::reply::with_status(
-                    warp::reply::json(&ret), 
-                    StatusCode::OK)
-            ))
+
+    match db
+        .list_events(
+            nft,
+            collection,
+            owner,
+            event_type,
+            category,
+            offset,
+            final_limit,
+            with_count,
+            verified
+        )
+        .await
+    {
+        Err(e) => Ok(Box::from(warp::reply::with_status(
+            e.to_string(),
+            StatusCode::INTERNAL_SERVER_ERROR,
+        ))),
+        Ok(record) => {
+            let response: Result<NftEvents, serde_json::Error> = match record.content {
+                None => Ok(NftEvents::default()),
+                Some(value) => serde_json::from_value(value),
+            };
+
+            match response {
+                Ok(mut response) => {
+                    if !with_count {
+                        if response.data.len() < final_limit {
+                            response.total_rows = (response.data.len() + offset) as i64
+                        } else {
+                            response.data.pop();
+                            response.total_rows = (response.data.len() + offset + 1) as i64;
+                        }
+                    }
+                    Ok(Box::from(warp::reply::with_status(
+                        warp::reply::json(&response),
+                        StatusCode::OK,
+                    )))
+                }
+                Err(e) => Ok(Box::from(warp::reply::with_status(
+                    e.to_string(),
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                ))),
+            }
         }
     }
 }
@@ -130,13 +120,16 @@ pub async fn get_events_handler(query: EventsQuery, db: Queries) -> Result<Box<d
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct EventsQuery {
     pub owner: Option<String>,
-    pub collection: Option<String>,
+    pub collections: Option<Vec<String>>,
     pub nft: Option<String>,
-    #[serde(rename = "type")]
-    pub typ: Option<Vec<EventType>>,
-    #[serde(rename = "limit")]
-    pub page_size: Option<usize>,
+    pub categories: Option<Vec<NftEventCategory>>,
+    #[serde(rename = "types")]
+    pub event_type: Option<Vec<NftEventType>>,
+    pub limit: Option<usize>,
     pub offset: Option<usize>,
+    #[serde(rename = "withCount")]
+    pub with_count: Option<bool>,
+    pub verified: Option<bool>
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

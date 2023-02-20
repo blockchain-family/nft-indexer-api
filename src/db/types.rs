@@ -1,19 +1,30 @@
-use sqlx::types::BigDecimal;
-use chrono::NaiveDateTime;
 use super::*;
+use chrono::NaiveDateTime;
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+use sqlx::types::BigDecimal;
 
 pub type Address = String;
 
 #[derive(Debug, Clone, sqlx::FromRow)]
-pub struct Event {
-    pub id: i64,
-    pub address: String,
-    pub event_cat: EventCategory,
-    pub event_type: EventType,
-    pub created_at: i64,
-    pub created_lt: i64,
-    pub args: Option<serde_json::Value>,
+pub struct SearchResult {
+    pub address: Address,
+    pub object_type: String,
+    pub nft_name: Option<String>,
+    pub collection_name: Option<String>,
+    pub image: Option<String>,
 }
+
+// #[derive(Debug, Clone, sqlx::FromRow)]
+// pub struct Event {
+//     pub id: i64,
+//     pub address: String,
+//     pub event_cat: EventCategory,
+//     pub event_type: EventType,
+//     pub created_at: i64,
+//     pub created_lt: i64,
+//     // pub args: Option<serde_json::Value>,
+// }
 
 #[derive(Debug, Clone, sqlx::FromRow)]
 pub struct NftDetails {
@@ -32,6 +43,11 @@ pub struct NftDetails {
     pub auction_status: Option<AuctionStatus>,
     pub forsale_status: Option<DirectSellState>,
     pub best_offer: Option<String>,
+    pub floor_price_usd: Option<BigDecimal>,
+    pub deal_price_usd: Option<BigDecimal>,
+    pub total_count: i64,
+    pub floor_price: Option<BigDecimal>,
+    pub floor_price_token: Option<Address>,
 }
 
 #[derive(Clone, Debug)]
@@ -50,7 +66,7 @@ pub struct Nft {
 #[derive(Clone, Debug)]
 pub struct NftMeta {
     pub nft: Address,
-    pub meta: serde_json::Value,
+    pub meta: Value,
     pub updated: NaiveDateTime,
 }
 
@@ -66,9 +82,45 @@ pub struct NftCollection {
     pub wallpaper: Option<String>,
     pub logo: Option<String>,
     pub owners_count: Option<i32>,
+    pub nft_count: i64,
+    pub max_price: Option<BigDecimal>,
+    pub total_price: Option<BigDecimal>,
+    pub cnt: i64,
+    pub first_mint: Option<NaiveDateTime>,
+}
+
+#[derive(Clone, Debug)]
+pub struct NftCollectionSimple {
+    pub address: Address,
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub verified: bool,
+    pub logo: Option<String>,
+    pub cnt: i64,
+    pub nft_count: i64,
+}
+
+#[derive(Clone, Debug, sqlx::FromRow)]
+pub struct NftCollectionDetails {
+    pub address: Option<Address>,
+    pub owner: Option<Address>,
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub created: Option<NaiveDateTime>,
+    pub updated: Option<NaiveDateTime>,
+    pub verified: Option<bool>,
+    pub wallpaper: Option<String>,
+    pub logo: Option<String>,
+    pub owners_count: Option<i32>,
     pub nft_count: Option<i64>,
     pub max_price: Option<BigDecimal>,
     pub total_price: Option<BigDecimal>,
+    pub floor_price_usd: Option<BigDecimal>,
+    pub total_volume_usd: Option<BigDecimal>,
+    pub attributes: Option<Value>,
+    pub cnt: i64,
+    pub previews: Value,
+    pub first_mint: Option<NaiveDateTime>,
 }
 
 #[derive(Clone, Debug)]
@@ -92,6 +144,7 @@ pub struct NftAuction {
     pub last_bid_ts: Option<NaiveDateTime>,
     pub last_bid_value: Option<BigDecimal>,
     pub last_bid_usd_value: Option<BigDecimal>,
+    pub cnt: i64,
 }
 
 #[derive(Clone, Debug)]
@@ -105,6 +158,7 @@ pub struct NftAuctionBid {
     pub created_at: NaiveDateTime,
     pub tx_lt: i64,
     pub active: bool,
+    pub cnt: i64,
 }
 
 #[derive(Clone, Debug)]
@@ -121,6 +175,7 @@ pub struct NftAuctionBidExt {
     pub active: Option<bool>,
     pub nft: Option<Address>,
     pub collection: Option<Address>,
+    pub cnt: i64,
 }
 
 #[derive(Clone, Debug)]
@@ -138,6 +193,7 @@ pub struct NftDirectSell {
     pub finished_at: Option<NaiveDateTime>,
     pub expired_at: Option<NaiveDateTime>,
     pub tx_lt: i64,
+    pub cnt: i64,
 }
 
 #[derive(Clone, Debug)]
@@ -155,6 +211,7 @@ pub struct NftDirectBuy {
     pub finished_at: Option<NaiveDateTime>,
     pub expired_at: Option<NaiveDateTime>,
     pub tx_lt: i64,
+    pub cnt: i64,
 }
 
 #[derive(Clone, Debug)]
@@ -167,14 +224,13 @@ pub struct NftPriceHistory {
 
     pub nft: Option<Address>,
     pub collection: Option<Address>,
+    pub is_deal: bool,
 }
 
 #[derive(Clone, Debug)]
 pub struct NftPrice {
-    pub ts: Option<NaiveDateTime>,
-    pub price: Option<BigDecimal>,
-    pub price_token: Option<Address>,
-    pub count: Option<i64>,
+    pub ts: NaiveDateTime,
+    pub usd_price: BigDecimal,
 }
 
 #[derive(Clone, Debug)]
@@ -208,7 +264,7 @@ pub struct MetaParsed {
     pub image: Option<String>,
     pub mimetype: Option<String>,
     pub attributes: Option<serde_json::Value>,
-    pub typ: Option<String>
+    pub typ: Option<String>,
 }
 
 impl NftDetails {
@@ -217,24 +273,50 @@ impl NftDetails {
             Some(meta) if meta.is_object() => meta.as_object().unwrap().clone(),
             _ => serde_json::Map::default(),
         };
-        let attributes = meta_obj.get("attributes").map(|a| a.clone());
-        let typ = meta_obj.get("type").map(|a| a.as_str().unwrap_or_default().to_string());
+        let attributes = meta_obj.get("attributes").cloned();
+        let typ = meta_obj
+            .get("type")
+            .map(|a| a.as_str().unwrap_or_default().to_string());
         let mut image = meta_obj.get("image").map(|i| i.to_string());
         let mut mimetype: Option<String> = None;
         if image.is_none() {
             // https://github.com/nftalliance/docs/blob/main/src/standard/TIP-4/2.md
             image = meta_obj.get("preview").and_then(|p| {
-                p.as_object().and_then(|o| 
-                    o.get("source").map(|x| x.as_str().unwrap_or_default().to_string())
-                )
+                p.as_object().and_then(|o| {
+                    o.get("source")
+                        .map(|x| x.as_str().unwrap_or_default().to_string())
+                })
             });
             mimetype = meta_obj.get("preview").and_then(|p| {
-                p.as_object().and_then(|o| 
-                    o.get("mimetype").map(|x| x.as_str().unwrap_or_default().to_string())
-                )
+                p.as_object().and_then(|o| {
+                    o.get("mimetype")
+                        .map(|x| x.as_str().unwrap_or_default().to_string())
+                })
             });
         }
-        MetaParsed { image, mimetype, attributes, typ }
+        MetaParsed {
+            image,
+            mimetype,
+            attributes,
+            typ,
+        }
     }
 }
 
+#[derive(Deserialize, Debug, Serialize, sqlx::FromRow)]
+pub struct NftEventsRecord {
+    pub content: Option<Value>,
+}
+
+#[derive(Debug, sqlx::FromRow)]
+pub struct MetricsSummaryRecord {
+    pub collection: String,
+    pub name: Option<String>,
+    pub logo: Option<String>,
+    pub floor_price: Option<BigDecimal>,
+    pub total_volume_usd_now: BigDecimal,
+    pub total_volume_usd_previous: BigDecimal,
+    pub owners_count: i32,
+    pub nfts_count: i32,
+    pub total_rows_count: i32,
+}

@@ -1,7 +1,6 @@
-use std::fmt::Display;
+use std::fmt::{Display, Formatter};
 
 use serde::{Deserialize, Serialize};
-
 
 #[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type)]
 #[sqlx(type_name = "event_type", rename_all = "snake_case")]
@@ -35,7 +34,6 @@ pub enum EventType {
     NftCreated,
     NftBurned,
 }
-
 
 #[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type)]
 #[sqlx(type_name = "event_category", rename_all = "snake_case")]
@@ -94,6 +92,72 @@ pub enum NftPriceSource {
     DirectSell,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type)]
+#[sqlx(type_name = "event_category", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum NftEventCategory {
+    Auction,
+    DirectBuy,
+    DirectSell,
+    Collection,
+    Nft,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type)]
+#[sqlx(type_name = "event_category")]
+#[serde(rename_all = "snake_case")]
+pub enum NftEventType {
+    SellActive,
+    SellPurchased,
+    SellCanceled,
+
+    OfferActive,
+    OfferFilled,
+    OfferCanceled,
+
+    AuctionActive,
+    AuctionBidPlaced,
+    AuctionCanceled,
+    AuctionComplete,
+
+    Mint,
+
+    Transfer,
+}
+
+impl Display for NftEventCategory {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            NftEventCategory::Auction => write!(f, "auction"),
+            NftEventCategory::DirectBuy => write!(f, "direct_buy"),
+            NftEventCategory::DirectSell => write!(f, "direct_sell"),
+            NftEventCategory::Collection => write!(f, "collection"),
+            NftEventCategory::Nft => write!(f, "nft"),
+        }
+    }
+}
+
+impl Display for NftEventType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            NftEventType::SellActive => write!(f, "SellActive"),
+            NftEventType::SellPurchased => write!(f, "SellPurchased"),
+            NftEventType::SellCanceled => write!(f, "SellCanceled"),
+
+            NftEventType::OfferActive => write!(f, "OfferActive"),
+            NftEventType::OfferFilled => write!(f, "OfferFilled"),
+            NftEventType::OfferCanceled => write!(f, "OfferCanceled"),
+
+            NftEventType::AuctionActive => write!(f, "AuctionActive"),
+            NftEventType::AuctionBidPlaced => write!(f, "AuctionBidPlaced"),
+            NftEventType::AuctionCanceled => write!(f, "AuctionCanceled"),
+            NftEventType::AuctionComplete => write!(f, "AuctionComplete"),
+            NftEventType::Mint => write!(f, "Mint"),
+            NftEventType::Transfer => write!(f, "Transfer"),
+        }
+    }
+}
+
 impl Default for AuctionStatus {
     fn default() -> Self {
         Self::Active
@@ -146,22 +210,22 @@ impl From<i16> for EventType {
             6 => Self::AuctionBidDeclined,
             7 => Self::AuctionCancelled,
             8 => Self::AuctionComplete,
-        
+
             9 => Self::DirectBuyDeployed,
             10 => Self::DirectBuyDeclined,
             11 => Self::FactoryDirectBuyOwnershipTransferred,
             12 => Self::DirectBuyStateChanged,
-        
+
             13 => Self::DirectSellDeployed,
             14 => Self::DirectSellDeclined,
             15 => Self::FactoryDirectSellOwnershipTransferred,
             16 => Self::DirectSellStateChanged,
-        
+
             17 => Self::NftOwnerChanged,
             18 => Self::NftManagerChanged,
-        
+
             19 => Self::CollectionOwnershipTransferred,
-        
+
             20 => Self::NftCreated,
             21 => Self::NftBurned,
             _ => panic!("Unknown state of AuctionStatus"),
