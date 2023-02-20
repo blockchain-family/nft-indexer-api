@@ -62,6 +62,7 @@ pub async fn get_events_handler(
     let limit = query.limit.unwrap_or(100);
     let offset = query.offset.unwrap_or_default();
     let with_count = query.with_count.unwrap_or(false);
+    let verified = query.verified;
 
     let final_limit = match with_count {
         true => limit,
@@ -78,6 +79,7 @@ pub async fn get_events_handler(
             offset,
             final_limit,
             with_count,
+            verified
         )
         .await
     {
@@ -127,6 +129,7 @@ pub struct EventsQuery {
     pub offset: Option<usize>,
     #[serde(rename = "withCount")]
     pub with_count: Option<bool>,
+    pub verified: Option<bool>
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

@@ -760,6 +760,7 @@ impl Queries {
         offset: usize,
         limit: usize,
         with_count: bool,
+        verified: Option<bool>
     ) -> sqlx::Result<NftEventsRecord> {
         let event_types_slice = &event_type
             .iter()
@@ -780,7 +781,8 @@ impl Queries {
             collections,
             limit as i64,
             offset as i64,
-            with_count
+            with_count,
+            verified
         )
             .fetch_one(self.db.as_ref())
             .await

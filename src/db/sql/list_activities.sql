@@ -18,6 +18,9 @@ with result as (
     from nft_events ne
              join nft n on ne.nft = n.address
              join nft_metadata nm on ne.nft = nm.nft
+             join nft_collection nc
+                on nc.address = n.collection
+                and (nc.verified = $9 or $9 is null)
              left join lateral (
         select n.args
         from nft_events n

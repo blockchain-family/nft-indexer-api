@@ -1619,6 +1619,8 @@ paths:
                 withCount:
                   type: boolean
                   default: false
+                verified:
+                  type: boolean
       responses:
         '200':
           description: OK
