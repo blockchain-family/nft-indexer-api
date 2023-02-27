@@ -6,7 +6,7 @@ env:
   indexer_api_http_address: 0.0.0.0:8080
   indexer_api_database_max_connections: 3
   indexer_api_chain: venom
-  indexer_api_venom_token: venom
+  indexer_api_venom_token: 0:28237a5d5abb32413a79b5f98573074d3b39b72121305d9c9c97912fc06d843c
 
 controller: statefulset
 
