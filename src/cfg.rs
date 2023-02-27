@@ -50,8 +50,6 @@ pub struct ApiConfig {
     #[serde(default = "default_http_address")]
     pub http_address: SocketAddr,
     pub database: DatabaseConfig,
-    pub chain: String,
-    pub venom_token: String,
 }
 
 impl ApiConfig {
@@ -78,8 +76,6 @@ impl Default for ApiConfig {
         ApiConfig {
             http_address: default_http_address(),
             database: DatabaseConfig::default(),
-            chain: "".to_string(),
-            venom_token: "".to_string(),
         }
     }
 }

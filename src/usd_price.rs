@@ -11,8 +11,6 @@ use std::{collections::HashMap, str::FromStr, time::Duration};
 pub struct CurrencyClient {
     http_client: reqwest::Client,
     db: Queries,
-    pub chain: String,
-    pub venom_token: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -23,14 +21,9 @@ pub struct TokenUsdPricesRequest {
 pub type TokenUsdPricesResponse = HashMap<String, String>;
 
 impl CurrencyClient {
-    pub fn new(db: Queries, chain: String, venom_token: String) -> reqwest::Result<Self> {
+    pub fn new(db: Queries) -> reqwest::Result<Self> {
         let http_client = reqwest::Client::builder().build()?;
-        Ok(CurrencyClient {
-            http_client,
-            db,
-            chain,
-            venom_token,
-        })
+        Ok(CurrencyClient { http_client, db })
     }
 
     pub async fn get_prices(&self) -> reqwest::Result<TokenUsdPricesResponse> {
@@ -68,26 +61,29 @@ impl CurrencyClient {
     }
 
     pub async fn start(self, _period: Duration) -> anyhow::Result<()> {
+        let venom_token = "0:28237a5d5abb32413a79b5f98573074d3b39b72121305d9c9c97912fc06d843c";
         tokio::spawn(async move {
             loop {
                 if let Err(e) = self.update_prices().await {
                     log::error!("usd prices update task error: {}", e);
                 }
-                if self.chain == "venom" {
-                    let price = self.get_prices_venom_dex(self.venom_token.as_str()).await;
-                    match price {
-                        Ok(price) => {
-                            let price = TokenUsdPrice {
-                                token: self.venom_token.to_string(),
-                                usd_price: price.price / BigDecimal::from(10_i64.pow(9)),
-                                ts: Utc::now().naive_utc(),
-                            };
-                            if let Err(e) = self.db.update_token_usd_prices(vec![price]).await {
-                                log::error!("usd prices update db error: {e}");
-                            }
+                let price = self
+                    .get_prices_venom_dex(
+                        venom_token,
+                    )
+                    .await;
+                match price {
+                    Ok(price) => {
+                        let price = TokenUsdPrice {
+                            token: venom_token.to_string(),
+                            usd_price: price.price / BigDecimal::from(10_i64.pow(9)),
+                            ts: Utc::now().naive_utc(),
+                        };
+                        if let Err(e) = self.db.update_token_usd_prices(vec![price]).await {
+                            log::error!("usd prices update db error: {e}");
                         }
-                        Err(e) => log::error!("get venom price error: {e}"),
                     }
+                    Err(e) => log::error!("get venom price error: {e}"),
                 }
                 tokio::time::sleep(Duration::from_secs(5 * 60)).await;
             }
