@@ -51,6 +51,8 @@ pub struct ApiConfig {
     pub http_address: SocketAddr,
 
     pub database: DatabaseConfig,
+    pub chain: String,
+    pub venom_token: String,
 }
 
 impl ApiConfig {
@@ -60,14 +62,15 @@ impl ApiConfig {
             .add_source(Environment::with_prefix(&prefix).separator("_"))
             .build()?
             .try_deserialize();
-        if r.is_err() {
-            config::Config::builder()
-                .add_source(config::File::with_name("./Settings.toml"))
-                .build()?
-                .try_deserialize()
-        } else {
-            r
-        }
+        r
+        // if r.is_err() {
+        //     config::Config::builder()
+        //         .add_source(config::File::with_name("./Settings.toml"))
+        //         .build()?
+        //         .try_deserialize()
+        // } else {
+        //     r
+        // }
     }
 }
 
@@ -76,6 +79,8 @@ impl Default for ApiConfig {
         ApiConfig {
             http_address: default_http_address(),
             database: DatabaseConfig::default(),
+            chain: "".to_string(),
+            venom_token: "".to_string(),
         }
     }
 }

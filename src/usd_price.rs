@@ -1,5 +1,6 @@
 use crate::db::{Queries, TokenUsdPrice};
-use serde::Serialize;
+use chrono::Utc;
+use serde::{Deserialize, Serialize};
 use sqlx::types::{
     chrono::{Local, NaiveDateTime},
     BigDecimal,
@@ -10,6 +11,8 @@ use std::{collections::HashMap, str::FromStr, time::Duration};
 pub struct CurrencyClient {
     http_client: reqwest::Client,
     db: Queries,
+    pub chain: String,
+    pub venom_token: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -20,9 +23,14 @@ pub struct TokenUsdPricesRequest {
 pub type TokenUsdPricesResponse = HashMap<String, String>;
 
 impl CurrencyClient {
-    pub fn new(db: Queries) -> reqwest::Result<Self> {
+    pub fn new(db: Queries, chain: String, venom_token: String) -> reqwest::Result<Self> {
         let http_client = reqwest::Client::builder().build()?;
-        Ok(CurrencyClient { http_client, db })
+        Ok(CurrencyClient {
+            http_client,
+            db,
+            chain,
+            venom_token,
+        })
     }
 
     pub async fn get_prices(&self) -> reqwest::Result<TokenUsdPricesResponse> {
@@ -41,7 +49,7 @@ impl CurrencyClient {
         let prices = self.get_prices().await?;
         log::debug!("update_prices: {:?}", prices);
         let ts: NaiveDateTime = NaiveDateTime::from_timestamp(Local::now().timestamp(), 0);
-        let ten: u32 = 10;
+        let ten: i64 = 10;
         let db_prices = prices
             .iter()
             .map(|(token, price)| {
@@ -65,9 +73,42 @@ impl CurrencyClient {
                 if let Err(e) = self.update_prices().await {
                     log::error!("usd prices update task error: {}", e);
                 }
+                if self.chain == "venom" {
+                    let price = self.get_prices_venom_dex(self.venom_token.as_str()).await;
+                    match price {
+                        Ok(price) => {
+                            let price = TokenUsdPrice {
+                                token: self.venom_token.to_string(),
+                                usd_price: price.price / BigDecimal::from(10_i64.pow(9)),
+                                ts: Utc::now().naive_utc(),
+                            };
+                            if let Err(e) = self.db.update_token_usd_prices(vec![price]).await {
+                                log::error!("usd prices update db error: {e}");
+                            }
+                        }
+                        Err(e) => log::error!("get venom price error: {e}"),
+                    }
+                }
                 tokio::time::sleep(Duration::from_secs(5 * 60)).await;
             }
         });
         Ok(())
     }
+
+    async fn get_prices_venom_dex(&self, token: &str) -> reqwest::Result<VenomDexPriceResponse> {
+        let url = format!("https://testnetapi.web3.world/v1/currencies/{}", token);
+        self.http_client
+            .post(url)
+            .send()
+            .await?
+            .json::<VenomDexPriceResponse>()
+            .await
+    }
+}
+
+#[derive(Deserialize)]
+struct VenomDexPriceResponse {
+    currency: String,
+    address: String,
+    price: BigDecimal,
 }

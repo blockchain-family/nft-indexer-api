@@ -5,6 +5,8 @@ env:
   INDEXER_API_DATABASE_URL: postgresql://$(BACKEND_API_USER):$(BACKEND_API_PASSWORD)@cloudsqlproxy.default:5432/indexator-venom
   indexer_api_http_address: 0.0.0.0:8080
   indexer_api_database_max_connections: 3
+  indexer_api_chain: venom
+  indexer_api_venom_token: venom
 
 controller: statefulset
 

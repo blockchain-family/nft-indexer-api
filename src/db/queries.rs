@@ -498,7 +498,7 @@ impl Queries {
         offset: usize,
         attributes: &Vec<AttributeFilter>,
         order: Option<NFTListOrder>,
-        with_count: bool
+        with_count: bool,
     ) -> sqlx::Result<Vec<NftDetails>> {
         let mut sql = r#"
             SELECT n.*,
@@ -530,8 +530,6 @@ impl Queries {
             )
             and ($5::boolean is false OR c.verified is true)
         "#.to_string();
-
-
 
         for attribute in attributes {
             let values = attribute
@@ -770,7 +768,7 @@ impl Queries {
         offset: usize,
         limit: usize,
         with_count: bool,
-        verified: Option<bool>
+        verified: Option<bool>,
     ) -> sqlx::Result<NftEventsRecord> {
         let event_types_slice = &event_type
             .iter()
@@ -794,8 +792,8 @@ impl Queries {
             with_count,
             verified
         )
-            .fetch_one(self.db.as_ref())
-            .await
+        .fetch_one(self.db.as_ref())
+        .await
     }
 
     pub async fn list_events_count(

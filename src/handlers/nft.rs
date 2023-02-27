@@ -361,7 +361,7 @@ pub async fn get_nft_list_handler(
             offset,
             &params.attributes.unwrap_or_default(),
             params.order,
-            with_count
+            with_count,
         )
         .await
     {
@@ -386,7 +386,7 @@ pub async fn get_nft_list_handler(
                         warp::reply::json(&response),
                         StatusCode::OK,
                     )))
-                },
+                }
                 Err(e) => Ok(Box::from(warp::reply::with_status(
                     e.to_string(),
                     StatusCode::INTERNAL_SERVER_ERROR,
@@ -450,7 +450,7 @@ pub struct NFTListQuery {
     pub attributes: Option<Vec<AttributeFilter>>,
     pub order: Option<NFTListOrder>,
     #[serde(rename = "withCount")]
-    pub with_count: Option<bool>
+    pub with_count: Option<bool>,
 }
 
 #[derive(Clone, Deserialize, Serialize)]

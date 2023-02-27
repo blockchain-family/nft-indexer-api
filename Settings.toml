@@ -1,4 +1,6 @@
 http_address = "0.0.0.0:8080"
+chain = "venom"
+venom_token = "0:28237a5d5abb32413a79b5f98573074d3b39b72121305d9c9c97912fc06d843c"
 
 [database]
 url = "postgresql://indexator:cz%2Fj%27H%3DTz%5Bc%3BNt%25M@35.205.27.61/indexator-venom"
