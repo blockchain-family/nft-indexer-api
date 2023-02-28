@@ -34,9 +34,11 @@ impl Queries {
                                 when lower(n.address) = lower($1) then 10
                                 when lower(n.name) = lower($1) then 9
                                 when n.name like '' || $1 || ' %' then 7.9
+                                when n.name like '% ' || $1 || '' then 7.86
+                                when n.name like '%' || $1 || '' then 7.855
+
                                 when n.name like '' || $1 || '%' then 7.85
 
-                                when n.name like '% ' || $1 || '' then 7.8
                                 when n.name like '% ' || $1 || ' %' then 7.7
 
                                 when n.name like '%' || $1 || '%' then 7
@@ -62,9 +64,10 @@ impl Queries {
                                 when lower(c.address) = lower($1) then 20
                                 when lower(c.name) = lower($1) then 19
                                 when c.name like '' || $1 || ' %' then 8.9
+                                when c.name like '% ' || $1 || '' then 8.86
+                                when c.name like '%' || $1 || '' then 8.855
                                 when c.name like '' || $1 || '%' then 8.85
 
-                                when c.name like '% ' || $1 || '' then 8.8
                                 when c.name like '% ' || $1 || ' %' then 8.7
                                 when c.address ilike '%' || $1 || '%' then 6
                                 else 2
