@@ -21,6 +21,7 @@ async fn main() {
         .expect("error loading tokens dictionary");
     let db_pool = cfg.database.init().await.expect("err init database");
     let service = Queries::new(Arc::new(db_pool), tokens);
+
     CurrencyClient::new(service.clone())
         .expect("err initialize currency client")
         .start(std::time::Duration::from_secs(5 * 60)) // 5 minutes

@@ -79,7 +79,7 @@ pub async fn get_events_handler(
             offset,
             final_limit,
             with_count,
-            verified
+            verified,
         )
         .await
     {
@@ -129,7 +129,7 @@ pub struct EventsQuery {
     pub offset: Option<usize>,
     #[serde(rename = "withCount")]
     pub with_count: Option<bool>,
-    pub verified: Option<bool>
+    pub verified: Option<bool>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

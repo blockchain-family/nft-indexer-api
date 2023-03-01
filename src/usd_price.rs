@@ -1,5 +1,6 @@
 use crate::db::{Queries, TokenUsdPrice};
-use serde::Serialize;
+use chrono::Utc;
+use serde::{Deserialize, Serialize};
 use sqlx::types::{
     chrono::{Local, NaiveDateTime},
     BigDecimal,
@@ -41,7 +42,7 @@ impl CurrencyClient {
         let prices = self.get_prices().await?;
         log::debug!("update_prices: {:?}", prices);
         let ts: NaiveDateTime = NaiveDateTime::from_timestamp(Local::now().timestamp(), 0);
-        let ten: u32 = 10;
+        let ten: i64 = 10;
         let db_prices = prices
             .iter()
             .map(|(token, price)| {
@@ -60,14 +61,50 @@ impl CurrencyClient {
     }
 
     pub async fn start(self, _period: Duration) -> anyhow::Result<()> {
+        let venom_token = "0:28237a5d5abb32413a79b5f98573074d3b39b72121305d9c9c97912fc06d843c";
         tokio::spawn(async move {
             loop {
                 if let Err(e) = self.update_prices().await {
                     log::error!("usd prices update task error: {}", e);
+                }
+                let price = self
+                    .get_prices_venom_dex(
+                        venom_token,
+                    )
+                    .await;
+                match price {
+                    Ok(price) => {
+                        let price = TokenUsdPrice {
+                            token: venom_token.to_string(),
+                            usd_price: price.price / BigDecimal::from(10_i64.pow(9)),
+                            ts: Utc::now().naive_utc(),
+                        };
+                        if let Err(e) = self.db.update_token_usd_prices(vec![price]).await {
+                            log::error!("usd prices update db error: {e}");
+                        }
+                    }
+                    Err(e) => log::error!("get venom price error: {e}"),
                 }
                 tokio::time::sleep(Duration::from_secs(5 * 60)).await;
             }
         });
         Ok(())
     }
+
+    async fn get_prices_venom_dex(&self, token: &str) -> reqwest::Result<VenomDexPriceResponse> {
+        let url = format!("https://testnetapi.web3.world/v1/currencies/{}", token);
+        self.http_client
+            .post(url)
+            .send()
+            .await?
+            .json::<VenomDexPriceResponse>()
+            .await
+    }
+}
+
+#[derive(Deserialize)]
+struct VenomDexPriceResponse {
+    currency: String,
+    address: String,
+    price: BigDecimal,
 }

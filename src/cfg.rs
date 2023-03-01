@@ -49,7 +49,6 @@ impl Default for DatabaseConfig {
 pub struct ApiConfig {
     #[serde(default = "default_http_address")]
     pub http_address: SocketAddr,
-
     pub database: DatabaseConfig,
 }
 
@@ -60,14 +59,15 @@ impl ApiConfig {
             .add_source(Environment::with_prefix(&prefix).separator("_"))
             .build()?
             .try_deserialize();
-        if r.is_err() {
-            config::Config::builder()
-                .add_source(config::File::with_name("./Settings.toml"))
-                .build()?
-                .try_deserialize()
-        } else {
-            r
-        }
+        r
+        // if r.is_err() {
+        //     config::Config::builder()
+        //         .add_source(config::File::with_name("./Settings.toml"))
+        //         .build()?
+        //         .try_deserialize()
+        // } else {
+        //     r
+        // }
     }
 }
 

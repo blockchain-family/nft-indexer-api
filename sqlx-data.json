@@ -317,6 +317,50 @@
     },
     "query": "\n        select a.collection, a.trait_type, jsonb_agg(a.value) as values\n        from (\n            select distinct a.collection, a.trait_type, a.value\n            from nft_attributes a\n            where a.collection is not null and a.trait_type is not null\n            order by a.collection ASC, a.trait_type ASC, a.value ASC\n        ) as a\n        group by a.collection, a.trait_type\n        "
   },
+  "14aed4e9366514be225969326df6d84bec25a87a6ad47f8e266f2ef40bcf84ec": {
+    "describe": {
+      "columns": [
+        {
+          "name": "address!",
+          "ordinal": 0,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "nft_name",
+          "ordinal": 1,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "collection_name",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "object_type!",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "image",
+          "ordinal": 4,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "\n                select ag.address as \"address!\", nft_name, collection_name, object_type as \"object_type!\", image\n                from (\n                     select n.address,\n                            n.name     nft_name,\n                            nc.name    collection_name,\n                            'nft'   as object_type,\n                            CASE\n                                WHEN m.meta is not null THEN m.meta::jsonb -> 'preview' ->> 'source'\n                                END as \"image\",\n                            case\n                                when lower(n.address) = lower($1) then 10\n                                when lower(n.name) = lower($1) then 9\n                                when n.name like '' || $1 || ' %' then 7.9\n                                when n.name like '% ' || $1 || '' then 7.86\n                                when n.name like '%' || $1 || '' then 7.855\n\n                                when n.name like '' || $1 || '%' then 7.85\n\n                                when n.name like '% ' || $1 || ' %' then 7.7\n\n                                when n.name like '%' || $1 || '%' then 7\n                                when n.address ilike '%' || $1 || '%' then 5\n                                else 1\n                                end    priority\n                     from nft n\n                              left join nft_metadata m on n.address = m.nft\n                              join nft_collection nc on n.collection = nc.address and nc.verified\n                     where (n.name ilike '%' || $1 || '%'\n                         or n.description ilike '%' || $1 || '%'\n                         or n.address ilike '%' || $1 || '%')\n                       and not n.burned\n\n                     union all\n\n                     select c.address,\n                            null            nft_name,\n                            c.name          collection_name,\n                            'collection' as object_type,\n                            c.logo          \"image\",\n                            case\n                                when lower(c.address) = lower($1) then 20\n                                when lower(c.name) = lower($1) then 19\n                                when c.name like '' || $1 || ' %' then 8.9\n                                when c.name like '% ' || $1 || '' then 8.86\n                                when c.name like '%' || $1 || '' then 8.855\n                                when c.name like '' || $1 || '%' then 8.85\n\n                                when c.name like '% ' || $1 || ' %' then 8.7\n                                when c.address ilike '%' || $1 || '%' then 6\n                                else 2\n                                end         priority\n                     from nft_collection c\n                     where (c.name ilike '%' || $1 || '%'\n                         or c.description ilike '%' || $1 || '%'\n                         or c.address ilike '%' || $1 || '%')\n                       and c.verified\n                     ) ag\n                order by ag.priority desc\n                limit 20\n            "
+  },
   "1d538d9a9c98bb350a861b53d42d808a1bb87719542c8cc4865507f780ed3548": {
     "describe": {
       "columns": [
@@ -628,50 +672,6 @@
       }
     },
     "query": "\n                SELECT a.*,  count (1) over () as \"cnt!\"\n                FROM nft_auction_search a\n                INNER JOIN nft n ON a.nft = n.address\n                WHERE\n                (n.owner = ANY($1) OR array_length($1::varchar[], 1) is null)\n                AND (n.collection = ANY($2) OR array_length($2::varchar[], 1) is null)\n                AND (a.nft = ANY($3) OR array_length($3::varchar[], 1) is null)\n                ORDER BY a.created_at DESC\n                LIMIT $4 OFFSET $5"
-  },
-  "21b9fc2e7db9a5d77b44fdee4ff38edd3e1093f27c12816c15021e088baf4691": {
-    "describe": {
-      "columns": [
-        {
-          "name": "address!",
-          "ordinal": 0,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "nft_name",
-          "ordinal": 1,
-          "type_info": "Text"
-        },
-        {
-          "name": "collection_name",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "object_type!",
-          "ordinal": 3,
-          "type_info": "Text"
-        },
-        {
-          "name": "image",
-          "ordinal": 4,
-          "type_info": "Text"
-        }
-      ],
-      "nullable": [
-        null,
-        null,
-        null,
-        null,
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "Text"
-        ]
-      }
-    },
-    "query": "\n                select ag.address as \"address!\", nft_name, collection_name, object_type as \"object_type!\", image\n                from (\n                         select n.address,\n                                n.name     nft_name,\n                                nc.name    collection_name,\n                                'nft'   as object_type,\n                                CASE\n                                    WHEN m.meta is not null THEN m.meta::jsonb -> 'preview' ->> 'source'\n                                    END as \"image\",\n                                case\n                                    when lower(n.address) = lower($1) then 10\n                                    when lower(n.name) = lower($1) then 9\n                                    when n.address ilike '%' || $1 || '%' then 6\n                                    when n.name like '%' || $1 || '%' then 5\n                                    else 1\n                                    end    priority\n                         from nft n\n                                  left join nft_metadata m on n.address = m.nft\n                                  join nft_collection nc on n.collection = nc.address and nc.verified\n                         where (n.name ilike '%' || $1 || '%'\n                             or n.description ilike '%' || $1 || '%'\n                             or n.address ilike '%' || $1 || '%')\n                           and not n.burned\n\n                         union all\n\n                         select c.address,\n                                null            nft_name,\n                                c.name          collection_name,\n                                'collection' as object_type,\n                                c.logo          \"image\",\n                                case\n                                    when lower(c.address) = lower($1) then 20\n                                    when lower(c.name) = lower($1) then 19\n                                    when c.address ilike '%' || $1 || '%' then 8\n                                    when c.name ilike '%' || $1 || '%' then 7\n                                    else 2\n                                    end         priority\n                         from nft_collection c\n                         where (c.name ilike '%' || $1 || '%'\n                             or c.description ilike '%' || $1 || '%'\n                             or c.address ilike '%' || $1 || '%')\n                           and c.verified\n                     ) ag\n                order by ag.priority desc\n                limit 20\n            "
   },
   "30ca08347295d722a46b4fddff413e5dd9fb5ad31cc04bf42b3db2a5c69f79e1": {
     "describe": {
