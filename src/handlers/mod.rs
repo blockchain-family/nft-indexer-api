@@ -24,6 +24,9 @@ use warp::{
 };
 
 use serde::{Deserialize, Serialize};
+use warp::filters::BoxedFilter;
+use crate::db::Queries;
+use crate::model::{Root, Roots};
 
 lazy_static::lazy_static! {
     static ref SWAGGER: Vec<u8> = {
@@ -45,6 +48,37 @@ async fn get_swagger_handler() -> Result<Box<dyn warp::Reply>, Infallible> {
             .body::<&[u8]>(SWAGGER.as_ref()),
         StatusCode::OK,
     )))
+}
+
+/// POST /roots
+pub fn list_roots(
+    db: Queries,
+) -> BoxedFilter<(impl warp::Reply,)> {
+    warp::path!("roots")
+        .and(warp::get())
+        .and(warp::any().map(move || db.clone()))
+        .and_then(list_roots_handler).boxed()
+}
+
+pub async fn list_roots_handler(
+    db: Queries,
+) -> Result<Box<dyn warp::Reply>, Infallible> {
+    match db
+        .list_roots()
+        .await
+    {
+        Err(e) => Ok(Box::from(warp::reply::with_status(
+            e.to_string(),
+            StatusCode::INTERNAL_SERVER_ERROR,
+        ))),
+        Ok(list) => {
+            let roots: Vec<Root> = list.into_iter().map(Root::from).collect();
+            Ok(Box::from(warp::reply::with_status(
+                warp::reply::json(&Roots{roots}),
+                StatusCode::OK,
+            )))
+        }
+    }
 }
 
 #[derive(Clone, Deserialize, Serialize)]

@@ -12,18 +12,19 @@ use std::convert::Infallible;
 use std::fmt::{Display, Formatter};
 use warp::http::StatusCode;
 use warp::Filter;
+use warp::filters::BoxedFilter;
 
 use super::collect_collections;
 
 /// POST /nft/details
 pub fn get_nft(
     db: Queries,
-) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+) -> BoxedFilter<(impl warp::Reply,)> {
     warp::path!("nft" / "details")
         .and(warp::post())
         .and(warp::body::json::<NFTParam>())
         .and(warp::any().map(move || db.clone()))
-        .and_then(get_nft_handler)
+        .and_then(get_nft_handler).boxed()
 }
 
 pub async fn get_nft_handler(

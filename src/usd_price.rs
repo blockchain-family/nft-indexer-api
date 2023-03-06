@@ -104,7 +104,5 @@ impl CurrencyClient {
 
 #[derive(Deserialize)]
 struct VenomDexPriceResponse {
-    currency: String,
-    address: String,
-    price: BigDecimal,
+    pub price: BigDecimal,
 }

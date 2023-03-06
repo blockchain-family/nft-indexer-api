@@ -100,6 +100,12 @@ pub struct NftCollectionSimple {
     pub nft_count: i64,
 }
 
+#[derive(Clone, Debug)]
+pub struct RootRecord {
+    pub address: Address,
+    pub code: String,
+}
+
 #[derive(Clone, Debug, sqlx::FromRow)]
 pub struct NftCollectionDetails {
     pub address: Option<Address>,
