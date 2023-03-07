@@ -40,14 +40,12 @@ impl CurrencyClient {
 
     pub async fn update_prices(&self) -> anyhow::Result<()> {
         let prices = self.get_prices().await?;
-        log::debug!("update_prices: {:?}", prices);
         let ts: NaiveDateTime = NaiveDateTime::from_timestamp(Local::now().timestamp(), 0);
-        let ten: i64 = 10;
         let db_prices = prices
             .iter()
             .map(|(token, price)| {
-                let decimals = self.db.tokens.get(token).expect("unknown token").decimals as u32;
-                let scale = BigDecimal::from(ten.pow(decimals));
+                let decimals = self.db.tokens.get(token).expect("unknown token").decimals;
+                let scale = BigDecimal::from(10_i64.pow(decimals));
                 let usd_price = BigDecimal::from_str(price).unwrap_or_default() / scale;
                 TokenUsdPrice {
                     ts,
@@ -67,11 +65,7 @@ impl CurrencyClient {
                 if let Err(e) = self.update_prices().await {
                     log::error!("usd prices update task error: {}", e);
                 }
-                let price = self
-                    .get_prices_venom_dex(
-                        venom_token,
-                    )
-                    .await;
+                let price = self.get_prices_venom_dex(venom_token).await;
                 match price {
                     Ok(price) => {
                         let price = TokenUsdPrice {
@@ -92,7 +86,7 @@ impl CurrencyClient {
     }
 
     async fn get_prices_venom_dex(&self, token: &str) -> reqwest::Result<VenomDexPriceResponse> {
-        let url = format!("https://testnetapi.web3.world/v1/currencies/{}", token);
+        let url = format!("https://testnetapi.web3.world/v1/currencies/{token}");
         self.http_client
             .post(url)
             .send()
@@ -104,7 +98,5 @@ impl CurrencyClient {
 
 #[derive(Deserialize)]
 struct VenomDexPriceResponse {
-    currency: String,
-    address: String,
-    price: BigDecimal,
+    pub price: BigDecimal,
 }

@@ -36,11 +36,8 @@ impl Queries {
                                 when n.name like '' || $1 || ' %' then 7.9
                                 when n.name like '% ' || $1 || '' then 7.86
                                 when n.name like '%' || $1 || '' then 7.855
-
                                 when n.name like '' || $1 || '%' then 7.85
-
                                 when n.name like '% ' || $1 || ' %' then 7.7
-
                                 when n.name like '%' || $1 || '%' then 7
                                 when n.address ilike '%' || $1 || '%' then 5
                                 else 1
@@ -83,8 +80,8 @@ impl Queries {
             "#,
             search_str
         )
-        .fetch_all(self.db.as_ref())
-        .await
+            .fetch_all(self.db.as_ref())
+            .await
     }
 
     pub async fn get_nft_details(&self, address: &String) -> sqlx::Result<Option<NftDetails>> {
@@ -234,8 +231,8 @@ impl Queries {
                 WHERE c.address = ANY($1)"#,
             ids
         )
-        .fetch_all(self.db.as_ref())
-        .await
+            .fetch_all(self.db.as_ref())
+            .await
     }
 
     pub async fn collect_nfts(&self, ids: &[String]) -> sqlx::Result<Vec<NftDetails>> {
@@ -258,8 +255,8 @@ impl Queries {
             r#"SELECT a.*, count(1) over() as "cnt!" FROM nft_auction_search a WHERE a.address = ANY($1)"#,
             ids
         )
-        .fetch_all(self.db.as_ref())
-        .await
+            .fetch_all(self.db.as_ref())
+            .await
     }
 
     pub async fn collect_direct_buy(&self, ids: &[String]) -> sqlx::Result<Vec<NftDirectBuy>> {
@@ -348,10 +345,11 @@ impl Queries {
             limit as i64,
             offset as i64
         )
-        .fetch_all(self.db.as_ref())
-        .await
+            .fetch_all(self.db.as_ref())
+            .await
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub async fn list_collections(
         &self,
         name: Option<&String>,
@@ -366,7 +364,7 @@ impl Queries {
             None => "c.owners_count DESC".to_string(),
             Some(order) => {
                 let field = order.field.to_string();
-                format!("c.{field} {}", order.direction.to_string())
+                format!("c.{field} {}", order.direction)
             }
         };
 
@@ -409,6 +407,12 @@ impl Queries {
             .await
     }
 
+    pub async fn list_roots(&self) -> sqlx::Result<Vec<RootRecord>> {
+        sqlx::query_as!(RootRecord, r#"select r.event_whitelist_address as "address!", r.code::text as "code!" from roots r"#)
+            .fetch_all(self.db.as_ref())
+            .await
+    }
+
     pub async fn list_collections_simple(
         &self,
         name: Option<&String>,
@@ -438,8 +442,8 @@ impl Queries {
             verified,
             name,
         )
-        .fetch_all(self.db.as_ref())
-        .await
+            .fetch_all(self.db.as_ref())
+            .await
     }
 
     pub async fn nft_top_search(

@@ -239,6 +239,20 @@ components:
       required:
         - from
         - to
+    root:
+      type: object
+      properties:
+        address:
+          $ref: '#/components/schemas/address'
+        code:
+          type: string
+          enum:
+            - buy
+            - sell
+            - auction
+      required:
+        - address
+        - code
     nftEventAuction:
       type: object
       properties:
@@ -1635,3 +1649,18 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/nftEvent'
+  /roots:
+    get:
+      operationId: listRoots
+      responses:
+        '200':
+          description: OK
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  roots:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/root'

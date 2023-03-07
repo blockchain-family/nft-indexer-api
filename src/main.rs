@@ -69,6 +69,7 @@ async fn main() {
                 .or(get_auction_bids(service.clone()))
                 .or(get_events(service.clone()))
                 .or(get_metrics_summary(service.clone()))
+                .or(list_roots(service.clone()))
                 .or(search_all(service.clone())),
         )
         .with(cors);

@@ -1,4 +1,4 @@
-use crate::db::{MetricsSummaryRecord, NftEventType};
+use crate::db::{MetricsSummaryRecord, NftEventType, RootRecord};
 use crate::{
     db::{Address, AuctionStatus, DirectBuyState, DirectSellState, EventCategory, EventType},
     token::TokenDict,
@@ -138,6 +138,26 @@ pub struct CollectionSimple {
     pub logo: Option<String>,
     #[serde(rename = "nftCount")]
     pub nft_count: i64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct Root {
+    pub address: Address,
+    pub code: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct Roots {
+    pub roots: Vec<Root>,
+}
+
+impl From<RootRecord> for Root {
+    fn from(value: RootRecord) -> Self {
+        Self {
+            address: value.address,
+            code: value.code,
+        }
+    }
 }
 
 impl CollectionSimple {

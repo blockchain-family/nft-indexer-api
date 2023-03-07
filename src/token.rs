@@ -19,7 +19,7 @@ pub struct Token {
     pub vendor: Option<String>,
     #[serde(rename = "logoURI")]
     pub logo_uri: String,
-    pub decimals: usize,
+    pub decimals: u32,
     pub verified: bool,
 }
 

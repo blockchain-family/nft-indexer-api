@@ -10,7 +10,7 @@ use warp::Filter;
 /// POST /search
 pub fn search_all(
     db: Queries,
-) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path!("search")
         .and(warp::post())
         .and(warp::body::bytes())
@@ -42,7 +42,7 @@ pub async fn search_all_handler(
 /// POST /events
 pub fn get_events(
     db: Queries,
-) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path!("events")
         .and(warp::post())
         .and(warp::body::json::<EventsQuery>())

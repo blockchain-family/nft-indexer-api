@@ -7,7 +7,7 @@ use warp::{http::StatusCode, Filter};
 /// POST /auctions
 pub fn get_auctions(
     db: Queries,
-) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path!("auctions")
         .and(warp::post())
         .and(warp::body::json::<AuctionsQuery>())
@@ -113,7 +113,7 @@ pub struct GetAuctionResult {
 /// POST /auction
 pub fn get_auction(
     db: Queries,
-) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path!("auction")
         .and(warp::post())
         .and(warp::body::json::<AuctionBidsQuery>())
@@ -177,7 +177,7 @@ pub async fn get_auction_handler(
 /// POST /auction/{address}/bids
 pub fn get_auction_bids(
     db: Queries,
-) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path!("auction" / "bids")
         .and(warp::post())
         .and(warp::body::json::<AuctionBidsQuery>())
