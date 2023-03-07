@@ -17,7 +17,7 @@ pub struct MetricsSummaryQuery {
 /// GET /metrics/summary
 pub fn get_metrics_summary(
     db: Queries,
-) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path!("metrics" / "summary")
         .and(warp::get())
         .and(warp::query::<MetricsSummaryQuery>())

@@ -15,7 +15,7 @@ pub struct OwnerParam {
 /// POST /owner/bids-out
 pub fn get_owner_bids_out(
     db: Queries,
-) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path!("owner" / "bids-out")
         .and(warp::post())
         .and(warp::body::json::<OwnerBidsOutQuery>())
@@ -86,7 +86,7 @@ pub struct OwnerBidsOutQuery {
 /// GET /owner/bids-in
 pub fn get_owner_bids_in(
     db: Queries,
-) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path!("owner" / "bids-in")
         .and(warp::post())
         .and(warp::body::json::<OwnerBidsInQuery>())
@@ -158,7 +158,7 @@ pub struct OwnerBidsInQuery {
 /// POST /owner/direct/buy
 pub fn get_owner_direct_buy(
     db: Queries,
-) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path!("owner" / "direct" / "buy")
         .and(warp::post())
         .and(warp::body::json::<OwnerDirectBuyQuery>())
@@ -221,7 +221,7 @@ pub async fn get_owner_direct_buy_handler(
 /// POST /owner/direct/buy-in
 pub fn get_owner_direct_buy_in(
     db: Queries,
-) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path!("owner" / "direct" / "buy-in")
         .and(warp::post())
         .and(warp::body::json::<OwnerDirectBuyQuery>())
@@ -283,7 +283,7 @@ pub async fn get_owner_direct_buy_in_handler(
 /// POST /owner/direct/sell
 pub fn get_owner_direct_sell(
     db: Queries,
-) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path!("owner" / "direct" / "sell")
         .and(warp::post())
         .and(warp::body::json::<OwnerDirectSellQuery>())

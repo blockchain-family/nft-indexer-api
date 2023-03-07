@@ -153,11 +153,12 @@ pub struct Roots {
 
 impl From<RootRecord> for Root {
     fn from(value: RootRecord) -> Self {
-        Self{address: value.address, code: value.code}
+        Self {
+            address: value.address,
+            code: value.code,
+        }
     }
 }
-
-
 
 impl CollectionSimple {
     pub fn from_db(db: crate::db::NftCollectionSimple) -> Self {

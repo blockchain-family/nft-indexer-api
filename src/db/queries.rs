@@ -94,8 +94,8 @@ impl Queries {
             "#,
             address
         )
-            .fetch_optional(self.db.as_ref())
-            .await
+        .fetch_optional(self.db.as_ref())
+        .await
     }
 
     pub async fn get_nft_meta(&self, address: &String) -> sqlx::Result<Option<NftMeta>> {
@@ -104,8 +104,8 @@ impl Queries {
             "SELECT * FROM nft_metadata WHERE nft_metadata.nft = $1",
             address
         )
-            .fetch_optional(self.db.as_ref())
-            .await
+        .fetch_optional(self.db.as_ref())
+        .await
     }
 
     pub async fn get_collection(
@@ -120,8 +120,8 @@ impl Queries {
                 WHERE c.address = $1"#,
             address
         )
-            .fetch_optional(self.db.as_ref())
-            .await
+        .fetch_optional(self.db.as_ref())
+        .await
     }
 
     pub async fn get_direct_sell(&self, address: &String) -> sqlx::Result<Option<NftDirectSell>> {
@@ -147,8 +147,8 @@ impl Queries {
         WHERE s.address = $1"#,
             address
         )
-            .fetch_optional(self.db.as_ref())
-            .await
+        .fetch_optional(self.db.as_ref())
+        .await
     }
 
     pub async fn get_nft_direct_sell(&self, nft: &String) -> sqlx::Result<Option<NftDirectSell>> {
@@ -175,8 +175,8 @@ impl Queries {
         ORDER BY s.created DESC LIMIT 1"#,
             nft
         )
-            .fetch_optional(self.db.as_ref())
-            .await
+        .fetch_optional(self.db.as_ref())
+        .await
     }
 
     pub async fn get_direct_buy(&self, address: &String) -> sqlx::Result<Option<NftDirectBuy>> {
@@ -202,8 +202,8 @@ impl Queries {
         WHERE s.address = $1"#,
             address
         )
-            .fetch_optional(self.db.as_ref())
-            .await
+        .fetch_optional(self.db.as_ref())
+        .await
     }
 
     pub async fn collect_collections(&self, ids: &[String]) -> sqlx::Result<Vec<NftCollection>> {
@@ -245,8 +245,8 @@ impl Queries {
             "#,
             ids
         )
-            .fetch_all(self.db.as_ref())
-            .await
+        .fetch_all(self.db.as_ref())
+        .await
     }
 
     pub async fn collect_auctions(&self, ids: &[String]) -> sqlx::Result<Vec<NftAuction>> {
@@ -281,8 +281,8 @@ impl Queries {
             WHERE s.address = ANY($1)"#,
             ids
         )
-            .fetch_all(self.db.as_ref())
-            .await
+        .fetch_all(self.db.as_ref())
+        .await
     }
 
     pub async fn collect_direct_sell(&self, ids: &[String]) -> sqlx::Result<Vec<NftDirectSell>> {
@@ -307,8 +307,8 @@ impl Queries {
             WHERE s.address = ANY($1)"#,
             ids
         )
-            .fetch_all(self.db.as_ref())
-            .await
+        .fetch_all(self.db.as_ref())
+        .await
     }
 
     pub async fn list_collections_by_owner(
@@ -407,9 +407,7 @@ impl Queries {
             .await
     }
 
-    pub async fn list_roots(
-        &self
-    ) -> sqlx::Result<Vec<RootRecord>> {
+    pub async fn list_roots(&self) -> sqlx::Result<Vec<RootRecord>> {
         sqlx::query_as!(RootRecord, r#"select r.event_whitelist_address as "address!", r.code::text as "code!" from roots r"#)
             .fetch_all(self.db.as_ref())
             .await
@@ -488,8 +486,8 @@ impl Queries {
             limit,
             offset
         )
-            .fetch_all(self.db.as_ref())
-            .await
+        .fetch_all(self.db.as_ref())
+        .await
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -611,8 +609,8 @@ impl Queries {
         SELECT a.*, count(1) over () as "cnt!" FROM nft_auction_search a WHERE a.address = $1"#,
             address
         )
-            .fetch_optional(self.db.as_ref())
-            .await
+        .fetch_optional(self.db.as_ref())
+        .await
     }
 
     pub async fn get_nft_auction_by_nft(&self, nft: &String) -> sqlx::Result<Option<NftAuction>> {
@@ -624,8 +622,8 @@ impl Queries {
                 order by a.created_at DESC limit 1"#,
             nft
         )
-            .fetch_optional(self.db.as_ref())
-            .await
+        .fetch_optional(self.db.as_ref())
+        .await
     }
 
     pub async fn get_nft_auction_last_bid(
@@ -652,8 +650,8 @@ impl Queries {
         "#,
             auction
         )
-            .fetch_optional(self.db.as_ref())
-            .await
+        .fetch_optional(self.db.as_ref())
+        .await
     }
 
     pub async fn list_nft_auction_bids(
@@ -683,8 +681,8 @@ impl Queries {
             limit as i64,
             offset as i64
         )
-            .fetch_all(self.db.as_ref())
-            .await
+        .fetch_all(self.db.as_ref())
+        .await
     }
 
     pub async fn list_nft_auctions(
@@ -716,8 +714,8 @@ impl Queries {
                     limit as i64,
                     offset as i64
                 )
-                    .fetch_all(self.db.as_ref())
-                    .await
+                .fetch_all(self.db.as_ref())
+                .await
             }
             AuctionsSortOrder::StartDate => {
                 sqlx::query_as!(
@@ -738,8 +736,8 @@ impl Queries {
                     limit as i64,
                     offset as i64
                 )
-                    .fetch_all(self.db.as_ref())
-                    .await
+                .fetch_all(self.db.as_ref())
+                .await
             }
             _ => {
                 sqlx::query_as!(
@@ -760,8 +758,8 @@ impl Queries {
                     limit as i64,
                     offset as i64
                 )
-                    .fetch_all(self.db.as_ref())
-                    .await
+                .fetch_all(self.db.as_ref())
+                .await
             }
         }
     }
@@ -801,8 +799,8 @@ impl Queries {
             with_count,
             verified
         )
-            .fetch_one(self.db.as_ref())
-            .await
+        .fetch_one(self.db.as_ref())
+        .await
     }
 
     pub async fn list_events_count(
@@ -826,9 +824,9 @@ impl Queries {
             collection,
             &typ_str
         )
-            .fetch_one(self.db.as_ref())
-            .await
-            .map(|r| r.count.unwrap_or_default())
+        .fetch_one(self.db.as_ref())
+        .await
+        .map(|r| r.count.unwrap_or_default())
     }
 
     pub async fn list_nft_direct_buy(
@@ -980,8 +978,8 @@ impl Queries {
             limit as i64,
             offset as i64
         )
-            .fetch_all(self.db.as_ref())
-            .await
+        .fetch_all(self.db.as_ref())
+        .await
     }
 
     pub async fn list_owner_auction_bids_in(
@@ -1022,8 +1020,8 @@ impl Queries {
             limit as i64,
             offset as i64
         )
-            .fetch_all(self.db.as_ref())
-            .await
+        .fetch_all(self.db.as_ref())
+        .await
     }
 
     pub async fn list_nft_price_history(
@@ -1066,8 +1064,8 @@ impl Queries {
             from,
             to,
         )
-            .fetch_all(self.db.as_ref())
-            .await
+        .fetch_all(self.db.as_ref())
+        .await
     }
 
     pub async fn nft_attributes_dictionary(&self) -> sqlx::Result<Vec<TraitDef>> {
@@ -1084,8 +1082,8 @@ impl Queries {
         group by a.collection, a.trait_type
         "
         )
-            .fetch_all(self.db.as_ref())
-            .await
+        .fetch_all(self.db.as_ref())
+        .await
     }
 
     pub async fn nft_attributes_search(
@@ -1106,9 +1104,9 @@ impl Queries {
             trait_type,
             values
         )
-            .fetch_all(self.db.as_ref())
-            .await
-            .map(|x| x.iter().map(|y| y.nft.clone()).collect())
+        .fetch_all(self.db.as_ref())
+        .await
+        .map(|x| x.iter().map(|y| y.nft.clone()).collect())
     }
 
     pub async fn update_token_usd_prices(
@@ -1129,8 +1127,8 @@ impl Queries {
                 price.usd_price,
                 price.ts
             )
-                .execute(self.db.as_ref())
-                .await?;
+            .execute(self.db.as_ref())
+            .await?;
         }
         Ok(())
     }
@@ -1150,7 +1148,7 @@ impl Queries {
             limit,
             offset
         )
-            .fetch_all(self.db.as_ref())
-            .await
+        .fetch_all(self.db.as_ref())
+        .await
     }
 }

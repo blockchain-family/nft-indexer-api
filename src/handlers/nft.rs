@@ -10,21 +10,20 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::convert::Infallible;
 use std::fmt::{Display, Formatter};
+use warp::filters::BoxedFilter;
 use warp::http::StatusCode;
 use warp::Filter;
-use warp::filters::BoxedFilter;
 
 use super::collect_collections;
 
 /// POST /nft/details
-pub fn get_nft(
-    db: Queries,
-) -> BoxedFilter<(impl warp::Reply,)> {
+pub fn get_nft(db: Queries) -> BoxedFilter<(impl warp::Reply,)> {
     warp::path!("nft" / "details")
         .and(warp::post())
         .and(warp::body::json::<NFTParam>())
         .and(warp::any().map(move || db.clone()))
-        .and_then(get_nft_handler).boxed()
+        .and_then(get_nft_handler)
+        .boxed()
 }
 
 pub async fn get_nft_handler(
@@ -173,7 +172,7 @@ pub struct NFTParam {
 /// POST /nft/direct/buy
 pub fn get_nft_direct_buy(
     db: Queries,
-) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path!("nft" / "direct" / "buy")
         .and(warp::post())
         .and(warp::body::json::<NFTParam>())
@@ -230,7 +229,7 @@ pub async fn get_nft_direct_buy_handler(
 /// POST /nft/price-history
 pub fn get_nft_price_history(
     db: Queries,
-) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path!("nft" / "price-history")
         .and(warp::post())
         .and(warp::body::json::<NftPriceHistoryQuery>())
@@ -264,7 +263,7 @@ pub async fn get_nft_price_history_handler(
 /// POST /nft/{address}/reload-meta
 pub fn post_nft_reload_meta(
     db: Queries,
-) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path!("nft" / Address / "reload-meta")
         .and(warp::post())
         .and(warp::any().map(move || db.clone()))
@@ -281,7 +280,7 @@ pub async fn post_nft_reload_meta_handler(
 /// POST /nfts/top
 pub fn get_nft_top_list(
     db: Queries,
-) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path!("nfts" / "top")
         .and(warp::post())
         .and(warp::body::json::<NFTTopListQuery>())
@@ -298,7 +297,7 @@ pub struct NFTTopListQuery {
 /// POST /nfts/
 pub fn get_nft_list(
     db: Queries,
-) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path!("nfts")
         .and(warp::post())
         .and(warp::body::json::<NFTListQuery>())
@@ -518,6 +517,7 @@ pub async fn collect_nfts(db: &Queries, ids: &[String]) -> anyhow::Result<HashMa
     Ok(map)
 }
 
+#[allow(clippy::ptr_arg)]
 pub async fn collect_nft_and_collection(
     db: &Queries,
     nft_ids: &Vec<String>,

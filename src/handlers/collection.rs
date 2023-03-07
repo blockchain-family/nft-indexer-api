@@ -41,7 +41,7 @@ pub struct ListCollectionsParams {
 /// POST /collections
 pub fn list_collections(
     db: Queries,
-) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path!("collections")
         .and(warp::post())
         .and(warp::body::json::<ListCollectionsParams>())
@@ -105,7 +105,7 @@ pub struct ListCollectionsSimpleParams {
 /// POST /collections/simple
 pub fn list_collections_simple(
     db: Queries,
-) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path!("collections" / "simple")
         .and(warp::post())
         .and(warp::body::json::<ListCollectionsSimpleParams>())
@@ -146,7 +146,7 @@ pub async fn list_collections_simple_handler(
 /// POST /collection/details
 pub fn get_collection(
     db: Queries,
-) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path!("collection" / "details")
         .and(warp::post())
         .and(warp::body::json::<CollectionParam>())
@@ -187,7 +187,7 @@ pub struct OwnerParam {
 /// POST /collections/by-owner
 pub fn get_collections_by_owner(
     db: Queries,
-) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path!("collections" / "by-owner")
         .and(warp::post())
         .and(warp::body::json::<OwnerParam>())
@@ -220,6 +220,7 @@ pub async fn get_collections_by_owner_handler(
     }
 }
 
+#[allow(clippy::ptr_arg)]
 pub async fn collect_collections(
     db: &Queries,
     ids: &Vec<String>,

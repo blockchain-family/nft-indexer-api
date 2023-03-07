@@ -23,10 +23,9 @@ use warp::{
     Filter,
 };
 
-use serde::{Deserialize, Serialize};
-use warp::filters::BoxedFilter;
 use crate::db::Queries;
 use crate::model::{Root, Roots};
+use serde::{Deserialize, Serialize};
 
 lazy_static::lazy_static! {
     static ref SWAGGER: Vec<u8> = {
@@ -35,13 +34,14 @@ lazy_static::lazy_static! {
 }
 
 /// GET /swagger
-pub fn get_swagger() -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+pub fn get_swagger() -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone
+{
     warp::path!("swagger")
         .and(warp::get())
         .and_then(get_swagger_handler)
 }
 
-async fn get_swagger_handler() -> Result<Box<dyn warp::Reply>, Infallible> {
+async fn get_swagger_handler() -> Result<impl warp::Reply, Infallible> {
     Ok(Box::from(warp::reply::with_status(
         Response::builder()
             .header("Content-Type", "application/yaml")
@@ -53,20 +53,15 @@ async fn get_swagger_handler() -> Result<Box<dyn warp::Reply>, Infallible> {
 /// POST /roots
 pub fn list_roots(
     db: Queries,
-) -> BoxedFilter<(impl warp::Reply,)> {
+) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path!("roots")
         .and(warp::get())
         .and(warp::any().map(move || db.clone()))
-        .and_then(list_roots_handler).boxed()
+        .and_then(list_roots_handler)
 }
 
-pub async fn list_roots_handler(
-    db: Queries,
-) -> Result<Box<dyn warp::Reply>, Infallible> {
-    match db
-        .list_roots()
-        .await
-    {
+pub async fn list_roots_handler(db: Queries) -> Result<Box<dyn warp::Reply>, Infallible> {
+    match db.list_roots().await {
         Err(e) => Ok(Box::from(warp::reply::with_status(
             e.to_string(),
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -74,7 +69,7 @@ pub async fn list_roots_handler(
         Ok(list) => {
             let roots: Vec<Root> = list.into_iter().map(Root::from).collect();
             Ok(Box::from(warp::reply::with_status(
-                warp::reply::json(&Roots{roots}),
+                warp::reply::json(&Roots { roots }),
                 StatusCode::OK,
             )))
         }
