@@ -63,6 +63,8 @@ pub struct NFT {
     pub collection: Address,
     pub image: Option<String>,
     pub mimetype: Option<String>,
+    pub full_image: Option<String>,
+    pub full_image_mimetype: Option<String>,
     #[serde(rename = "type")]
     pub typ: Option<String>,
     pub attributes: Option<serde_json::Value>,
@@ -341,6 +343,8 @@ impl NFT {
             manager: nft.manager.as_ref().map(Address::from),
             image: parsed.image,
             mimetype: parsed.mimetype,
+            full_image: parsed.full_image,
+            full_image_mimetype: parsed.full_image_mimetype,
             typ: parsed.typ,
             attributes: parsed.attributes,
             auction: nft.auction,

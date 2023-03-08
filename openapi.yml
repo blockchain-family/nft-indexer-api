@@ -464,6 +464,11 @@ components:
               format: uri
             mimetype:
               type: string
+            full_image:
+              type: string
+              format: uri
+            full_image_mimetype:
+              type: string
             collection:
               $ref: '#/components/schemas/address'
             attributes:

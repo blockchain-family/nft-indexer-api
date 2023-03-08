@@ -1,5 +1,6 @@
 use super::*;
 use chrono::NaiveDateTime;
+use log::error;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sqlx::types::BigDecimal;
@@ -265,46 +266,61 @@ pub struct TokenUsdPrice {
     pub ts: NaiveDateTime,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct MetaParsed {
     pub image: Option<String>,
     pub mimetype: Option<String>,
+    pub full_image: Option<String>,
+    pub full_image_mimetype: Option<String>,
     pub attributes: Option<serde_json::Value>,
     pub typ: Option<String>,
+}
+#[derive(Deserialize, Clone, Debug)]
+struct MetaFile {
+    pub source: Option<String>,
+    pub mimetype: Option<String>,
+}
+#[derive(Deserialize, Clone, Debug)]
+struct MetaJson {
+    pub files: Vec<MetaFile>,
+    pub preview: Option<MetaFile>,
+    #[serde(rename = "type")]
+    pub typ: Option<String>,
+    pub attributes: Option<Value>,
 }
 
 impl NftDetails {
     pub fn parse_meta(&self) -> MetaParsed {
-        let meta_obj = match &self.meta {
-            Some(meta) if meta.is_object() => meta.as_object().unwrap().clone(),
-            _ => serde_json::Map::default(),
-        };
-        let attributes = meta_obj.get("attributes").cloned();
-        let typ = meta_obj
-            .get("type")
-            .map(|a| a.as_str().unwrap_or_default().to_string());
-        let mut image = meta_obj.get("image").map(|i| i.to_string());
-        let mut mimetype: Option<String> = None;
-        if image.is_none() {
-            // https://github.com/nftalliance/docs/blob/main/src/standard/TIP-4/2.md
-            image = meta_obj.get("preview").and_then(|p| {
-                p.as_object().and_then(|o| {
-                    o.get("source")
-                        .map(|x| x.as_str().unwrap_or_default().to_string())
-                })
-            });
-            mimetype = meta_obj.get("preview").and_then(|p| {
-                p.as_object().and_then(|o| {
-                    o.get("mimetype")
-                        .map(|x| x.as_str().unwrap_or_default().to_string())
-                })
-            });
-        }
-        MetaParsed {
-            image,
-            mimetype,
-            attributes,
-            typ,
+        match self.meta.clone() {
+            Some(meta) => {
+                let meta_json = serde_json::from_value::<MetaJson>(meta);
+                match meta_json {
+                    Ok(meta_json) => {
+                        let typ = meta_json.typ;
+                        let preview = meta_json
+                            .preview
+                            .map_or((None, None), |p| (p.source, p.mimetype));
+                        let full_image = meta_json
+                            .files
+                            .first()
+                            .map_or((None, None), |p| (p.source.clone(), p.mimetype.clone()));
+
+                        MetaParsed {
+                            image: preview.0,
+                            mimetype: preview.1,
+                            full_image: full_image.0,
+                            full_image_mimetype: full_image.1,
+                            attributes: meta_json.attributes,
+                            typ,
+                        }
+                    }
+                    Err(e) => {
+                        error!("Failed to parse meta {:#?} {e}", self.meta);
+                        MetaParsed::default()
+                    }
+                }
+            }
+            None => MetaParsed::default(),
         }
     }
 }
