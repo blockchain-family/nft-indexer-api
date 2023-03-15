@@ -49,6 +49,7 @@ pub struct NftDetails {
     pub total_count: i64,
     pub floor_price: Option<BigDecimal>,
     pub floor_price_token: Option<Address>,
+    pub nft_id: Option<Address>,
 }
 
 #[derive(Clone, Debug)]

@@ -467,12 +467,18 @@
           "type_info": "Varchar"
         },
         {
-          "name": "total_count!",
+          "name": "nft_id",
           "ordinal": 19,
+          "type_info": "Text"
+        },
+        {
+          "name": "total_count!",
+          "ordinal": 20,
           "type_info": "Int8"
         }
       ],
       "nullable": [
+        true,
         true,
         true,
         true,
@@ -2059,12 +2065,18 @@
           "type_info": "Varchar"
         },
         {
-          "name": "total_count!",
+          "name": "nft_id",
           "ordinal": 19,
+          "type_info": "Text"
+        },
+        {
+          "name": "total_count!",
+          "ordinal": 20,
           "type_info": "Int8"
         }
       ],
       "nullable": [
+        true,
         true,
         true,
         true,
@@ -3421,12 +3433,18 @@
           "type_info": "Varchar"
         },
         {
-          "name": "total_count!",
+          "name": "nft_id",
           "ordinal": 19,
+          "type_info": "Text"
+        },
+        {
+          "name": "total_count!",
+          "ordinal": 20,
           "type_info": "Int8"
         }
       ],
       "nullable": [
+        true,
         true,
         true,
         true,

@@ -59,27 +59,27 @@ pub struct NFTPrice {
 pub struct NFT {
     #[serde(flatten)]
     pub contract: Contract,
-
     pub collection: Address,
     pub image: Option<String>,
     pub mimetype: Option<String>,
+    #[serde(rename = "fullImage")]
     pub full_image: Option<String>,
+    #[serde(rename = "fullImageMimetype")]
     pub full_image_mimetype: Option<String>,
     #[serde(rename = "type")]
     pub typ: Option<String>,
     pub attributes: Option<serde_json::Value>,
-
-    // #[serde(rename = "currentPrice")]
-    // pub current_price: Option<Price>,
-    // #[serde(rename = "lastPrice")]
-    // pub last_price: Option<Price>,
     pub auction: Option<Address>,
     pub forsale: Option<Address>,
     #[serde(rename = "bestOffer")]
     pub best_offer: Option<Address>,
     pub manager: Option<Address>,
+    #[serde(rename = "dealPriceUsd")]
     pub deal_price_usd: Option<String>,
+    #[serde(rename = "floorPrice")]
     pub floor_price: Option<Price>,
+    #[serde(rename = "nftId")]
+    pub nft_id: Option<Address>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -351,8 +351,8 @@ impl NFT {
             forsale: nft.forsale,
             best_offer: nft.best_offer.clone(),
             deal_price_usd: nft.deal_price_usd.map(|it| it.to_string()),
-            floor_price, // current_price: None,
-                         // last_price: None,
+            floor_price,
+            nft_id: nft.nft_id,
         }
     }
 }

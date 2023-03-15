@@ -464,10 +464,10 @@ components:
               format: uri
             mimetype:
               type: string
-            full_image:
+            fullImage:
               type: string
               format: uri
-            full_image_mimetype:
+            fullImageMimetype:
               type: string
             collection:
               $ref: '#/components/schemas/address'
@@ -486,6 +486,8 @@ components:
             bestOffer:
               $ref: '#/components/schemas/address'
             manager:
+              $ref: '#/components/schemas/address'
+            nftId:
               $ref: '#/components/schemas/address'
           required:
             - image
