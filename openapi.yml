@@ -471,10 +471,6 @@ components:
               type: string
             collection:
               $ref: '#/components/schemas/address'
-            attributes:
-              type: array
-              items:
-                type: object
             floorPrice:
               $ref: '#/components/schemas/price'
             dealPriceUsd:
@@ -534,6 +530,15 @@ components:
           type: array
           items:
             type: string
+    trait:
+      type: object
+      properties:
+        traitType:
+          type: string
+        traitValue:
+          type: string
+        cnt:
+          type: integer
     collectionDetailPreview:
       type: object
       properties:
@@ -960,6 +965,10 @@ paths:
                 properties:
                   nft:
                     $ref: '#/components/schemas/nft'
+                  traits:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/trait'
                   auction:
                     type: object
                     additionalProperties:

@@ -1,4 +1,4 @@
-use crate::db::{MetricsSummaryRecord, NftEventType, RootRecord};
+use crate::db::{MetricsSummaryRecord, NftEventType, NftTraitRecord, RootRecord};
 use crate::{
     db::{Address, AuctionStatus, DirectBuyState, DirectSellState, EventCategory, EventType},
     token::TokenDict,
@@ -56,6 +56,24 @@ pub struct NFTPrice {
 }
 
 #[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NftTrait {
+    pub trait_type: Option<String>,
+    pub trait_value: Option<String>,
+    pub cnt: i64,
+}
+
+impl From<NftTraitRecord> for NftTrait {
+    fn from(value: NftTraitRecord) -> Self {
+        Self {
+            trait_type: value.trait_type,
+            trait_value: value.trait_value,
+            cnt: value.cnt,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
 pub struct NFT {
     #[serde(flatten)]
     pub contract: Contract,
@@ -68,7 +86,6 @@ pub struct NFT {
     pub full_image_mimetype: Option<String>,
     #[serde(rename = "type")]
     pub typ: Option<String>,
-    pub attributes: Option<serde_json::Value>,
     pub auction: Option<Address>,
     pub forsale: Option<Address>,
     #[serde(rename = "bestOffer")]
@@ -346,7 +363,6 @@ impl NFT {
             full_image: parsed.full_image,
             full_image_mimetype: parsed.full_image_mimetype,
             typ: parsed.typ,
-            attributes: parsed.attributes,
             auction: nft.auction,
             forsale: nft.forsale,
             best_offer: nft.best_offer.clone(),

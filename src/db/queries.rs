@@ -613,6 +613,46 @@ impl Queries {
         .await
     }
 
+    pub async fn get_traits(&self, nft: &Address) -> sqlx::Result<Vec<NftTraitRecord>> {
+        sqlx::query_as!(
+            NftTraitRecord,
+            r#"
+                WITH nft_attributes AS (
+                    SELECT jsonb_array_elements(nm.meta -> 'attributes') -> 'trait_type' AS trait_type,
+                           jsonb_array_elements(nm.meta -> 'attributes') -> 'value'      AS trait_value,
+                           nm.meta,
+                           n.collection                                                  AS nft_collection,
+                           nm.nft
+                    FROM nft_metadata nm
+                             JOIN nft n ON n.address = nm.nft
+                    WHERE nm.meta -> 'attributes' IS NOT NULL
+                      AND nm.nft = $1
+                ),
+                     nft_attributes_col AS (
+                         SELECT jsonb_array_elements(nm.meta -> 'attributes') -> 'trait_type' AS trait_type,
+                                jsonb_array_elements(nm.meta -> 'attributes') -> 'value'      AS trait_value,
+                                nm.nft
+                         FROM nft_metadata nm
+                         where nm.nft in (
+                             select n2.address
+                             from nft n2
+                                      join nft n3 on n3.address = $1
+                                 and n2.collection = n3.collection
+                         )
+                     )
+                SELECT (na.trait_type #>> '{}')::text as trait_type, (na.trait_value #>> '{}')::text as trait_value, COUNT(*) as "cnt!"
+                FROM nft_attributes na
+                         LEFT JOIN nft_attributes_col na2
+                                   ON na.trait_type = na2.trait_type
+                                       AND na.trait_value = na2.trait_value
+                GROUP BY na.trait_type, na.trait_value
+            "#,
+            nft
+        )
+        .fetch_all(self.db.as_ref())
+        .await
+    }
+
     pub async fn get_nft_auction_by_nft(&self, nft: &String) -> sqlx::Result<Option<NftAuction>> {
         sqlx::query_as!(
             NftAuction,
@@ -633,21 +673,21 @@ impl Queries {
         sqlx::query_as!(
             NftAuctionBid,
             r#"
-        SELECT
-            auction as "auction!",
-            buyer as "buyer!",
-            price as "price!",
-            usd_price as "usd_price",
-            created_at as "created_at!",
-            next_bid_value as "next_bid_value!",
-            next_bid_usd_value as "next_bid_usd_value",
-            tx_lt as "tx_lt!",
-            active as "active!",
-             count (1) over () as "cnt!"
-        FROM nft_auction_bids_view
-        WHERE auction = $1 AND active is true
-        LIMIT 1
-        "#,
+            SELECT
+                auction as "auction!",
+                buyer as "buyer!",
+                price as "price!",
+                usd_price as "usd_price",
+                created_at as "created_at!",
+                next_bid_value as "next_bid_value!",
+                next_bid_usd_value as "next_bid_usd_value",
+                tx_lt as "tx_lt!",
+                active as "active!",
+                 count (1) over () as "cnt!"
+            FROM nft_auction_bids_view
+            WHERE auction = $1 AND active is true
+            LIMIT 1
+            "#,
             auction
         )
         .fetch_optional(self.db.as_ref())
