@@ -16,17 +16,6 @@ pub struct SearchResult {
     pub image: Option<String>,
 }
 
-// #[derive(Debug, Clone, sqlx::FromRow)]
-// pub struct Event {
-//     pub id: i64,
-//     pub address: String,
-//     pub event_cat: EventCategory,
-//     pub event_type: EventType,
-//     pub created_at: i64,
-//     pub created_lt: i64,
-//     // pub args: Option<serde_json::Value>,
-// }
-
 #[derive(Debug, Clone, sqlx::FromRow)]
 pub struct NftDetails {
     pub address: Option<String>,
@@ -152,6 +141,13 @@ pub struct NftAuction {
     pub last_bid_ts: Option<NaiveDateTime>,
     pub last_bid_value: Option<BigDecimal>,
     pub last_bid_usd_value: Option<BigDecimal>,
+    pub cnt: i64,
+}
+
+#[derive(Clone, Debug, sqlx::FromRow)]
+pub struct NftTraitRecord {
+    pub trait_type: Option<String>,
+    pub trait_value: Option<String>,
     pub cnt: i64,
 }
 

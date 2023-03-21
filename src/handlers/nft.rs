@@ -1,6 +1,6 @@
 use crate::db::NftDetails;
 use crate::handlers::OrderDirection;
-use crate::model::{DirectBuy, NFTPrice, VecWith, NFT};
+use crate::model::{DirectBuy, NFTPrice, NftTrait, VecWith, NFT};
 use crate::{
     db::{Address, DirectBuyState, Queries},
     model::{Auction, Collection, DirectSell},
@@ -135,12 +135,24 @@ pub async fn get_nft_handler(
                 }
             }
 
+            let traits = db.get_traits(&nft_addr).await;
+            let traits = match traits {
+                Ok(traits) => traits,
+                Err(e) => {
+                    log::error!("Load traits error {e:?}");
+                    vec![]
+                }
+            };
+
+            let traits: Vec<NftTrait> = traits.into_iter().map(NftTrait::from).collect();
+
             let ret = GetNFTResult {
-                nft: NFT::from_db(nft /*, &db.tokens*/),
+                nft: NFT::from_db(nft),
                 collection,
                 auction,
                 direct_buy,
                 direct_sell,
+                traits,
             };
             Ok(Box::from(warp::reply::with_status(
                 warp::reply::json(&ret),
@@ -159,6 +171,7 @@ pub struct GetNFTResult {
     pub direct_sell: HashMap<Address, DirectSell>,
     #[serde(rename = "directBuy")]
     pub direct_buy: HashMap<Address, DirectBuy>,
+    pub traits: Vec<NftTrait>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -258,23 +271,6 @@ pub async fn get_nft_price_history_handler(
             )))
         }
     }
-}
-
-/// POST /nft/{address}/reload-meta
-pub fn post_nft_reload_meta(
-    db: Queries,
-) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
-    warp::path!("nft" / Address / "reload-meta")
-        .and(warp::post())
-        .and(warp::any().map(move || db.clone()))
-        .and_then(post_nft_reload_meta_handler)
-}
-
-pub async fn post_nft_reload_meta_handler(
-    _address: Address,
-    _db: Queries,
-) -> Result<impl warp::Reply, Infallible> {
-    Ok(StatusCode::OK)
 }
 
 /// POST /nfts/top
