@@ -2,7 +2,6 @@ use super::*;
 use chrono::NaiveDateTime;
 use log::error;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use sqlx::types::BigDecimal;
 
 pub type Address = String;
@@ -57,7 +56,7 @@ pub struct Nft {
 #[derive(Clone, Debug)]
 pub struct NftMeta {
     pub nft: Address,
-    pub meta: Value,
+    pub meta: serde_json::Value,
     pub updated: NaiveDateTime,
 }
 
@@ -114,9 +113,9 @@ pub struct NftCollectionDetails {
     pub total_price: Option<BigDecimal>,
     pub floor_price_usd: Option<BigDecimal>,
     pub total_volume_usd: Option<BigDecimal>,
-    pub attributes: Option<Value>,
+    pub attributes: Option<serde_json::Value>,
     pub cnt: i64,
-    pub previews: Value,
+    pub previews: serde_json::Value,
     pub first_mint: Option<NaiveDateTime>,
 }
 
@@ -283,7 +282,7 @@ struct MetaJson {
     pub preview: Option<MetaFile>,
     #[serde(rename = "type")]
     pub typ: Option<String>,
-    pub attributes: Option<Value>,
+    pub attributes: Option<serde_json::Value>,
 }
 
 impl NftDetails {
@@ -324,7 +323,7 @@ impl NftDetails {
 
 #[derive(Deserialize, Debug, Serialize, sqlx::FromRow)]
 pub struct NftEventsRecord {
-    pub content: Option<Value>,
+    pub content: Option<serde_json::Value>,
 }
 
 #[derive(Debug, sqlx::FromRow)]

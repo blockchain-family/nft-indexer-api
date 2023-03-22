@@ -9,6 +9,8 @@ anyhow = "1.0.58"
 bigdecimal = { version = "0.3.0", features = ["serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 config = "0.13"
+derive_more = "0.99.17"
+failure = "0.1.8"
 lazy_static = "1.4.0"
 log = "0.4.17"
 pretty_env_logger = "0.4"
@@ -26,4 +28,3 @@ sqlx = { version = "0.6.2", features = [
 thiserror = "1.0.31"
 tokio = { version = "1.20", features = [ "macros", "rt", "time" ] } 
 warp = "0.3.3"
-

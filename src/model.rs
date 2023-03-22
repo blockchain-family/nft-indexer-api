@@ -4,7 +4,6 @@ use crate::{
     token::TokenDict,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize)]
@@ -15,6 +14,7 @@ pub struct VecWithTotal<T> {
 }
 
 #[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct VecWith<T> {
     #[serde(rename = "totalCount")]
     pub count: i64,
@@ -22,9 +22,7 @@ pub struct VecWith<T> {
     pub nft: Option<HashMap<Address, NFT>>,
     pub collection: Option<HashMap<Address, Collection>>,
     pub auction: Option<HashMap<Address, Auction>>,
-    #[serde(rename = "directBuy")]
     pub direct_buy: Option<HashMap<Address, DirectBuy>>,
-    #[serde(rename = "directSell")]
     pub direct_sell: Option<HashMap<Address, DirectSell>>,
 }
 
@@ -41,9 +39,7 @@ pub struct Contract {
 pub struct Price {
     #[serde(rename = "priceToken")]
     pub token: Address,
-
     pub price: String,
-
     #[serde(rename = "usdPrice")]
     pub usd_price: Option<String>,
 }
@@ -74,57 +70,39 @@ impl From<NftTraitRecord> for NftTrait {
 }
 
 #[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct NFT {
     #[serde(flatten)]
     pub contract: Contract,
     pub collection: Address,
     pub image: Option<String>,
     pub mimetype: Option<String>,
-    #[serde(rename = "fullImage")]
     pub full_image: Option<String>,
-    #[serde(rename = "fullImageMimetype")]
     pub full_image_mimetype: Option<String>,
     #[serde(rename = "type")]
     pub typ: Option<String>,
     pub auction: Option<Address>,
     pub forsale: Option<Address>,
-    #[serde(rename = "bestOffer")]
     pub best_offer: Option<Address>,
     pub manager: Option<Address>,
-    #[serde(rename = "dealPriceUsd")]
     pub deal_price_usd: Option<String>,
-    #[serde(rename = "floorPrice")]
     pub floor_price: Option<Price>,
-    #[serde(rename = "nftId")]
     pub nft_id: Option<Address>,
 }
 
 #[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Collection {
     #[serde(flatten)]
     pub contract: Contract,
-
     pub verified: Option<bool>,
-
-    #[serde(rename = "createdAt")]
     pub created_at: usize,
-
     pub wallpaper: Option<String>,
     pub logo: Option<String>,
-
-    #[serde(rename = "ownersCount")]
     pub owners_count: usize,
-
-    #[serde(rename = "nftCount")]
     pub nft_count: usize,
-
-    #[serde(rename = "lowestPrice")]
     pub lowest_price: Option<String>,
-
-    #[serde(rename = "totalPrice")]
     pub total_price: Option<String>,
-
-    #[serde(rename = "firstMint")]
     pub first_mint: Option<i64>,
 }
 
@@ -135,27 +113,24 @@ pub struct CollectionDetailsPreviewMeta {
 }
 
 #[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CollectionDetails {
     #[serde(flatten)]
     pub collection: Collection,
-
-    #[serde(rename = "floorPriceUsd")]
     pub floor_price_usd: Option<String>,
-
-    #[serde(rename = "totalVolumeUsd")]
     pub total_volume_usd: Option<String>,
-    pub attributes: Option<Value>,
+    pub attributes: Option<serde_json::Value>,
     pub previews: Vec<CollectionDetailsPreviewMeta>,
 }
 
 #[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CollectionSimple {
     pub address: Address,
     pub name: Option<String>,
     pub description: Option<String>,
     pub verified: bool,
     pub logo: Option<String>,
-    #[serde(rename = "nftCount")]
     pub nft_count: i64,
 }
 
@@ -204,50 +179,37 @@ pub struct Event {
 }
 
 #[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Auction {
     pub address: Address,
     pub nft: Address,
     pub status: AuctionStatus,
-    #[serde(rename = "bidToken")]
     pub bid_token: Address,
-    #[serde(rename = "walletForBids")]
     pub wallet_for_bids: Option<Address>,
-    #[serde(rename = "startBid")]
     pub start_bid: Option<String>,
-    #[serde(rename = "startUsdBid")]
     pub start_usd_bid: Option<String>,
-    #[serde(rename = "minBid")]
     pub min_bid: Option<String>,
-    #[serde(rename = "minUsdBid")]
     pub min_usd_bid: Option<String>,
-    #[serde(rename = "maxBid")]
     pub max_bid: Option<String>,
-    #[serde(rename = "maxUsdBid")]
     pub max_usd_bid: Option<String>,
-    #[serde(rename = "startTime")]
     pub start_time: Option<i64>,
-    #[serde(rename = "finishTime")]
     pub finish_time: Option<i64>,
-    #[serde(rename = "lastBidFrom")]
     pub last_bid_from: Option<Address>,
     #[serde(rename = "lastBidTime")]
     pub last_bid_ts: Option<i64>,
-    #[serde(rename = "lastBidValue")]
     pub last_bid_value: Option<String>,
-    #[serde(rename = "lastBidUsdValue")]
     pub last_bid_usd_value: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AuctionBid {
     pub from: Address,
     pub auction: Address,
     pub nft: Address,
     pub price: String,
-    #[serde(rename = "usdPrice")]
     pub usd_price: Option<String>,
     pub active: bool,
-    #[serde(rename = "createdAt")]
     pub created_at: i64,
 }
 
@@ -288,13 +250,11 @@ pub struct CollectionAttributes {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SearchResult {
     pub address: Address,
-    #[serde(rename = "objectType")]
     pub object_type: String,
-    #[serde(rename = "nftName")]
     pub nft_name: Option<String>,
-    #[serde(rename = "collectionName")]
     pub collection_name: Option<String>,
     pub image: Option<String>,
 }
@@ -305,7 +265,10 @@ impl CollectionAttributes {
         let mut collection = None;
         let mut attributes = HashMap::new();
         for attr in defs.iter() {
-            let col = attr.collection.clone().unwrap();
+            let col = attr
+                .collection
+                .clone()
+                .expect("Collection should be present");
             match collection.as_ref() {
                 None => collection = Some(col),
                 Some(c) if *c == col => {
@@ -316,7 +279,7 @@ impl CollectionAttributes {
                 }
                 Some(_) => {
                     res.push(CollectionAttributes {
-                        collection: collection.unwrap(),
+                        collection: collection.expect("Collection should be present"),
                         attributes: attributes.clone(),
                     });
                     collection = Some(col);
@@ -329,7 +292,7 @@ impl CollectionAttributes {
             }
         }
         res.push(CollectionAttributes {
-            collection: collection.unwrap(),
+            collection: collection.expect("Collection should be present"),
             attributes: attributes.clone(),
         });
         res

@@ -262,7 +262,7 @@ impl From<i16> for DirectBuyState {
 }
 
 impl Display for EventType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let val = serde_json::to_value(self).expect("error serialize EventType");
         let str = val.as_str().expect("not a string");
         f.write_str(str)
@@ -270,7 +270,7 @@ impl Display for EventType {
 }
 
 impl Display for AuctionStatus {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let val = serde_json::to_value(self).expect("error serialize AuctionStatus");
         let str = val.as_str().expect("not a string");
         f.write_str(str)
@@ -278,7 +278,7 @@ impl Display for AuctionStatus {
 }
 
 impl Display for DirectBuyState {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let val = serde_json::to_value(self).expect("error serialize DirectBuyState");
         let str = val.as_str().expect("not a string");
         f.write_str(str)
@@ -286,7 +286,7 @@ impl Display for DirectBuyState {
 }
 
 impl Display for DirectSellState {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let val = serde_json::to_value(self).expect("error serialize DirectBuyState");
         let str = val.as_str().expect("not a string");
         f.write_str(str)

@@ -1,6 +1,7 @@
 use crate::db::{Address, Queries};
 use crate::handlers::OrderDirection;
 use crate::model::{Collection, CollectionDetails, CollectionSimple, VecWithTotal};
+use crate::{catch_empty, catch_error, response};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 use std::{collections::HashMap, convert::Infallible};
@@ -60,8 +61,8 @@ pub async fn list_collections_handler(
     let limit = params.limit.unwrap_or(100);
     let offset = params.offset.unwrap_or_default();
 
-    match db
-        .list_collections(
+    let list = catch_error!(
+        db.list_collections(
             name,
             owners,
             verified.as_ref(),
@@ -71,22 +72,12 @@ pub async fn list_collections_handler(
             params.order,
         )
         .await
-    {
-        Err(e) => Ok(Box::from(warp::reply::with_status(
-            e.to_string(),
-            StatusCode::INTERNAL_SERVER_ERROR,
-        ))),
-        Ok(list) => {
-            let count = list.first().map(|it| it.cnt).unwrap_or_default();
-            let ret: Vec<CollectionDetails> =
-                list.into_iter().map(CollectionDetails::from_db).collect();
-            let ret = VecWithTotal { count, items: ret };
-            Ok(Box::from(warp::reply::with_status(
-                warp::reply::json(&ret),
-                StatusCode::OK,
-            )))
-        }
-    }
+    );
+
+    let count = list.first().map(|it| it.cnt).unwrap_or_default();
+    let ret: Vec<CollectionDetails> = list.into_iter().map(CollectionDetails::from_db).collect();
+    let ret = VecWithTotal { count, items: ret };
+    response!(&ret)
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -121,26 +112,16 @@ pub async fn list_collections_simple_handler(
     let name = params.name.as_ref();
     let limit = params.limit.unwrap_or(100);
     let offset = params.offset.unwrap_or_default();
-    match db
-        .list_collections_simple(name, verified.as_ref(), limit, offset)
-        .await
-    {
-        Err(e) => Ok(Box::from(warp::reply::with_status(
-            e.to_string(),
-            StatusCode::INTERNAL_SERVER_ERROR,
-        ))),
-        Ok(list) => {
-            let count = list.first().map(|it| it.cnt).unwrap_or_default();
-            let ret: Vec<CollectionSimple> =
-                list.into_iter().map(CollectionSimple::from_db).collect();
+    let list = catch_error!(
+        db.list_collections_simple(name, verified.as_ref(), limit, offset)
+            .await
+    );
 
-            let ret = VecWithTotal { count, items: ret };
-            Ok(Box::from(warp::reply::with_status(
-                warp::reply::json(&ret),
-                StatusCode::OK,
-            )))
-        }
-    }
+    let count = list.first().map(|it| it.cnt).unwrap_or_default();
+    let ret: Vec<CollectionSimple> = list.into_iter().map(CollectionSimple::from_db).collect();
+
+    let ret = VecWithTotal { count, items: ret };
+    response!(&ret)
 }
 
 /// POST /collection/details
@@ -158,23 +139,10 @@ pub async fn get_collection_handler(
     param: CollectionParam,
     db: Queries,
 ) -> Result<Box<dyn warp::Reply>, Infallible> {
-    match db.get_collection(&param.collection).await {
-        Err(e) => Ok(Box::from(warp::reply::with_status(
-            e.to_string(),
-            StatusCode::INTERNAL_SERVER_ERROR,
-        ))),
-        Ok(None) => Ok(Box::from(warp::reply::with_status(
-            String::default(),
-            StatusCode::BAD_REQUEST,
-        ))),
-        Ok(Some(col)) => {
-            let ret = CollectionDetails::from_db(col);
-            Ok(Box::from(warp::reply::with_status(
-                warp::reply::json(&ret),
-                StatusCode::OK,
-            )))
-        }
-    }
+    let col = catch_error!(db.get_collection(&param.collection).await);
+    let col = catch_empty!(col, "");
+    let ret = CollectionDetails::from_db(col);
+    response!(&ret)
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -203,21 +171,12 @@ pub async fn get_collections_by_owner_handler(
     let limit = params.limit.unwrap_or(100);
     let offset = params.offset.unwrap_or_default();
 
-    match db.list_collections_by_owner(&owner, limit, offset).await {
-        Err(e) => Ok(Box::from(warp::reply::with_status(
-            e.to_string(),
-            StatusCode::INTERNAL_SERVER_ERROR,
-        ))),
-        Ok(list) => {
-            let count = list.first().map(|it| it.cnt).unwrap_or_default();
-            let ret: Vec<Collection> = list.into_iter().map(Collection::from_db).collect();
-            let ret = VecWithTotal { count, items: ret };
-            Ok(Box::from(warp::reply::with_status(
-                warp::reply::json(&ret),
-                StatusCode::OK,
-            )))
-        }
-    }
+    let list = catch_error!(db.list_collections_by_owner(&owner, limit, offset).await);
+
+    let count = list.first().map(|it| it.cnt).unwrap_or_default();
+    let ret: Vec<Collection> = list.into_iter().map(Collection::from_db).collect();
+    let ret = VecWithTotal { count, items: ret };
+    response!(&ret)
 }
 
 #[allow(clippy::ptr_arg)]

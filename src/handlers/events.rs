@@ -1,6 +1,6 @@
 use crate::db::{NftEventCategory, NftEventType};
 use crate::model::NftEvents;
-use crate::{db::Queries, model::SearchResult};
+use crate::{catch_error, db::Queries, model::SearchResult, response};
 use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
 use warp::http::StatusCode;
@@ -23,20 +23,11 @@ pub async fn search_all_handler(
     db: Queries,
 ) -> Result<Box<dyn warp::Reply>, Infallible> {
     let query = String::from_utf8(query.into()).expect("err converting to String");
-    let items: Vec<SearchResult> = match db.search_all(&query).await {
-        Err(e) => {
-            return Ok(Box::from(warp::reply::with_status(
-                e.to_string(),
-                StatusCode::INTERNAL_SERVER_ERROR,
-            )))
-        }
-        Ok(xs) => xs.into_iter().map(SearchResult::from_db).collect(),
-    };
+
+    let items = catch_error!(db.search_all(&query).await);
+    let items: Vec<SearchResult> = items.into_iter().map(SearchResult::from_db).collect();
     let count = items.len();
-    Ok(Box::from(warp::reply::with_status(
-        warp::reply::json(&SearchRes { items, count }),
-        StatusCode::OK,
-    )))
+    response!(&SearchRes { items, count })
 }
 
 /// POST /events
@@ -68,9 +59,8 @@ pub async fn get_events_handler(
         true => limit,
         false => limit + 1,
     };
-
-    match db
-        .list_events(
+    let record = catch_error!(
+        db.list_events(
             nft,
             collection,
             owner,
@@ -82,39 +72,24 @@ pub async fn get_events_handler(
             verified,
         )
         .await
-    {
-        Err(e) => Ok(Box::from(warp::reply::with_status(
-            e.to_string(),
-            StatusCode::INTERNAL_SERVER_ERROR,
-        ))),
-        Ok(record) => {
-            let response: Result<NftEvents, serde_json::Error> = match record.content {
-                None => Ok(NftEvents::default()),
-                Some(value) => serde_json::from_value(value),
-            };
+    );
 
-            match response {
-                Ok(mut response) => {
-                    if !with_count {
-                        if response.data.len() < final_limit {
-                            response.total_rows = (response.data.len() + offset) as i64
-                        } else {
-                            response.data.pop();
-                            response.total_rows = (response.data.len() + offset + 1) as i64;
-                        }
-                    }
-                    Ok(Box::from(warp::reply::with_status(
-                        warp::reply::json(&response),
-                        StatusCode::OK,
-                    )))
-                }
-                Err(e) => Ok(Box::from(warp::reply::with_status(
-                    e.to_string(),
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                ))),
-            }
+    let response: Result<NftEvents, serde_json::Error> = match record.content {
+        None => Ok(NftEvents::default()),
+        Some(value) => serde_json::from_value(value),
+    };
+
+    let mut response = catch_error!(response);
+
+    if !with_count {
+        if response.data.len() < final_limit {
+            response.total_rows = (response.data.len() + offset) as i64
+        } else {
+            response.data.pop();
+            response.total_rows = (response.data.len() + offset + 1) as i64;
         }
     }
+    response!(&response)
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
