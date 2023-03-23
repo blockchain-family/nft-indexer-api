@@ -1,5 +1,6 @@
 use crate::db::{Address, Queries};
 use crate::model::{Auction, AuctionBid, Collection, VecWith, NFT};
+use crate::{catch_empty, catch_error, response};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, convert::Infallible};
 use warp::{http::StatusCode, Filter};
@@ -23,8 +24,8 @@ pub async fn get_auctions_handler(
     let collections = params.collections.as_deref().unwrap_or(&[]);
     let tokens = params.tokens.as_deref().unwrap_or(&[]);
     let sort = params.sort.clone().unwrap_or(AuctionsSortOrder::StartDate);
-    match db
-        .list_nft_auctions(
+    let list = catch_error!(
+        db.list_nft_auctions(
             owners,
             collections,
             tokens,
@@ -33,42 +34,25 @@ pub async fn get_auctions_handler(
             params.offset.unwrap_or_default(),
         )
         .await
-    {
-        Err(e) => Ok(Box::from(warp::reply::with_status(
-            e.to_string(),
-            StatusCode::INTERNAL_SERVER_ERROR,
-        ))),
-        Ok(list) => {
-            let count = list.first().map(|it| it.cnt).unwrap_or_default();
-            let ret: Vec<Auction> = list
-                .iter()
-                .map(|col| Auction::from_db(col, &db.tokens))
-                .collect();
-            let nft_ids = ret.iter().map(|x| x.nft.clone()).collect();
-            let (nft, collection) = match super::collect_nft_and_collection(&db, &nft_ids).await {
-                Err(e) => {
-                    return Ok(Box::from(warp::reply::with_status(
-                        e.to_string(),
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                    )))
-                }
-                Ok(m) => m,
-            };
-            let ret = VecWith {
-                count,
-                items: ret,
-                nft: Some(nft),
-                collection: Some(collection),
-                auction: None,
-                direct_buy: None,
-                direct_sell: None,
-            };
-            Ok(Box::from(warp::reply::with_status(
-                warp::reply::json(&ret),
-                StatusCode::OK,
-            )))
-        }
-    }
+    );
+
+    let count = list.first().map(|it| it.cnt).unwrap_or_default();
+    let ret: Vec<Auction> = list
+        .iter()
+        .map(|col| Auction::from_db(col, &db.tokens))
+        .collect();
+    let nft_ids = ret.iter().map(|x| x.nft.clone()).collect();
+    let (nft, collection) = catch_error!(super::collect_nft_and_collection(&db, &nft_ids).await);
+    let ret = VecWith {
+        count,
+        items: ret,
+        nft: Some(nft),
+        collection: Some(collection),
+        auction: None,
+        direct_buy: None,
+        direct_sell: None,
+    };
+    response!(&ret)
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -125,42 +109,15 @@ pub async fn get_auction_handler(
     params: AuctionBidsQuery,
     db: Queries,
 ) -> Result<Box<dyn warp::Reply>, Infallible> {
-    let auction = match db.get_nft_auction(&params.auction).await {
-        Err(e) => {
-            return Ok(Box::from(warp::reply::with_status(
-                e.to_string(),
-                StatusCode::INTERNAL_SERVER_ERROR,
-            )))
-        }
-        Ok(None) => {
-            return Ok(Box::from(warp::reply::with_status(
-                "auction not found".to_string(),
-                StatusCode::INTERNAL_SERVER_ERROR,
-            )))
-        }
-        Ok(Some(a)) => a,
-    };
-    let nft_ids = vec![auction.nft.clone().unwrap_or_default()];
-    let (nft, collection) = match super::collect_nft_and_collection(&db, &nft_ids).await {
-        Err(e) => {
-            return Ok(Box::from(warp::reply::with_status(
-                e.to_string(),
-                StatusCode::INTERNAL_SERVER_ERROR,
-            )))
-        }
-        Ok(m) => m,
-    };
+    let auction = catch_error!(db.get_nft_auction(&params.auction).await);
+    let auction = catch_empty!(auction, "auction not found");
 
-    let bid = match db.get_nft_auction_last_bid(&params.auction).await {
-        Err(e) => {
-            return Ok(Box::from(warp::reply::with_status(
-                e.to_string(),
-                StatusCode::INTERNAL_SERVER_ERROR,
-            )))
-        }
-        Ok(None) => None,
-        Ok(Some(b)) => Some(AuctionBid::from_db(&b, &auction, &db.tokens)),
-    };
+    let nft_ids = vec![auction.nft.clone().unwrap_or_default()];
+    let (nft, collection) = catch_error!(super::collect_nft_and_collection(&db, &nft_ids).await);
+
+    let bid = catch_error!(db.get_nft_auction_last_bid(&params.auction).await);
+    let bid = bid.map(|b| AuctionBid::from_db(&b, &auction, &db.tokens));
+
     let auction = Auction::from_db(&auction, &db.tokens);
     let ret = GetAuctionResult {
         auction,
@@ -168,10 +125,8 @@ pub async fn get_auction_handler(
         collection,
         bid,
     };
-    Ok(Box::from(warp::reply::with_status(
-        warp::reply::json(&ret),
-        StatusCode::OK,
-    )))
+
+    response!(&ret)
 }
 
 /// POST /auction/{address}/bids
@@ -189,69 +144,39 @@ pub async fn get_auction_bids_handler(
     params: AuctionBidsQuery,
     db: Queries,
 ) -> Result<Box<dyn warp::Reply>, Infallible> {
-    let auc = match db.get_nft_auction(&params.auction).await {
-        Err(e) => {
-            return Ok(Box::from(warp::reply::with_status(
-                e.to_string(),
-                StatusCode::INTERNAL_SERVER_ERROR,
-            )))
-        }
-        Ok(None) => {
-            return Ok(Box::from(warp::reply::with_status(
-                "auction not found".to_string(),
-                StatusCode::INTERNAL_SERVER_ERROR,
-            )))
-        }
-        Ok(Some(a)) => a,
-    };
+    let auc = catch_error!(db.get_nft_auction(&params.auction).await);
+    let auc = catch_empty!(auc, "auction not found");
 
-    match db
-        .list_nft_auction_bids(
+    let bids = catch_error!(
+        db.list_nft_auction_bids(
             &params.auction,
             params.limit.unwrap_or(100),
             params.offset.unwrap_or_default(),
         )
         .await
-    {
-        Err(e) => Ok(Box::from(warp::reply::with_status(
-            e.to_string(),
-            StatusCode::INTERNAL_SERVER_ERROR,
-        ))),
-        Ok(bids) => {
-            let count = bids.first().map(|it| it.cnt).unwrap_or_default();
+    );
 
-            let ret: Vec<AuctionBid> = bids
-                .iter()
-                .map(|b| AuctionBid::from_db(b, &auc, &db.tokens))
-                .collect();
+    let count = bids.first().map(|it| it.cnt).unwrap_or_default();
 
-            let auction_ids: Vec<String> = ret.iter().map(|x| x.auction.clone()).collect();
-            let (nft, collection, auctions) =
-                match collect_auctions_nfts_collections(&db, &auction_ids).await {
-                    Err(e) => {
-                        return Ok(Box::from(warp::reply::with_status(
-                            e.to_string(),
-                            StatusCode::INTERNAL_SERVER_ERROR,
-                        )))
-                    }
-                    Ok(m) => m,
-                };
+    let ret: Vec<AuctionBid> = bids
+        .iter()
+        .map(|b| AuctionBid::from_db(b, &auc, &db.tokens))
+        .collect();
 
-            let ret = VecWith {
-                count,
-                items: ret,
-                nft: Some(nft),
-                collection: Some(collection),
-                auction: Some(auctions),
-                direct_buy: None,
-                direct_sell: None,
-            };
-            Ok(Box::from(warp::reply::with_status(
-                warp::reply::json(&ret),
-                StatusCode::OK,
-            )))
-        }
-    }
+    let auction_ids: Vec<String> = ret.iter().map(|x| x.auction.clone()).collect();
+    let (nft, collection, auctions) =
+        catch_error!(collect_auctions_nfts_collections(&db, &auction_ids).await);
+
+    let ret = VecWith {
+        count,
+        items: ret,
+        nft: Some(nft),
+        collection: Some(collection),
+        auction: Some(auctions),
+        direct_buy: None,
+        direct_sell: None,
+    };
+    response!(&ret)
 }
 
 pub async fn collect_auctions(

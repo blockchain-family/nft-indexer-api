@@ -2,8 +2,10 @@ use crate::db::NftDetails;
 use crate::handlers::OrderDirection;
 use crate::model::{DirectBuy, NFTPrice, NftTrait, VecWith, NFT};
 use crate::{
+    catch_empty, catch_error,
     db::{Address, DirectBuyState, Queries},
     model::{Auction, Collection, DirectSell},
+    response,
 };
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
@@ -30,136 +32,83 @@ pub async fn get_nft_handler(
     param: NFTParam,
     db: Queries,
 ) -> Result<Box<dyn warp::Reply>, Infallible> {
-    match db.get_nft_details(&param.nft).await {
-        Err(e) => Ok(Box::from(warp::reply::with_status(
-            e.to_string(),
-            StatusCode::INTERNAL_SERVER_ERROR,
-        ))),
-        Ok(None) => Ok(Box::from(warp::reply::with_status(
-            String::default(),
-            StatusCode::BAD_REQUEST,
-        ))),
-        Ok(Some(mut nft)) => {
-            let collections_ids = match &nft.collection {
-                Some(c) => vec![c.clone()],
-                None => vec![],
-            };
-            let collection = match super::collect_collections(&db, &collections_ids).await {
-                Err(e) => {
-                    return Ok(Box::from(warp::reply::with_status(
-                        e.to_string(),
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                    )))
-                }
-                Ok(m) => m,
-            };
-            let mut auction = HashMap::default();
-            if nft.auction.is_none() {
-                match db
-                    .get_nft_auction_by_nft(&nft.address.clone().unwrap_or_default())
-                    .await
-                {
-                    Err(e) => {
-                        return Ok(Box::from(warp::reply::with_status(
-                            e.to_string(),
-                            StatusCode::INTERNAL_SERVER_ERROR,
-                        )))
-                    }
-                    Ok(Some(a)) => nft.auction = a.address,
-                    _ => {}
-                }
-            };
-            if let Some(ref auction_id) = nft.auction {
-                match db.get_nft_auction(auction_id).await {
-                    Err(e) => {
-                        return Ok(Box::from(warp::reply::with_status(
-                            e.to_string(),
-                            StatusCode::INTERNAL_SERVER_ERROR,
-                        )))
-                    }
-                    Ok(Some(a)) => {
-                        auction.insert(auction_id.clone(), Auction::from_db(&a, &db.tokens));
-                    }
-                    _ => {}
-                }
-            };
+    let nft = catch_error!(db.get_nft_details(&param.nft).await);
+    let mut nft = catch_empty!(nft, "not found");
 
-            let mut direct_sell = HashMap::default();
-            if nft.forsale.is_none() {
-                match db
-                    .get_nft_direct_sell(&nft.address.clone().unwrap_or_default())
-                    .await
-                {
-                    Err(e) => {
-                        return Ok(Box::from(warp::reply::with_status(
-                            e.to_string(),
-                            StatusCode::INTERNAL_SERVER_ERROR,
-                        )))
-                    }
-                    Ok(Some(a)) => nft.forsale = Some(a.address),
-                    _ => {}
-                }
-            }
-            if let Some(ref direct_sell_id) = nft.forsale {
-                match db.get_direct_sell(direct_sell_id).await {
-                    Err(e) => {
-                        return Ok(Box::from(warp::reply::with_status(
-                            e.to_string(),
-                            StatusCode::INTERNAL_SERVER_ERROR,
-                        )))
-                    }
-                    Ok(Some(a)) => {
-                        direct_sell
-                            .insert(direct_sell_id.clone(), DirectSell::from_db(&a, &db.tokens));
-                    }
-                    _ => {}
-                }
-            };
+    let collections_ids = match &nft.collection {
+        Some(c) => vec![c.clone()],
+        None => vec![],
+    };
+    let collection = catch_error!(collect_collections(&db, &collections_ids).await);
 
-            let mut direct_buy = HashMap::default();
-            let nft_addr = nft.address.clone().unwrap_or_default();
-            match db
-                .list_nft_direct_buy(&nft_addr, &[DirectBuyState::Active], 100, 0)
+    let mut auction = HashMap::default();
+    if nft.auction.is_none() {
+        let auc = catch_error!(
+            db.get_nft_auction_by_nft(&nft.address.clone().unwrap_or_default())
                 .await
-            {
-                Err(e) => {
-                    return Ok(Box::from(warp::reply::with_status(
-                        e.to_string(),
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                    )))
-                }
-                Ok(mut list) => {
-                    for x in list.drain(..) {
-                        direct_buy.insert(x.address.clone(), DirectBuy::from_db(&x, &db.tokens));
-                    }
-                }
-            }
+        );
 
-            let traits = db.get_traits(&nft_addr).await;
-            let traits = match traits {
-                Ok(traits) => traits,
-                Err(e) => {
-                    log::error!("Load traits error {e:?}");
-                    vec![]
-                }
-            };
+        if let Some(a) = auc {
+            nft.auction = a.address
+        }
+    };
+    if let Some(ref auction_id) = nft.auction {
+        let a = catch_error!(db.get_nft_auction(auction_id).await);
+        if let Some(a) = a {
+            auction.insert(auction_id.clone(), Auction::from_db(&a, &db.tokens));
+        }
+    };
 
-            let traits: Vec<NftTrait> = traits.into_iter().map(NftTrait::from).collect();
+    let mut direct_sell = HashMap::default();
+    if nft.forsale.is_none() {
+        let a = catch_error!(
+            db.get_nft_direct_sell(&nft.address.clone().unwrap_or_default())
+                .await
+        );
 
-            let ret = GetNFTResult {
-                nft: NFT::from_db(nft),
-                collection,
-                auction,
-                direct_buy,
-                direct_sell,
-                traits,
-            };
-            Ok(Box::from(warp::reply::with_status(
-                warp::reply::json(&ret),
-                StatusCode::OK,
-            )))
+        if let Some(a) = a {
+            nft.forsale = Some(a.address)
         }
     }
+    if let Some(ref direct_sell_id) = nft.forsale {
+        let a = catch_error!(db.get_direct_sell(direct_sell_id).await);
+        if let Some(a) = a {
+            direct_sell.insert(direct_sell_id.clone(), DirectSell::from_db(&a, &db.tokens));
+        }
+    };
+
+    let mut direct_buy = HashMap::default();
+    let nft_addr = nft.address.clone().unwrap_or_default();
+    let mut list = catch_error!(
+        db.list_nft_direct_buy(&nft_addr, &[DirectBuyState::Active], 100, 0)
+            .await
+    );
+
+    for x in list.drain(..) {
+        direct_buy.insert(x.address.clone(), DirectBuy::from_db(&x, &db.tokens));
+    }
+
+    let traits = db.get_traits(&nft_addr).await;
+    let traits = match traits {
+        Ok(traits) => traits,
+        Err(e) => {
+            log::error!("Load traits error {e:?}");
+            vec![]
+        }
+    };
+
+    let traits: Vec<NftTrait> = traits.into_iter().map(NftTrait::from).collect();
+
+    let ret = GetNFTResult {
+        nft: NFT::from_db(nft),
+        collection,
+        auction,
+        direct_buy,
+        direct_sell,
+        traits,
+    };
+
+    response!(&ret)
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -201,42 +150,26 @@ pub async fn get_nft_direct_buy_handler(
     let offset = params.offset.unwrap_or_default();
     let nft = params.nft;
     let status = params.status.as_deref().unwrap_or_default();
-    match db.list_nft_direct_buy(&nft, status, limit, offset).await {
-        Err(e) => Ok(Box::from(warp::reply::with_status(
-            e.to_string(),
-            StatusCode::INTERNAL_SERVER_ERROR,
-        ))),
-        Ok(list) => {
-            let count = list.first().map(|it| it.cnt).unwrap_or_default();
-            let ret: Vec<DirectBuy> = list
-                .iter()
-                .map(|x| DirectBuy::from_db(x, &db.tokens))
-                .collect();
-            let nft_ids = ret.iter().map(|x| x.nft.clone()).collect();
-            let (nft, collection) = match collect_nft_and_collection(&db, &nft_ids).await {
-                Err(e) => {
-                    return Ok(Box::from(warp::reply::with_status(
-                        e.to_string(),
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                    )))
-                }
-                Ok(m) => m,
-            };
-            let ret = VecWith {
-                count,
-                items: ret,
-                nft: Some(nft),
-                collection: Some(collection),
-                auction: None,
-                direct_buy: None,
-                direct_sell: None,
-            };
-            Ok(Box::from(warp::reply::with_status(
-                warp::reply::json(&ret),
-                StatusCode::OK,
-            )))
-        }
-    }
+    let list = catch_error!(db.list_nft_direct_buy(&nft, status, limit, offset).await);
+
+    let count = list.first().map(|it| it.cnt).unwrap_or_default();
+    let ret: Vec<DirectBuy> = list
+        .iter()
+        .map(|x| DirectBuy::from_db(x, &db.tokens))
+        .collect();
+    let nft_ids = ret.iter().map(|x| x.nft.clone()).collect();
+
+    let (nft, collection) = catch_error!(collect_nft_and_collection(&db, &nft_ids).await);
+    let ret = VecWith {
+        count,
+        items: ret,
+        nft: Some(nft),
+        collection: Some(collection),
+        auction: None,
+        direct_buy: None,
+        direct_sell: None,
+    };
+    response!(&ret)
 }
 
 /// POST /nft/price-history
@@ -257,20 +190,10 @@ pub async fn get_nft_price_history_handler(
     let from = NaiveDateTime::from_timestamp(query.from, 0);
     let to = NaiveDateTime::from_timestamp(query.to, 0);
 
-    let ret = db.list_nft_price_history(&query.nft, from, to).await;
-    match ret {
-        Err(e) => Ok(Box::from(warp::reply::with_status(
-            e.to_string(),
-            StatusCode::INTERNAL_SERVER_ERROR,
-        ))),
-        Ok(list) => {
-            let ret: Vec<NFTPrice> = list.into_iter().map(NFTPrice::from_db).collect();
-            Ok(Box::from(warp::reply::with_status(
-                warp::reply::json(&ret),
-                StatusCode::OK,
-            )))
-        }
-    }
+    let list = catch_error!(db.list_nft_price_history(&query.nft, from, to).await);
+
+    let ret: Vec<NFTPrice> = list.into_iter().map(NFTPrice::from_db).collect();
+    response!(&ret)
 }
 
 /// POST /nfts/top
@@ -306,25 +229,13 @@ pub async fn get_nft_top_list_handler(
     db: Queries,
 ) -> Result<Box<dyn warp::Reply>, Infallible> {
     let from = NaiveDateTime::from_timestamp(params.from, 0);
-    match db.nft_top_search(from, params.limit, params.offset).await {
-        Err(e) => Ok(Box::from(warp::reply::with_status(
-            e.to_string(),
-            StatusCode::INTERNAL_SERVER_ERROR,
-        ))),
-        Ok(list) => {
-            let response = make_nfts_response(list, db).await;
-            match response {
-                Ok(response) => Ok(Box::from(warp::reply::with_status(
-                    warp::reply::json(&response),
-                    StatusCode::OK,
-                ))),
-                Err(e) => Ok(Box::from(warp::reply::with_status(
-                    e.to_string(),
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                ))),
-            }
-        }
-    }
+    let list = catch_error!(db.nft_top_search(from, params.limit, params.offset).await);
+
+    let response = catch_error!(make_nfts_response(list, db).await);
+    Ok(Box::from(warp::reply::with_status(
+        warp::reply::json(&response),
+        StatusCode::OK,
+    )))
 }
 
 pub async fn get_nft_list_handler(
@@ -343,8 +254,8 @@ pub async fn get_nft_list_handler(
         false => limit + 1,
     };
 
-    match db
-        .nft_search(
+    let list = catch_error!(
+        db.nft_search(
             owners,
             collections,
             params.price_from,
@@ -360,36 +271,19 @@ pub async fn get_nft_list_handler(
             with_count,
         )
         .await
-    {
-        Err(e) => Ok(Box::from(warp::reply::with_status(
-            e.to_string(),
-            StatusCode::INTERNAL_SERVER_ERROR,
-        ))),
-        Ok(list) => {
-            let response = make_nfts_response(list, db).await;
+    );
 
-            match response {
-                Ok(mut response) => {
-                    if !with_count {
-                        if response.items.len() < final_limit {
-                            response.count = (response.items.len() + offset) as i64
-                        } else {
-                            response.items.pop();
-                            response.count = (response.items.len() + offset + 1) as i64;
-                        }
-                    }
-                    Ok(Box::from(warp::reply::with_status(
-                        warp::reply::json(&response),
-                        StatusCode::OK,
-                    )))
-                }
-                Err(e) => Ok(Box::from(warp::reply::with_status(
-                    e.to_string(),
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                ))),
-            }
+    let mut response = catch_error!(make_nfts_response(list, db).await);
+
+    if !with_count {
+        if response.items.len() < final_limit {
+            response.count = (response.items.len() + offset) as i64
+        } else {
+            response.items.pop();
+            response.count = (response.items.len() + offset + 1) as i64;
         }
     }
+    response!(&response)
 }
 
 async fn make_nfts_response(list: Vec<NftDetails>, db: Queries) -> anyhow::Result<VecWith<NFT>> {
@@ -405,10 +299,10 @@ async fn make_nfts_response(list: Vec<NftDetails>, db: Queries) -> anyhow::Resul
     let auction = super::collect_auctions(&db, &auction_ids).await?;
 
     let direct_sell_ids: Vec<String> = list.iter().filter_map(|x| x.forsale.clone()).collect();
-    let direct_sell = super::collect_direct_sell(&db, &direct_sell_ids).await?;
+    let direct_sell = collect_direct_sell(&db, &direct_sell_ids).await?;
 
     let direct_buy_ids: Vec<String> = list.iter().filter_map(|x| x.best_offer.clone()).collect();
-    let direct_buy = super::collect_direct_buy(&db, &direct_buy_ids).await?;
+    let direct_buy = collect_direct_buy(&db, &direct_buy_ids).await?;
     Ok(VecWith {
         count,
         items: ret,
@@ -458,7 +352,7 @@ pub enum NFTListOrderField {
 }
 
 impl Display for NFTListOrderField {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             NFTListOrderField::FloorPriceUsd => write!(f, "floor_price_usd"),
             NFTListOrderField::DealPriceUsd => write!(f, "deal_price_usd"),

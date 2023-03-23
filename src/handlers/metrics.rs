@@ -1,5 +1,6 @@
 use crate::db::Queries;
 use crate::model::MetricsSummaryBase;
+use crate::{catch_error, response};
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
@@ -31,20 +32,9 @@ pub async fn metrics_summary_handler(
 ) -> Result<Box<dyn warp::Reply>, Infallible> {
     let from = NaiveDateTime::from_timestamp(query.from, 0);
     let to = NaiveDateTime::from_timestamp(query.to, 0);
-    match db
-        .get_metrics_summary(from, to, query.limit, query.offset)
-        .await
-    {
-        Ok(values) => Ok(Box::from(warp::reply::with_status(
-            warp::reply::json(&MetricsSummaryBase::from(values)),
-            StatusCode::OK,
-        ))),
-        Err(e) => {
-            log::error!("{e:?}");
-            Ok(Box::from(warp::reply::with_status(
-                e.to_string(),
-                StatusCode::INTERNAL_SERVER_ERROR,
-            )))
-        }
-    }
+    let values = catch_error!(
+        db.get_metrics_summary(from, to, query.limit, query.offset)
+            .await
+    );
+    response!(&MetricsSummaryBase::from(values))
 }

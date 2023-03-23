@@ -1,3 +1,21 @@
+#![deny(
+    non_ascii_idents,
+    non_shorthand_field_patterns,
+    no_mangle_generic_items,
+    overflowing_literals,
+    path_statements,
+    unused_allocation,
+    unused_comparisons,
+    unused_parens,
+    while_true,
+    trivial_numeric_casts,
+    unused_extern_crates,
+    unused_import_braces,
+    unused_qualifications,
+    unused_must_use,
+    clippy::unwrap_used
+)]
+
 use api::cfg::ApiConfig;
 use api::db::Queries;
 use api::handlers::*;
@@ -10,7 +28,7 @@ use warp::{http::StatusCode, Filter};
 async fn main() {
     pretty_env_logger::init();
     log::info!("INDEXER-API SERVICE");
-    let cfg = ApiConfig::new().unwrap();
+    let cfg = ApiConfig::new().expect("Failed to load config");
     log::info!(
         "BACKEND_API_USER={}",
         std::env::var("BACKEND_API_USER").expect("err read BACKEND_API_USER env")

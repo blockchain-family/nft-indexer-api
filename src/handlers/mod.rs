@@ -14,7 +14,48 @@ mod owner;
 pub use self::owner::*;
 
 mod metrics;
+
 pub use self::metrics::*;
+
+#[macro_export]
+macro_rules! catch_error {
+    ($expr:expr) => {
+        match $expr {
+            Ok(val) => val,
+            Err(e) => {
+                return Ok(Box::from(warp::reply::with_status(
+                    e.to_string(),
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                )));
+            }
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! catch_empty {
+    ($expr:expr, $err:expr) => {
+        match $expr {
+            Some(val) => val,
+            None => {
+                return Ok(Box::from(warp::reply::with_status(
+                    $err,
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                )));
+            }
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! response {
+    ($ret:expr) => {
+        Ok(Box::from(warp::reply::with_status(
+            warp::reply::json(&$ret),
+            warp::http::StatusCode::OK,
+        )))
+    };
+}
 
 use std::convert::Infallible;
 use std::fmt::Display;
@@ -61,19 +102,10 @@ pub fn list_roots(
 }
 
 pub async fn list_roots_handler(db: Queries) -> Result<Box<dyn warp::Reply>, Infallible> {
-    match db.list_roots().await {
-        Err(e) => Ok(Box::from(warp::reply::with_status(
-            e.to_string(),
-            StatusCode::INTERNAL_SERVER_ERROR,
-        ))),
-        Ok(list) => {
-            let roots: Vec<Root> = list.into_iter().map(Root::from).collect();
-            Ok(Box::from(warp::reply::with_status(
-                warp::reply::json(&Roots { roots }),
-                StatusCode::OK,
-            )))
-        }
-    }
+    let list = catch_error!(db.list_roots().await);
+
+    let roots: Vec<Root> = list.into_iter().map(Root::from).collect();
+    response!(&Roots { roots })
 }
 
 #[derive(Clone, Deserialize, Serialize)]
