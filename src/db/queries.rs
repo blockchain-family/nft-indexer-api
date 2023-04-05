@@ -142,7 +142,9 @@ impl Queries {
         s.finished_at,
         s.expired_at,
         s.state as "state!: _",
-         count (1) over () as "cnt!"
+         count (1) over () as "cnt!",
+        s.fee_numerator,
+        s.fee_denominator
         FROM nft_direct_sell_usd s
         WHERE s.address = $1"#,
             address
@@ -169,7 +171,9 @@ impl Queries {
         s.finished_at,
         s.expired_at,
         s.state as "state!: _",
-         count (1) over () as "cnt!"
+         count (1) over () as "cnt!",
+        s.fee_numerator,
+        s.fee_denominator
         FROM nft_direct_sell_usd s
         WHERE s.nft = $1 and s.state in ('active', 'expired')
         ORDER BY s.created DESC LIMIT 1"#,
@@ -197,7 +201,9 @@ impl Queries {
         s.finished_at,
         s.expired_at,
         s.state as "state!: _",
-        1::bigint as "cnt!"
+        1::bigint as "cnt!",
+        s.fee_numerator,
+        s.fee_denominator
         FROM nft_direct_buy_usd s
         WHERE s.address = $1"#,
             address
@@ -276,7 +282,9 @@ impl Queries {
             s.finished_at,
             s.expired_at,
             s.state as "state!: _",
-            1::bigint as "cnt!"
+            1::bigint as "cnt!",
+            s.fee_numerator,
+            s.fee_denominator
             FROM nft_direct_buy_usd s
             WHERE s.address = ANY($1)"#,
             ids
@@ -302,7 +310,9 @@ impl Queries {
             s.finished_at,
             s.expired_at,
             s.state as "state!: _",
-             count (1) over () as "cnt!"
+             count (1) over () as "cnt!",
+            s.fee_numerator,
+            s.fee_denominator
             FROM nft_direct_sell_usd s
             WHERE s.address = ANY($1)"#,
             ids
@@ -885,7 +895,9 @@ impl Queries {
         s.usd_price,
         s.finished_at, s.expired_at,
         s.state as "state!: _",
-        count(1) over () as "cnt!"
+        count(1) over () as "cnt!",
+        s.fee_numerator,
+        s.fee_denominator
         FROM nft_direct_buy_usd s
         WHERE s.nft = $1
         and s.state = 'active'
@@ -913,7 +925,9 @@ impl Queries {
         s.usd_price,
         s.finished_at, s.expired_at,
         s.state as "state!: _",
-         count (1) over () as "cnt!"
+         count (1) over () as "cnt!",
+        s.fee_numerator,
+        s.fee_denominator
         FROM nft_direct_sell_usd s
         WHERE s.seller = $1
             AND (s.collection = ANY($2) OR array_length($2::varchar[], 1) is null)
@@ -941,7 +955,9 @@ impl Queries {
         s.usd_price,
         s.finished_at, s.expired_at,
         s.state as "state!: _",
-        count(1) over () as "cnt!"
+        count(1) over () as "cnt!",
+        s.fee_numerator,
+        s.fee_denominator
         FROM nft_direct_buy_usd s
         WHERE s.buyer = $1
             AND (s.collection = ANY($2) OR array_length($2::varchar[], 1) is null)
@@ -969,7 +985,9 @@ impl Queries {
         s.usd_price,
         s.finished_at, s.expired_at,
         s.state as "state!: _",
-        count(1) over () as "cnt!"
+        count(1) over () as "cnt!",
+        s.fee_numerator,
+        s.fee_denominator
         FROM nft_direct_buy_usd s
         INNER JOIN nft n ON n.address = s.nft
         WHERE n.owner = $1

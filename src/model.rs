@@ -45,6 +45,12 @@ pub struct Price {
 }
 
 #[derive(Debug, Clone, Serialize)]
+pub struct Fee {
+    pub numerator: i32,
+    pub denominator: i32,
+}
+
+#[derive(Debug, Clone, Serialize)]
 pub struct NFTPrice {
     #[serde(rename = "usdPrice")]
     pub usd_price: String,
@@ -199,6 +205,7 @@ pub struct Auction {
     pub last_bid_ts: Option<i64>,
     pub last_bid_value: Option<String>,
     pub last_bid_usd_value: Option<String>,
+    pub fee: Option<Fee>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -226,6 +233,7 @@ pub struct DirectSell {
     pub finished: Option<i64>,
     #[serde(rename = "expiredAt")]
     pub expired: Option<i64>,
+    pub fee: Option<Fee>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -241,6 +249,7 @@ pub struct DirectBuy {
     pub finished: Option<i64>,
     #[serde(rename = "expiredAt")]
     pub expired: Option<i64>,
+    pub fee: Option<Fee>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -390,6 +399,13 @@ impl CollectionDetails {
 
 impl Auction {
     pub fn from_db(db: &crate::db::NftAuction, tokens: &TokenDict) -> Self {
+        let fee = match (db.fee_numerator, db.fee_denominator) {
+            (Some(numerator), Some(denominator)) => Some(Fee {
+                numerator,
+                denominator,
+            }),
+            _ => None,
+        };
         let token = db.price_token.clone().unwrap_or_default();
         Auction {
             address: db.address.clone().unwrap_or_default(),
@@ -412,6 +428,7 @@ impl Auction {
             last_bid_ts: db.last_bid_ts.map(|x| x.timestamp()),
             last_bid_value: db.last_bid_value.as_ref().map(|x| x.to_string()),
             last_bid_usd_value: db.last_bid_usd_value.as_ref().map(|x| x.to_string()),
+            fee
         }
     }
 }
@@ -450,6 +467,13 @@ impl AuctionBid {
 
 impl DirectSell {
     pub fn from_db(val: &crate::db::NftDirectSell, tokens: &TokenDict) -> Self {
+        let fee = match (val.fee_numerator, val.fee_denominator) {
+            (Some(numerator), Some(denominator)) => Some(Fee {
+                numerator,
+                denominator,
+            }),
+            _ => None,
+        };
         DirectSell {
             address: val.address.clone(),
             nft: val.nft.clone(),
@@ -463,12 +487,20 @@ impl DirectSell {
             created: val.created.timestamp(),
             finished: val.finished_at.map(|x| x.timestamp()),
             expired: val.expired_at.map(|x| x.timestamp()),
+            fee,
         }
     }
 }
 
 impl DirectBuy {
     pub fn from_db(val: &crate::db::NftDirectBuy, tokens: &TokenDict) -> Self {
+        let fee = match (val.fee_numerator, val.fee_denominator) {
+            (Some(numerator), Some(denominator)) => Some(Fee {
+                numerator,
+                denominator,
+            }),
+            _ => None,
+        };
         DirectBuy {
             address: val.address.clone(),
             nft: val.nft.clone(),
@@ -482,6 +514,7 @@ impl DirectBuy {
             created: val.created.timestamp(),
             finished: val.finished_at.map(|x| x.timestamp()),
             expired: val.expired_at.map(|x| x.timestamp()),
+            fee
         }
     }
 }

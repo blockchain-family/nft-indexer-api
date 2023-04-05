@@ -337,6 +337,8 @@ components:
           $ref: '#/components/schemas/ts'
         status:
           $ref: '#/components/schemas/directBuyStatus'
+        fee:
+          $ref: '#/components/schemas/fee'
       required:
         - address
         - buyer
@@ -352,6 +354,16 @@ components:
         - filled
         - cancelled
         - expired
+    fee:
+      type: object
+      properties:
+        numerator:
+          type: number
+        denominator:
+          type: number
+      required:
+        - numerator
+        - denominator
     directSell:
       type: object
       properties:
@@ -373,6 +385,8 @@ components:
           $ref: '#/components/schemas/ts'
         status:
           $ref: '#/components/schemas/directSellStatus'
+        fee:
+          $ref: '#/components/schemas/fee'
       required:
         - address
         - seller
@@ -424,6 +438,8 @@ components:
           type: string
         lastBidUsdValue:
           type: string
+        fee:
+          $ref: '#/components/schemas/fee'
       required:
         - address
         - nft
