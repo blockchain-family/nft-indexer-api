@@ -344,3 +344,11 @@ pub struct MetricsSummaryRecord {
     pub nfts_count: i32,
     pub total_rows_count: i32,
 }
+
+#[derive(Debug, sqlx::FromRow)]
+pub struct OwnerFeeRecord {
+    pub fee_numerator: i32,
+    pub fee_denominator: i32,
+    pub collection: Option<String>,
+    pub nft: Option<String>,
+}

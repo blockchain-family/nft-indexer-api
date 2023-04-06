@@ -1,4 +1,4 @@
-use crate::db::{MetricsSummaryRecord, NftEventType, NftTraitRecord, RootRecord};
+use crate::db::{MetricsSummaryRecord, NftEventType, NftTraitRecord, OwnerFeeRecord, RootRecord};
 use crate::{
     db::{Address, AuctionStatus, DirectBuyState, DirectSellState, EventCategory, EventType},
     token::TokenDict,
@@ -44,7 +44,7 @@ pub struct Price {
     pub usd_price: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Fee {
     pub numerator: i32,
     pub denominator: i32,
@@ -428,7 +428,7 @@ impl Auction {
             last_bid_ts: db.last_bid_ts.map(|x| x.timestamp()),
             last_bid_value: db.last_bid_value.as_ref().map(|x| x.to_string()),
             last_bid_usd_value: db.last_bid_usd_value.as_ref().map(|x| x.to_string()),
-            fee
+            fee,
         }
     }
 }
@@ -514,7 +514,7 @@ impl DirectBuy {
             created: val.created.timestamp(),
             finished: val.finished_at.map(|x| x.timestamp()),
             expired: val.expired_at.map(|x| x.timestamp()),
-            fee
+            fee,
         }
     }
 }
@@ -709,6 +709,27 @@ impl From<MetricsSummaryRecord> for MetricsSummary {
             total_volume_usd_previous: value.total_volume_usd_previous.to_string(),
             owners_count: value.owners_count,
             nfts_count: value.nfts_count,
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OwnerFee {
+    pub fee: Fee,
+    pub nft: Option<String>,
+    pub collection: Option<String>,
+}
+
+impl From<OwnerFeeRecord> for OwnerFee {
+    fn from(value: OwnerFeeRecord) -> Self {
+        Self {
+            collection: value.collection,
+            nft: value.nft,
+            fee: Fee {
+                numerator: value.fee_numerator,
+                denominator: value.fee_denominator,
+            },
         }
     }
 }

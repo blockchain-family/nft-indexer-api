@@ -1,3 +1,5 @@
+use crate::db::RootType;
+use crate::model::OwnerFee;
 use crate::{
     catch_error,
     db::{Address, DirectBuyState, DirectSellState, Queries},
@@ -273,6 +275,34 @@ pub async fn get_owner_direct_sell_handler(
         direct_sell: None,
     };
     response!(&ret)
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct OwnerFeeQuery {
+    pub owner: Address,
+    #[serde(rename = "rootCode")]
+    pub root_code: RootType,
+}
+
+/// POST /owner/fee
+pub fn get_fee(
+    db: Queries,
+) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
+    warp::path!("owner" / "fee")
+        .and(warp::get())
+        .and(warp::query::<OwnerFeeQuery>())
+        .and(warp::any().map(move || db.clone()))
+        .and_then(get_fee_handler)
+}
+
+pub async fn get_fee_handler(
+    query: OwnerFeeQuery,
+    db: Queries,
+) -> Result<Box<dyn warp::Reply>, Infallible> {
+    let fee = catch_error!(db.get_owner_fee(&query.owner, &query.root_code).await);
+
+    let owner_fee = OwnerFee::from(fee);
+    response!(&owner_fee)
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

@@ -1209,4 +1209,44 @@ impl Queries {
         .fetch_all(self.db.as_ref())
         .await
     }
+
+    pub async fn get_owner_fee(
+        &self,
+        owner: &Address,
+        root_code: &RootType,
+    ) -> sqlx::Result<OwnerFeeRecord> {
+        sqlx::query_as!(
+            OwnerFeeRecord,
+            r#"select case
+                   when null not in (fee.fee_denominator, fee.fee_numerator) then fee.fee_numerator
+                   else (ne.args -> 'fee_numerator')::int end "fee_numerator!",
+               case
+                   when null not in (fee.fee_denominator, fee.fee_numerator) then fee.fee_denominator
+                   else (ne.args -> 'fee_denominator')::int end "fee_denominator!",
+               fee.collection,
+               fee.nft
+                from nft_events ne
+                         join roots r
+                              on ne.address = r.event_whitelist_address
+                                  and r.code = $2::t_root_types
+                         left join lateral (
+                    select nc.fee_numerator, nc.fee_denominator, max(n.collection) collection, max(n.address) nft
+                    from nft n
+                             join nft_collection nc on n.collection = nc.address
+                        and nc.fee_numerator is not null and nc.fee_denominator is not null
+                    where n.owner = $1
+                    group by nc.fee_numerator, nc.fee_denominator
+                    order by min(nc.fee_numerator / nc.fee_denominator)
+                    limit 1
+
+                    ) as fee on true
+                where ne.event_type = 'market_fee_default_changed'
+                order by created_at desc, created_lt desc, id desc
+                limit 1"#,
+            owner as &Address,
+            root_code as &RootType
+        )
+            .fetch_one(self.db.as_ref())
+            .await
+    }
 }
