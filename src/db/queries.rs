@@ -1217,11 +1217,12 @@ impl Queries {
     ) -> sqlx::Result<OwnerFeeRecord> {
         sqlx::query_as!(
             OwnerFeeRecord,
-            r#"select case
-                   when null not in (fee.fee_denominator, fee.fee_numerator) then fee.fee_numerator
+            r#"select
+       case
+                   when fee.fee_numerator is not null and fee.fee_denominator is not null then fee.fee_numerator
                    else (ne.args -> 'fee_numerator')::int end "fee_numerator!",
                case
-                   when null not in (fee.fee_denominator, fee.fee_numerator) then fee.fee_denominator
+                   when fee.fee_numerator is not null and fee.fee_denominator is not null then fee.fee_denominator
                    else (ne.args -> 'fee_denominator')::int end "fee_denominator!",
                fee.collection,
                fee.nft

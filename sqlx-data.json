@@ -1342,6 +1342,56 @@
     },
     "query": "\n                SELECT c.*, 1::bigint as \"cnt!\", '[]'::json as \"previews!\"\n                FROM nft_collection_details c\n                WHERE c.address = $1"
   },
+  "3e736472e7baa6f29a13bf6c45c390e0fb1fd01b5bd0529577ae52050feb3564": {
+    "describe": {
+      "columns": [
+        {
+          "name": "fee_numerator!",
+          "ordinal": 0,
+          "type_info": "Int4"
+        },
+        {
+          "name": "fee_denominator!",
+          "ordinal": 1,
+          "type_info": "Int4"
+        },
+        {
+          "name": "collection",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "nft",
+          "ordinal": 3,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        null,
+        null,
+        null,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "auction",
+                  "sell",
+                  "buy"
+                ]
+              },
+              "name": "t_root_types"
+            }
+          }
+        ]
+      }
+    },
+    "query": "select\n       case\n                   when fee.fee_numerator is not null and fee.fee_denominator is not null then fee.fee_numerator\n                   else (ne.args -> 'fee_numerator')::int end \"fee_numerator!\",\n               case\n                   when fee.fee_numerator is not null and fee.fee_denominator is not null then fee.fee_denominator\n                   else (ne.args -> 'fee_denominator')::int end \"fee_denominator!\",\n               fee.collection,\n               fee.nft\n                from nft_events ne\n                         join roots r\n                              on ne.address = r.event_whitelist_address\n                                  and r.code = $2::t_root_types\n                         left join lateral (\n                    select nc.fee_numerator, nc.fee_denominator, max(n.collection) collection, max(n.address) nft\n                    from nft n\n                             join nft_collection nc on n.collection = nc.address\n                        and nc.fee_numerator is not null and nc.fee_denominator is not null\n                    where n.owner = $1\n                    group by nc.fee_numerator, nc.fee_denominator\n                    order by min(nc.fee_numerator / nc.fee_denominator)\n                    limit 1\n\n                    ) as fee on true\n                where ne.event_type = 'market_fee_default_changed'\n                order by created_at desc, created_lt desc, id desc\n                limit 1"
+  },
   "448c6467d3b4f0d4455c33ac1b4c7d4ec634b96416205282d69a4e430f8c320a": {
     "describe": {
       "columns": [
@@ -1736,56 +1786,6 @@
       }
     },
     "query": "SELECT * FROM nft_metadata WHERE nft_metadata.nft = $1"
-  },
-  "678b29af96db9b75b34851d15db0ef6752f88c214895f3d03a4054cf01209dcc": {
-    "describe": {
-      "columns": [
-        {
-          "name": "fee_numerator!",
-          "ordinal": 0,
-          "type_info": "Int4"
-        },
-        {
-          "name": "fee_denominator!",
-          "ordinal": 1,
-          "type_info": "Int4"
-        },
-        {
-          "name": "collection",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "nft",
-          "ordinal": 3,
-          "type_info": "Text"
-        }
-      ],
-      "nullable": [
-        null,
-        null,
-        null,
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "Text",
-          {
-            "Custom": {
-              "kind": {
-                "Enum": [
-                  "auction",
-                  "sell",
-                  "buy"
-                ]
-              },
-              "name": "t_root_types"
-            }
-          }
-        ]
-      }
-    },
-    "query": "select case\n                   when null not in (fee.fee_denominator, fee.fee_numerator) then fee.fee_numerator\n                   else (ne.args -> 'fee_numerator')::int end \"fee_numerator!\",\n               case\n                   when null not in (fee.fee_denominator, fee.fee_numerator) then fee.fee_denominator\n                   else (ne.args -> 'fee_denominator')::int end \"fee_denominator!\",\n               fee.collection,\n               fee.nft\n                from nft_events ne\n                         join roots r\n                              on ne.address = r.event_whitelist_address\n                                  and r.code = $2::t_root_types\n                         left join lateral (\n                    select nc.fee_numerator, nc.fee_denominator, max(n.collection) collection, max(n.address) nft\n                    from nft n\n                             join nft_collection nc on n.collection = nc.address\n                        and nc.fee_numerator is not null and nc.fee_denominator is not null\n                    where n.owner = $1\n                    group by nc.fee_numerator, nc.fee_denominator\n                    order by min(nc.fee_numerator / nc.fee_denominator)\n                    limit 1\n\n                    ) as fee on true\n                where ne.event_type = 'market_fee_default_changed'\n                order by created_at desc, created_lt desc, id desc\n                limit 1"
   },
   "7b62a1ecbb1b75fffca517a353ecdb5f21b793422686f66b034b37bc66be485e": {
     "describe": {
