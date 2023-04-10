@@ -205,7 +205,7 @@ pub struct Auction {
     pub last_bid_ts: Option<i64>,
     pub last_bid_value: Option<String>,
     pub last_bid_usd_value: Option<String>,
-    pub fee: Option<Fee>,
+    pub fee: Fee,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -233,7 +233,7 @@ pub struct DirectSell {
     pub finished: Option<i64>,
     #[serde(rename = "expiredAt")]
     pub expired: Option<i64>,
-    pub fee: Option<Fee>,
+    pub fee: Fee
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -249,7 +249,7 @@ pub struct DirectBuy {
     pub finished: Option<i64>,
     #[serde(rename = "expiredAt")]
     pub expired: Option<i64>,
-    pub fee: Option<Fee>,
+    pub fee: Fee,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -400,11 +400,14 @@ impl CollectionDetails {
 impl Auction {
     pub fn from_db(db: &crate::db::NftAuction, tokens: &TokenDict) -> Self {
         let fee = match (db.fee_numerator, db.fee_denominator) {
-            (Some(numerator), Some(denominator)) => Some(Fee {
+            (Some(numerator), Some(denominator)) => Fee {
                 numerator,
                 denominator,
-            }),
-            _ => None,
+            },
+            _ => Fee {
+                numerator: 2,
+                denominator: 100,
+            },
         };
         let token = db.price_token.clone().unwrap_or_default();
         Auction {
@@ -468,11 +471,14 @@ impl AuctionBid {
 impl DirectSell {
     pub fn from_db(val: &crate::db::NftDirectSell, tokens: &TokenDict) -> Self {
         let fee = match (val.fee_numerator, val.fee_denominator) {
-            (Some(numerator), Some(denominator)) => Some(Fee {
+            (Some(numerator), Some(denominator)) => Fee {
                 numerator,
                 denominator,
-            }),
-            _ => None,
+            },
+            _ => Fee {
+                numerator: 2,
+                denominator: 100,
+            },
         };
         DirectSell {
             address: val.address.clone(),
@@ -495,11 +501,14 @@ impl DirectSell {
 impl DirectBuy {
     pub fn from_db(val: &crate::db::NftDirectBuy, tokens: &TokenDict) -> Self {
         let fee = match (val.fee_numerator, val.fee_denominator) {
-            (Some(numerator), Some(denominator)) => Some(Fee {
+            (Some(numerator), Some(denominator)) => Fee {
                 numerator,
                 denominator,
-            }),
-            _ => None,
+            },
+            _ => Fee {
+                numerator: 2,
+                denominator: 100,
+            },
         };
         DirectBuy {
             address: val.address.clone(),
@@ -717,7 +726,7 @@ impl From<MetricsSummaryRecord> for MetricsSummary {
 #[serde(rename_all = "camelCase")]
 pub struct OwnerFee {
     pub fee: Fee,
-    pub nft: Option<String>,
+    pub nft_id: Option<String>,
     pub collection: Option<String>,
 }
 
@@ -725,7 +734,7 @@ impl From<OwnerFeeRecord> for OwnerFee {
     fn from(value: OwnerFeeRecord) -> Self {
         Self {
             collection: value.collection,
-            nft: value.nft,
+            nft_id: value.nft,
             fee: Fee {
                 numerator: value.fee_numerator,
                 denominator: value.fee_denominator,

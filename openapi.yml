@@ -345,6 +345,7 @@ components:
         - nft
         - price
         - createdAt
+        - fee
     directBuyStatus:
       type: string
       enum:
@@ -393,6 +394,7 @@ components:
         - nft
         - price
         - createdAt
+        - fee
     directSellStatus:
       type: string
       enum:
@@ -444,6 +446,7 @@ components:
         - address
         - nft
         - bidToken
+        - fee
     auctionStatus:
       type: string
       enum:
@@ -1656,8 +1659,8 @@ paths:
                 properties:
                   fee:
                     $ref: '#/components/schemas/fee'
-                  nft:
-                    $ref: '#/components/schemas/address'
+                  nftId:
+                    type: string
                   collection:
                     $ref: '#/components/schemas/address'
                 required:

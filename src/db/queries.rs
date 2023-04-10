@@ -157,26 +157,26 @@ impl Queries {
         sqlx::query_as!(
             NftDirectSell,
             r#"
-        SELECT
-        s.address as "address!",
-        s.created as "created!",
-        s.updated as "updated!",
-        s.tx_lt as "tx_lt!",
-        s.nft as "nft!",
-        s.collection,
-        s.seller,
-        s.price_token as "price_token!",
-        s.price as "price!",
-        s.usd_price,
-        s.finished_at,
-        s.expired_at,
-        s.state as "state!: _",
-         count (1) over () as "cnt!",
-        s.fee_numerator,
-        s.fee_denominator
-        FROM nft_direct_sell_usd s
-        WHERE s.nft = $1 and s.state in ('active', 'expired')
-        ORDER BY s.created DESC LIMIT 1"#,
+            SELECT
+                s.address as "address!",
+                s.created as "created!",
+                s.updated as "updated!",
+                s.tx_lt as "tx_lt!",
+                s.nft as "nft!",
+                s.collection,
+                s.seller,
+                s.price_token as "price_token!",
+                s.price as "price!",
+                s.usd_price,
+                s.finished_at,
+                s.expired_at,
+                s.state as "state!: _",
+                count (1) over () as "cnt!",
+                s.fee_numerator,
+                s.fee_denominator
+            FROM nft_direct_sell_usd s
+            WHERE s.nft = $1 and s.state in ('active', 'expired')
+            ORDER BY s.created DESC LIMIT 1"#,
             nft
         )
         .fetch_optional(self.db.as_ref())
@@ -467,27 +467,27 @@ impl Queries {
             r#"
             select n.*, count(1) over () as "total_count!"
                 from nft_details n
-                         join nft_collection nc
-                              on nc.address = n.collection
-                                  and nc.verified
-                         left join lateral ( select count(1) as cnt
-                                             from nft_auction na
-                                              join events_whitelist ew on na.address = ew.address
-                                             where n.address = na.nft
-                                               and na.status = 'completed'
-                                               and na.finished_at >= $1) auc on true
-                         left join lateral ( select count(1) as cnt
-                                             from nft_direct_sell na
-                                             join events_whitelist ew on na.address = ew.address
-                                             where n.address = na.nft
-                                               and na.state = 'filled'
-                                               and na.finished_at >= $1) ds on true
-                         left join lateral ( select count(1) as cnt
-                                             from nft_direct_buy na
-                                             join events_whitelist ew on na.address = ew.address
-                                             where n.address = na.nft
-                                               and na.state = 'filled'
-                                               and na.finished_at >= $1) db on true
+                     join nft_collection nc
+                          on nc.address = n.collection
+                              and nc.verified
+                     left join lateral ( select count(1) as cnt
+                                         from nft_auction na
+                                          join events_whitelist ew on na.address = ew.address
+                                         where n.address = na.nft
+                                           and na.status = 'completed'
+                                           and na.finished_at >= $1) auc on true
+                     left join lateral ( select count(1) as cnt
+                                         from nft_direct_sell na
+                                         join events_whitelist ew on na.address = ew.address
+                                         where n.address = na.nft
+                                           and na.state = 'filled'
+                                           and na.finished_at >= $1) ds on true
+                     left join lateral ( select count(1) as cnt
+                                         from nft_direct_buy na
+                                         join events_whitelist ew on na.address = ew.address
+                                         where n.address = na.nft
+                                           and na.state = 'filled'
+                                           and na.finished_at >= $1) db on true
                 where n.updated >= $1
                 order by auc.cnt + ds.cnt + db.cnt desc, n.updated desc, n.address desc
                 limit $2 offset $3
@@ -1231,8 +1231,11 @@ impl Queries {
                               on ne.address = r.event_whitelist_address
                                   and r.code = $2::t_root_types
                          left join lateral (
-                    select nc.fee_numerator, nc.fee_denominator, max(n.collection) collection, max(n.address) nft
+                    select nc.fee_numerator, nc.fee_denominator, max(n.collection) collection, max(e.args ->> 'id') nft
                     from nft n
+                        left join nft_events e
+                        on e.nft = n.address
+                    and e.event_type = 'nft_created'
                              join nft_collection nc on n.collection = nc.address
                         and nc.fee_numerator is not null and nc.fee_denominator is not null
                     where n.owner = $1
