@@ -584,10 +584,10 @@ impl Queries {
 
                 match order.direction {
                     OrderDirection::Asc => {
-                        let _ = write!(sql, "order by n.{field}");
+                        let _ = write!(sql, "order by n.{field}, n.name");
                     }
                     OrderDirection::Desc => {
-                        let _ = write!(sql, "order by coalesce(n.{field}, 0) desc");
+                        let _ = write!(sql, "order by coalesce(n.{field}, 0) desc, n.name desc");
                     }
                 }
             }
