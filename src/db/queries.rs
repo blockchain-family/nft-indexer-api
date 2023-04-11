@@ -489,6 +489,7 @@ impl Queries {
                                            and na.state = 'filled'
                                            and na.finished_at >= $1) db on true
                 where n.updated >= $1
+                and auc.cnt + ds.cnt + db.cnt > 0
                 order by auc.cnt + ds.cnt + db.cnt desc, n.updated desc, n.address desc
                 limit $2 offset $3
             "#,
