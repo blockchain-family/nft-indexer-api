@@ -141,6 +141,8 @@ pub struct NftAuction {
     pub last_bid_value: Option<BigDecimal>,
     pub last_bid_usd_value: Option<BigDecimal>,
     pub cnt: i64,
+    pub fee_numerator: Option<i32>,
+    pub fee_denominator: Option<i32>,
 }
 
 #[derive(Clone, Debug, sqlx::FromRow)]
@@ -197,6 +199,8 @@ pub struct NftDirectSell {
     pub expired_at: Option<NaiveDateTime>,
     pub tx_lt: i64,
     pub cnt: i64,
+    pub fee_numerator: Option<i32>,
+    pub fee_denominator: Option<i32>,
 }
 
 #[derive(Clone, Debug)]
@@ -215,6 +219,8 @@ pub struct NftDirectBuy {
     pub expired_at: Option<NaiveDateTime>,
     pub tx_lt: i64,
     pub cnt: i64,
+    pub fee_numerator: Option<i32>,
+    pub fee_denominator: Option<i32>,
 }
 
 #[derive(Clone, Debug)]
@@ -337,4 +343,12 @@ pub struct MetricsSummaryRecord {
     pub owners_count: i32,
     pub nfts_count: i32,
     pub total_rows_count: i32,
+}
+
+#[derive(Debug, sqlx::FromRow)]
+pub struct OwnerFeeRecord {
+    pub fee_numerator: i32,
+    pub fee_denominator: i32,
+    pub collection: Option<String>,
+    pub nft: Option<String>,
 }

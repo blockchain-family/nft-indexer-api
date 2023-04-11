@@ -93,6 +93,18 @@ pub enum NftPriceSource {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type)]
+#[sqlx(type_name = "t_root_types")]
+#[serde(rename_all = "snake_case")]
+pub enum RootType {
+    #[sqlx(rename = "auction")]
+    Auction,
+    #[sqlx(rename = "buy")]
+    Buy,
+    #[sqlx(rename = "sell")]
+    Sell,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type)]
 #[sqlx(type_name = "event_category", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum NftEventCategory {

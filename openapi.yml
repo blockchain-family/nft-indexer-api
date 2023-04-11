@@ -337,12 +337,15 @@ components:
           $ref: '#/components/schemas/ts'
         status:
           $ref: '#/components/schemas/directBuyStatus'
+        fee:
+          $ref: '#/components/schemas/fee'
       required:
         - address
         - buyer
         - nft
         - price
         - createdAt
+        - fee
     directBuyStatus:
       type: string
       enum:
@@ -352,6 +355,16 @@ components:
         - filled
         - cancelled
         - expired
+    fee:
+      type: object
+      properties:
+        numerator:
+          type: number
+        denominator:
+          type: number
+      required:
+        - numerator
+        - denominator
     directSell:
       type: object
       properties:
@@ -373,12 +386,15 @@ components:
           $ref: '#/components/schemas/ts'
         status:
           $ref: '#/components/schemas/directSellStatus'
+        fee:
+          $ref: '#/components/schemas/fee'
       required:
         - address
         - seller
         - nft
         - price
         - createdAt
+        - fee
     directSellStatus:
       type: string
       enum:
@@ -424,10 +440,13 @@ components:
           type: string
         lastBidUsdValue:
           type: string
+        fee:
+          $ref: '#/components/schemas/fee'
       required:
         - address
         - nft
         - bidToken
+        - fee
     auctionStatus:
       type: string
       enum:
@@ -1613,7 +1632,39 @@ paths:
                 required:
                   - totalCount
                   - items
-
+  /owner/fee:
+    get:
+      parameters:
+        - in: query
+          name: owner
+          schema:
+            $ref: '#/components/schemas/address'
+          required: true
+        - in: query
+          name: rootCode
+          schema:
+            type: string
+            enum:
+              - buy
+              - sell
+              - auction
+          required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  fee:
+                    $ref: '#/components/schemas/fee'
+                  nftId:
+                    type: string
+                  collection:
+                    $ref: '#/components/schemas/address'
+                required:
+                  - fee
   /events:
     post:
       operationId: listEvents

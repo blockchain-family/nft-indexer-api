@@ -87,7 +87,8 @@ async fn main() {
                 .or(get_events(service.clone()))
                 .or(get_metrics_summary(service.clone()))
                 .or(list_roots(service.clone()))
-                .or(search_all(service.clone())),
+                .or(search_all(service.clone()))
+                .or(get_fee(service.clone())),
         )
         .with(cors);
 
