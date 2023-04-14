@@ -2,7 +2,7 @@ use crate::db::NftDetails;
 use crate::handlers::OrderDirection;
 use crate::model::{DirectBuy, NFTPrice, NftTrait, VecWith, NFT};
 use crate::{
-    catch_empty, catch_error,
+    catch_empty, catch_error_500,
     db::{Address, DirectBuyState, Queries},
     model::{Auction, Collection, DirectSell},
     response,
@@ -32,18 +32,18 @@ pub async fn get_nft_handler(
     param: NFTParam,
     db: Queries,
 ) -> Result<Box<dyn warp::Reply>, Infallible> {
-    let nft = catch_error!(db.get_nft_details(&param.nft).await);
+    let nft = catch_error_500!(db.get_nft_details(&param.nft).await);
     let mut nft = catch_empty!(nft, "not found");
 
     let collections_ids = match &nft.collection {
         Some(c) => vec![c.clone()],
         None => vec![],
     };
-    let collection = catch_error!(collect_collections(&db, &collections_ids).await);
+    let collection = catch_error_500!(collect_collections(&db, &collections_ids).await);
 
     let mut auction = HashMap::default();
     if nft.auction.is_none() {
-        let auc = catch_error!(
+        let auc = catch_error_500!(
             db.get_nft_auction_by_nft(&nft.address.clone().unwrap_or_default())
                 .await
         );
@@ -53,7 +53,7 @@ pub async fn get_nft_handler(
         }
     };
     if let Some(ref auction_id) = nft.auction {
-        let a = catch_error!(db.get_nft_auction(auction_id).await);
+        let a = catch_error_500!(db.get_nft_auction(auction_id).await);
         if let Some(a) = a {
             auction.insert(auction_id.clone(), Auction::from_db(&a, &db.tokens));
         }
@@ -61,7 +61,7 @@ pub async fn get_nft_handler(
 
     let mut direct_sell = HashMap::default();
     if nft.forsale.is_none() {
-        let a = catch_error!(
+        let a = catch_error_500!(
             db.get_nft_direct_sell(&nft.address.clone().unwrap_or_default())
                 .await
         );
@@ -71,7 +71,7 @@ pub async fn get_nft_handler(
         }
     }
     if let Some(ref direct_sell_id) = nft.forsale {
-        let a = catch_error!(db.get_direct_sell(direct_sell_id).await);
+        let a = catch_error_500!(db.get_direct_sell(direct_sell_id).await);
         if let Some(a) = a {
             direct_sell.insert(direct_sell_id.clone(), DirectSell::from_db(&a, &db.tokens));
         }
@@ -79,7 +79,7 @@ pub async fn get_nft_handler(
 
     let mut direct_buy = HashMap::default();
     let nft_addr = nft.address.clone().unwrap_or_default();
-    let mut list = catch_error!(
+    let mut list = catch_error_500!(
         db.list_nft_direct_buy(&nft_addr, &[DirectBuyState::Active], 100, 0)
             .await
     );
@@ -150,7 +150,7 @@ pub async fn get_nft_direct_buy_handler(
     let offset = params.offset.unwrap_or_default();
     let nft = params.nft;
     let status = params.status.as_deref().unwrap_or_default();
-    let list = catch_error!(db.list_nft_direct_buy(&nft, status, limit, offset).await);
+    let list = catch_error_500!(db.list_nft_direct_buy(&nft, status, limit, offset).await);
 
     let count = list.first().map(|it| it.cnt).unwrap_or_default();
     let ret: Vec<DirectBuy> = list
@@ -159,7 +159,7 @@ pub async fn get_nft_direct_buy_handler(
         .collect();
     let nft_ids = ret.iter().map(|x| x.nft.clone()).collect();
 
-    let (nft, collection) = catch_error!(collect_nft_and_collection(&db, &nft_ids).await);
+    let (nft, collection) = catch_error_500!(collect_nft_and_collection(&db, &nft_ids).await);
     let ret = VecWith {
         count,
         items: ret,
@@ -187,10 +187,10 @@ pub async fn get_nft_price_history_handler(
     query: NftPriceHistoryQuery,
     db: Queries,
 ) -> Result<Box<dyn warp::Reply>, Infallible> {
-    let from = NaiveDateTime::from_timestamp(query.from, 0);
-    let to = NaiveDateTime::from_timestamp(query.to, 0);
+    let from = NaiveDateTime::from_timestamp_opt(query.from, 0).expect("Failed to get datetime");
+    let to = NaiveDateTime::from_timestamp_opt(query.to, 0).expect("Failed to get datetime");
 
-    let list = catch_error!(db.list_nft_price_history(&query.nft, from, to).await);
+    let list = catch_error_500!(db.list_nft_price_history(&query.nft, from, to).await);
 
     let ret: Vec<NFTPrice> = list.into_iter().map(NFTPrice::from_db).collect();
     response!(&ret)
@@ -228,10 +228,10 @@ pub async fn get_nft_top_list_handler(
     params: NFTTopListQuery,
     db: Queries,
 ) -> Result<Box<dyn warp::Reply>, Infallible> {
-    let from = NaiveDateTime::from_timestamp(params.from, 0);
-    let list = catch_error!(db.nft_top_search(from, params.limit, params.offset).await);
+    let from = NaiveDateTime::from_timestamp_opt(params.from, 0).expect("Failed to get datetime");
+    let list = catch_error_500!(db.nft_top_search(from, params.limit, params.offset).await);
 
-    let response = catch_error!(make_nfts_response(list, db).await);
+    let response = catch_error_500!(make_nfts_response(list, db).await);
     Ok(Box::from(warp::reply::with_status(
         warp::reply::json(&response),
         StatusCode::OK,
@@ -254,7 +254,7 @@ pub async fn get_nft_list_handler(
         false => limit + 1,
     };
 
-    let list = catch_error!(
+    let list = catch_error_500!(
         db.nft_search(
             owners,
             collections,
@@ -273,7 +273,7 @@ pub async fn get_nft_list_handler(
         .await
     );
 
-    let mut response = catch_error!(make_nfts_response(list, db).await);
+    let mut response = catch_error_500!(make_nfts_response(list, db).await);
 
     if !with_count {
         if response.items.len() < final_limit {

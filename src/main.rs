@@ -19,6 +19,7 @@
 use api::cfg::ApiConfig;
 use api::db::Queries;
 use api::handlers::*;
+use api::services::auth::AuthService;
 use api::token::TokenDict;
 use api::usd_price::CurrencyClient;
 use std::sync::Arc;
@@ -29,18 +30,19 @@ async fn main() {
     pretty_env_logger::init();
     log::info!("INDEXER-API SERVICE");
     let cfg = ApiConfig::new().expect("Failed to load config");
-    log::info!(
-        "BACKEND_API_USER={}",
-        std::env::var("BACKEND_API_USER").expect("err read BACKEND_API_USER env")
-    );
 
     let tokens = TokenDict::load()
         .await
         .expect("error loading tokens dictionary");
     let db_pool = cfg.database.init().await.expect("err init database");
-    let service = Queries::new(Arc::new(db_pool), tokens);
+    let db_service = Queries::new(Arc::new(db_pool), tokens);
+    let auth_service = Arc::new(AuthService::new(
+        cfg.auth_token_lifetime,
+        cfg.jwt_secret,
+        cfg.base_url,
+    ));
 
-    CurrencyClient::new(service.clone())
+    CurrencyClient::new(db_service.clone())
         .expect("err initialize currency client")
         .start(std::time::Duration::from_secs(5 * 60)) // 5 minutes
         .await
@@ -50,6 +52,7 @@ async fn main() {
         .allow_any_origin()
         .allow_headers(vec!["authority", "user-agent", "content-type"])
         .allow_methods(vec!["GET", "POST", "OPTIONS"]);
+
     let mut cors_headers = warp::http::HeaderMap::new();
     cors_headers.insert(
         "access-control-allow-origin",
@@ -67,28 +70,29 @@ async fn main() {
                 .with(warp::reply::with::headers(cors_headers))
                 .or(warp::path!("healthz").map(warp::reply))
                 .or(get_swagger())
-                .or(get_nft(service.clone()))
-                .or(get_nft_top_list(service.clone()))
-                .or(get_nft_list(service.clone()))
-                .or(get_nft_direct_buy(service.clone()))
-                .or(get_nft_price_history(service.clone()))
-                .or(list_collections(service.clone()))
-                .or(list_collections_simple(service.clone()))
-                .or(get_collection(service.clone()))
-                .or(get_collections_by_owner(service.clone()))
-                .or(get_owner_bids_out(service.clone()))
-                .or(get_owner_bids_in(service.clone()))
-                .or(get_owner_direct_buy_in(service.clone()))
-                .or(get_owner_direct_buy(service.clone()))
-                .or(get_owner_direct_sell(service.clone()))
-                .or(get_auctions(service.clone()))
-                .or(get_auction(service.clone()))
-                .or(get_auction_bids(service.clone()))
-                .or(get_events(service.clone()))
-                .or(get_metrics_summary(service.clone()))
-                .or(list_roots(service.clone()))
-                .or(search_all(service.clone()))
-                .or(get_fee(service.clone())),
+                .or(get_nft(db_service.clone()))
+                .or(get_nft_top_list(db_service.clone()))
+                .or(get_nft_list(db_service.clone()))
+                .or(get_nft_direct_buy(db_service.clone()))
+                .or(get_nft_price_history(db_service.clone()))
+                .or(list_collections(db_service.clone()))
+                .or(list_collections_simple(db_service.clone()))
+                .or(get_collection(db_service.clone()))
+                .or(get_collections_by_owner(db_service.clone()))
+                .or(get_owner_bids_out(db_service.clone()))
+                .or(get_owner_bids_in(db_service.clone()))
+                .or(get_owner_direct_buy_in(db_service.clone()))
+                .or(get_owner_direct_buy(db_service.clone()))
+                .or(get_owner_direct_sell(db_service.clone()))
+                .or(get_auctions(db_service.clone()))
+                .or(get_auction(db_service.clone()))
+                .or(get_auction_bids(db_service.clone()))
+                .or(get_events(db_service.clone()))
+                .or(get_metrics_summary(db_service.clone()))
+                .or(list_roots(db_service.clone()))
+                .or(search_all(db_service.clone()))
+                .or(get_fee(db_service.clone()))
+                .or(sign_in(auth_service.clone())),
         )
         .with(cors);
 

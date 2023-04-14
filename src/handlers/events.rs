@@ -1,6 +1,6 @@
 use crate::db::{NftEventCategory, NftEventType};
 use crate::model::NftEvents;
-use crate::{catch_error, db::Queries, model::SearchResult, response};
+use crate::{catch_error_500, db::Queries, model::SearchResult, response};
 use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
 use warp::http::StatusCode;
@@ -23,8 +23,7 @@ pub async fn search_all_handler(
     db: Queries,
 ) -> Result<Box<dyn warp::Reply>, Infallible> {
     let query = String::from_utf8(query.into()).expect("err converting to String");
-
-    let items = catch_error!(db.search_all(&query).await);
+    let items = catch_error_500!(db.search_all(&query).await);
     let items: Vec<SearchResult> = items.into_iter().map(SearchResult::from_db).collect();
     let count = items.len();
     response!(&SearchRes { items, count })
@@ -59,7 +58,7 @@ pub async fn get_events_handler(
         true => limit,
         false => limit + 1,
     };
-    let record = catch_error!(
+    let record = catch_error_500!(
         db.list_events(
             nft,
             collection,
@@ -79,7 +78,7 @@ pub async fn get_events_handler(
         Some(value) => serde_json::from_value(value),
     };
 
-    let mut response = catch_error!(response);
+    let mut response = catch_error_500!(response);
 
     if !with_count {
         if response.data.len() < final_limit {

@@ -13,12 +13,14 @@ pub use self::collection::*;
 mod owner;
 pub use self::owner::*;
 
+pub use self::metrics::*;
 mod metrics;
 
-pub use self::metrics::*;
+pub use self::auth::*;
+mod auth;
 
 #[macro_export]
-macro_rules! catch_error {
+macro_rules! catch_error_500 {
     ($expr:expr) => {
         match $expr {
             Ok(val) => val,
@@ -26,6 +28,21 @@ macro_rules! catch_error {
                 return Ok(Box::from(warp::reply::with_status(
                     e.to_string(),
                     StatusCode::INTERNAL_SERVER_ERROR,
+                )));
+            }
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! catch_error_400 {
+    ($expr:expr) => {
+        match $expr {
+            Ok(val) => val,
+            Err(e) => {
+                return Ok(Box::from(warp::reply::with_status(
+                    e.to_string(),
+                    StatusCode::BAD_REQUEST,
                 )));
             }
         }
@@ -102,7 +119,7 @@ pub fn list_roots(
 }
 
 pub async fn list_roots_handler(db: Queries) -> Result<Box<dyn warp::Reply>, Infallible> {
-    let list = catch_error!(db.list_roots().await);
+    let list = catch_error_500!(db.list_roots().await);
 
     let roots: Vec<Root> = list.into_iter().map(Root::from).collect();
     response!(&Roots { roots })

@@ -1,7 +1,7 @@
 use crate::db::RootType;
 use crate::model::OwnerFee;
 use crate::{
-    catch_error,
+    catch_error_500,
     db::{Address, DirectBuyState, DirectSellState, Queries},
     model::{AuctionBid, DirectBuy, DirectSell, VecWith},
     response,
@@ -35,7 +35,7 @@ pub async fn get_owner_bids_out_handler(
     let owner = query.owner;
     let limit = query.limit.unwrap_or(100);
     let offset = query.offset.unwrap_or_default();
-    let list = catch_error!(
+    let list = catch_error_500!(
         db.list_owner_auction_bids_out(&owner, collections, &query.lastbid, limit, offset)
             .await
     );
@@ -47,7 +47,7 @@ pub async fn get_owner_bids_out_handler(
         .collect();
     let auction_ids: Vec<String> = ret.iter().map(|x| x.auction.clone()).collect();
     let (nft, collection, auctions) =
-        catch_error!(super::collect_auctions_nfts_collections(&db, &auction_ids).await);
+        catch_error_500!(super::collect_auctions_nfts_collections(&db, &auction_ids).await);
 
     let ret = VecWith {
         count,
@@ -90,7 +90,7 @@ pub async fn get_owner_bids_in_handler(
     let active = &query.active;
     let limit = query.limit.unwrap_or(100);
     let offset = query.offset.unwrap_or_default();
-    let list = catch_error!(
+    let list = catch_error_500!(
         db.list_owner_auction_bids_in(&owner, collections, active, limit, offset)
             .await
     );
@@ -102,7 +102,7 @@ pub async fn get_owner_bids_in_handler(
         .collect();
     let auction_ids: Vec<String> = ret.iter().map(|x| x.auction.clone()).collect();
     let (nft, collection, auctions) =
-        catch_error!(super::collect_auctions_nfts_collections(&db, &auction_ids).await);
+        catch_error_500!(super::collect_auctions_nfts_collections(&db, &auction_ids).await);
 
     let ret = VecWith {
         count,
@@ -145,7 +145,7 @@ pub async fn get_owner_direct_buy_handler(
     let status = query.status.as_deref().unwrap_or_default();
     let limit = query.limit.unwrap_or(100);
     let offset = query.offset.unwrap_or_default();
-    let list = catch_error!(
+    let list = catch_error_500!(
         db.list_owner_direct_buy(&owner, collections, status, limit, offset)
             .await
     );
@@ -199,7 +199,7 @@ pub async fn get_owner_direct_buy_in_handler(
     let status = query.status.as_deref().unwrap_or_default();
     let limit = query.limit.unwrap_or(100);
     let offset = query.offset.unwrap_or_default();
-    let list = catch_error!(
+    let list = catch_error_500!(
         db.list_owner_direct_buy_in(&owner, collections, status, limit, offset)
             .await
     );
@@ -252,7 +252,7 @@ pub async fn get_owner_direct_sell_handler(
     let status = query.status.as_deref().unwrap_or_default();
     let limit = query.limit.unwrap_or(100);
     let offset = query.offset.unwrap_or_default();
-    let list = catch_error!(
+    let list = catch_error_500!(
         db.list_owner_direct_sell(&owner, collections, status, limit, offset)
             .await
     );
@@ -263,7 +263,8 @@ pub async fn get_owner_direct_sell_handler(
         .map(|x| DirectSell::from_db(x, &db.tokens))
         .collect();
     let nft_ids = ret.iter().map(|x| x.nft.clone()).collect();
-    let (nft, collection) = catch_error!(super::collect_nft_and_collection(&db, &nft_ids).await);
+    let (nft, collection) =
+        catch_error_500!(super::collect_nft_and_collection(&db, &nft_ids).await);
 
     let ret = VecWith {
         count,
@@ -299,7 +300,7 @@ pub async fn get_fee_handler(
     query: OwnerFeeQuery,
     db: Queries,
 ) -> Result<Box<dyn warp::Reply>, Infallible> {
-    let fee = catch_error!(db.get_owner_fee(&query.owner, &query.root_code).await);
+    let fee = catch_error_500!(db.get_owner_fee(&query.owner, &query.root_code).await);
 
     let owner_fee = OwnerFee::from(fee);
     response!(&owner_fee)

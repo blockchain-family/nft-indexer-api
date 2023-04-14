@@ -782,6 +782,46 @@ paths:
                           enum:
                             - nft
                             - collection
+  /user/sign_in:
+    post:
+      operationId: signIn
+      requestBody:
+        required: true
+        content:
+          'application/json':
+            schema:
+              type: object
+              properties:
+                address:
+                  $ref: '#/components/schemas/address'
+                walletType:
+                  type: string
+                timestamp:
+                  type: integer
+                signature:
+                  type: string
+                publicKey:
+                  $ref: '#/components/schemas/address'
+              required:
+                - address
+                - walletType
+                - timestamp
+                - signature
+                - publicKey
+      responses:
+        '200':
+          description: OK
+          content:
+            'text/plain':
+              schema:
+                type: string
+        '400':
+          description: BadRequest
+          content:
+            'text/plain':
+              schema:
+                type: string
+
   /collections:
     post:
       operationId: listCollections

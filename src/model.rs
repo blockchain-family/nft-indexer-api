@@ -233,7 +233,7 @@ pub struct DirectSell {
     pub finished: Option<i64>,
     #[serde(rename = "expiredAt")]
     pub expired: Option<i64>,
-    pub fee: Fee
+    pub fee: Fee,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -741,4 +741,19 @@ impl From<OwnerFeeRecord> for OwnerFee {
             },
         }
     }
+}
+
+#[derive(Debug)]
+pub struct LoginData {
+    pub public_key: String,
+    pub address: String,
+    pub wallet_type: String,
+    pub timestamp: u64,
+    pub signature: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct JwtClaims {
+    pub sub: String,
+    pub exp: usize,
 }

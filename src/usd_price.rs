@@ -40,7 +40,8 @@ impl CurrencyClient {
 
     pub async fn update_prices(&self) -> anyhow::Result<()> {
         let prices = self.get_prices().await?;
-        let ts: NaiveDateTime = NaiveDateTime::from_timestamp(Local::now().timestamp(), 0);
+        let ts = NaiveDateTime::from_timestamp_opt(Local::now().timestamp(), 0)
+            .expect("Failed to get time");
         let db_prices = prices
             .iter()
             .map(|(token, price)| {

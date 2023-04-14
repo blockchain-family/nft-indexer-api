@@ -1,7 +1,7 @@
 use crate::db::{Address, Queries};
 use crate::handlers::OrderDirection;
 use crate::model::{Collection, CollectionDetails, CollectionSimple, VecWithTotal};
-use crate::{catch_empty, catch_error, response};
+use crate::{catch_empty, catch_error_500, response};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 use std::{collections::HashMap, convert::Infallible};
@@ -61,7 +61,7 @@ pub async fn list_collections_handler(
     let limit = params.limit.unwrap_or(100);
     let offset = params.offset.unwrap_or_default();
 
-    let list = catch_error!(
+    let list = catch_error_500!(
         db.list_collections(
             name,
             owners,
@@ -112,7 +112,7 @@ pub async fn list_collections_simple_handler(
     let name = params.name.as_ref();
     let limit = params.limit.unwrap_or(100);
     let offset = params.offset.unwrap_or_default();
-    let list = catch_error!(
+    let list = catch_error_500!(
         db.list_collections_simple(name, verified.as_ref(), limit, offset)
             .await
     );
@@ -139,7 +139,7 @@ pub async fn get_collection_handler(
     param: CollectionParam,
     db: Queries,
 ) -> Result<Box<dyn warp::Reply>, Infallible> {
-    let col = catch_error!(db.get_collection(&param.collection).await);
+    let col = catch_error_500!(db.get_collection(&param.collection).await);
     let col = catch_empty!(col, "");
     let ret = CollectionDetails::from_db(col);
     response!(&ret)
@@ -171,7 +171,7 @@ pub async fn get_collections_by_owner_handler(
     let limit = params.limit.unwrap_or(100);
     let offset = params.offset.unwrap_or_default();
 
-    let list = catch_error!(db.list_collections_by_owner(&owner, limit, offset).await);
+    let list = catch_error_500!(db.list_collections_by_owner(&owner, limit, offset).await);
 
     let count = list.first().map(|it| it.cnt).unwrap_or_default();
     let ret: Vec<Collection> = list.into_iter().map(Collection::from_db).collect();

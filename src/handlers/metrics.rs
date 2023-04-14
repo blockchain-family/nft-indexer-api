@@ -1,6 +1,6 @@
 use crate::db::Queries;
 use crate::model::MetricsSummaryBase;
-use crate::{catch_error, response};
+use crate::{catch_error_500, response};
 use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
@@ -30,9 +30,9 @@ pub async fn metrics_summary_handler(
     query: MetricsSummaryQuery,
     db: Queries,
 ) -> Result<Box<dyn warp::Reply>, Infallible> {
-    let from = NaiveDateTime::from_timestamp(query.from, 0);
-    let to = NaiveDateTime::from_timestamp(query.to, 0);
-    let values = catch_error!(
+    let from = NaiveDateTime::from_timestamp_opt(query.from, 0).expect("Failed to get datetime");
+    let to = NaiveDateTime::from_timestamp_opt(query.to, 0).expect("Failed to get datetime");
+    let values = catch_error_500!(
         db.get_metrics_summary(from, to, query.limit, query.offset)
             .await
     );
