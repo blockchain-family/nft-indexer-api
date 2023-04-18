@@ -1,4 +1,5 @@
-use crate::db::{Address, Queries};
+use crate::db::queries::Queries;
+use crate::db::Address;
 use crate::model::{Auction, AuctionBid, Collection, VecWith, NFT};
 use crate::{catch_empty, catch_error_500, response};
 use serde::{Deserialize, Serialize};

@@ -1,8 +1,9 @@
+use crate::db::queries::Queries;
 use crate::db::RootType;
 use crate::model::OwnerFee;
 use crate::{
     catch_error_500,
-    db::{Address, DirectBuyState, DirectSellState, Queries},
+    db::{Address, DirectBuyState, DirectSellState},
     model::{AuctionBid, DirectBuy, DirectSell, VecWith},
     response,
 };

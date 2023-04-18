@@ -1,4 +1,5 @@
-use crate::db::{Queries, TokenUsdPrice};
+use crate::db::queries::Queries;
+use crate::db::TokenUsdPrice;
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use sqlx::types::{

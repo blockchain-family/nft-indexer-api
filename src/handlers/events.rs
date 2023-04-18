@@ -1,6 +1,7 @@
+use crate::db::queries::Queries;
 use crate::db::{NftEventCategory, NftEventType};
 use crate::model::NftEvents;
-use crate::{catch_error_500, db::Queries, model::SearchResult, response};
+use crate::{catch_error_500, model::SearchResult, response};
 use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
 use warp::http::StatusCode;

@@ -1,4 +1,4 @@
-use crate::db::Queries;
+use crate::db::queries::Queries;
 use crate::model::MetricsSummaryBase;
 use crate::{catch_error_500, response};
 use chrono::NaiveDateTime;

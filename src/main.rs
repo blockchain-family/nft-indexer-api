@@ -17,7 +17,7 @@
 )]
 
 use api::cfg::ApiConfig;
-use api::db::Queries;
+use api::db::queries::Queries;
 use api::handlers::*;
 use api::services::auth::AuthService;
 use api::token::TokenDict;

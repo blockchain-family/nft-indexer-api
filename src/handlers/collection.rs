@@ -1,4 +1,5 @@
-use crate::db::{Address, Queries};
+use crate::db::queries::Queries;
+use crate::db::Address;
 use crate::handlers::OrderDirection;
 use crate::model::{Collection, CollectionDetails, CollectionSimple, VecWithTotal};
 use crate::{catch_empty, catch_error_500, response};

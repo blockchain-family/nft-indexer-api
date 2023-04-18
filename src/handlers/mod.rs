@@ -81,7 +81,7 @@ use warp::{
     Filter,
 };
 
-use crate::db::Queries;
+use crate::db::queries::Queries;
 use crate::model::{Root, Roots};
 use serde::{Deserialize, Serialize};
 

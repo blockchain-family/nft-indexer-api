@@ -1,9 +1,10 @@
+use crate::db::queries::Queries;
 use crate::db::NftDetails;
 use crate::handlers::OrderDirection;
 use crate::model::{DirectBuy, NFTPrice, NftTrait, VecWith, NFT};
 use crate::{
     catch_empty, catch_error_500,
-    db::{Address, DirectBuyState, Queries},
+    db::{Address, DirectBuyState},
     model::{Auction, Collection, DirectSell},
     response,
 };
