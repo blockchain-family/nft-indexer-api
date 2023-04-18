@@ -1,4 +1,6 @@
-use crate::db::{MetricsSummaryRecord, NftEventType, NftTraitRecord, OwnerFeeRecord, RootRecord};
+use crate::db::{
+    MetricsSummaryRecord, NftEventType, NftTraitRecord, OwnerFeeRecord, RootRecord, UserRecord,
+};
 use crate::{
     db::{Address, AuctionStatus, DirectBuyState, DirectSellState, EventCategory, EventType},
     token::TokenDict,
@@ -756,4 +758,34 @@ pub struct LoginData {
 pub struct JwtClaims {
     pub sub: String,
     pub exp: usize,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UserDto {
+    pub address: String,
+    pub logo_nft: Option<String>,
+    pub username: Option<String>,
+    pub bio: Option<String>,
+    pub twitter: Option<String>,
+    pub instagram: Option<String>,
+    pub facebook: Option<String>,
+    pub link: Option<String>,
+    pub email: Option<String>,
+}
+
+impl From<UserRecord> for UserDto {
+    fn from(value: UserRecord) -> Self {
+        Self {
+            address: value.address,
+            logo_nft: value.logo_nft,
+            username: value.username,
+            bio: value.bio,
+            twitter: value.twitter,
+            instagram: value.instagram,
+            facebook: value.facebook,
+            link: value.link,
+            email: value.email,
+        }
+    }
 }

@@ -19,6 +19,9 @@ mod metrics;
 pub use self::auth::*;
 mod auth;
 
+pub use self::user::*;
+mod user;
+
 #[macro_export]
 macro_rules! catch_error_500 {
     ($expr:expr) => {

@@ -2684,6 +2684,74 @@
     },
     "query": "\n        SELECT s.address as \"address!\", s.created as \"created!\", s.updated as \"updated!\", s.tx_lt as \"tx_lt!\",\n        s.nft as \"nft!\", s.collection,\n        s.buyer,\n        s.price_token as \"price_token!\", s.price as \"price!\",\n        s.usd_price,\n        s.finished_at, s.expired_at,\n        s.state as \"state!: _\",\n        count(1) over () as \"cnt!\",\n        s.fee_numerator,\n        s.fee_denominator\n        FROM nft_direct_buy_usd s\n        WHERE s.nft = $1\n        and s.state = 'active'\n        AND (array_length($2::varchar[], 1) is null OR s.state::varchar = ANY($2))\n        ORDER BY s.updated DESC LIMIT $3 OFFSET $4\n        "
   },
+  "c6019b6df090a73f3fd9328cac213350fef5de6b7b56859ad5027ea95e39a665": {
+    "describe": {
+      "columns": [
+        {
+          "name": "address",
+          "ordinal": 0,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "logo_nft",
+          "ordinal": 1,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "username",
+          "ordinal": 2,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "bio",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "twitter",
+          "ordinal": 4,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "instagram",
+          "ordinal": 5,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "facebook",
+          "ordinal": 6,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "link",
+          "ordinal": 7,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "email",
+          "ordinal": 8,
+          "type_info": "Varchar"
+        }
+      ],
+      "nullable": [
+        false,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "\n                select address, logo_nft, username, bio, twitter, instagram, facebook, link, email\n                from users where address = $1\n            "
+  },
   "c853db650143701750ebf0680a529a7f1da19d6148f3d2bd3b94135c00f9aad2": {
     "describe": {
       "columns": [

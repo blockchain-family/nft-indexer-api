@@ -352,3 +352,16 @@ pub struct OwnerFeeRecord {
     pub collection: Option<String>,
     pub nft: Option<String>,
 }
+
+#[derive(Debug, Clone, sqlx::FromRow, Default)]
+pub struct UserRecord {
+    pub address: String,
+    pub logo_nft: Option<String>,
+    pub username: Option<String>,
+    pub bio: Option<String>,
+    pub twitter: Option<String>,
+    pub instagram: Option<String>,
+    pub facebook: Option<String>,
+    pub link: Option<String>,
+    pub email: Option<String>,
+}

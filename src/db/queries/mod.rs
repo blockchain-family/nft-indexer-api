@@ -4,6 +4,7 @@ mod direct_buy;
 mod direct_sell;
 mod event;
 mod nft;
+mod user;
 
 pub use self::auction::*;
 pub use self::collection::*;

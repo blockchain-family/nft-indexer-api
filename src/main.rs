@@ -15,6 +15,7 @@
     unused_must_use,
     clippy::unwrap_used
 )]
+#![recursion_limit = "256"]
 
 use api::cfg::ApiConfig;
 use api::db::queries::Queries;
@@ -92,6 +93,7 @@ async fn main() {
                 .or(list_roots(db_service.clone()))
                 .or(search_all(db_service.clone()))
                 .or(get_fee(db_service.clone()))
+                .or(get_user_by_address(db_service.clone()))
                 .or(sign_in(auth_service.clone())),
         )
         .with(cors);

@@ -3,7 +3,7 @@ info:
   title: nft indexer api
   version: "0.1"
 servers:
-  - url: https://indexer-api.bf.works
+  - url: http://indexer-api.bf.works
     description: stage
 components:
   schemas:
@@ -39,6 +39,47 @@ components:
         twitter:
           type: string
           maxLength: 100
+    user:
+      type: object
+      properties:
+        address:
+          $ref: '#/components/schemas/address'
+          description: The user's address.
+        logoNft:
+          $ref: '#/components/schemas/address'
+          nullable: true
+          description: The user's logo NFT URL.
+        username:
+          type: string
+          nullable: true
+          description: The user's username.
+        bio:
+          type: string
+          nullable: true
+          description: The user's bio.
+        twitter:
+          type: string
+          nullable: true
+          description: The user's Twitter URL.
+        instagram:
+          type: string
+          nullable: true
+          description: The user's Instagram URL.
+        facebook:
+          type: string
+          nullable: true
+          description: The user's Facebook URL.
+        link:
+          type: string
+          nullable: true
+          description: The user's personal link.
+        email:
+          type: string
+          nullable: true
+          format: email
+          description: The user's email address.
+      required:
+        - address
 
     price:
       type: object
@@ -821,7 +862,26 @@ paths:
             'text/plain':
               schema:
                 type: string
-
+  /user/{address}:
+    get:
+      parameters:
+        - in: path
+          name: address
+          schema:
+            $ref: '#/components/schemas/address'
+          required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/user'
+                required:
+                  - user
   /collections:
     post:
       operationId: listCollections
