@@ -6,6 +6,7 @@ use crate::{
     model::{AuctionBid, DirectBuy, DirectSell, VecWith},
     response,
 };
+use opg::OpgModel;
 use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
 use warp::http::StatusCode;
@@ -61,7 +62,7 @@ pub async fn get_owner_bids_out_handler(
     response!(&ret)
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, OpgModel)]
 pub struct OwnerBidsOutQuery {
     pub owner: Address,
     pub collections: Option<Vec<Address>>,
@@ -116,7 +117,7 @@ pub async fn get_owner_bids_in_handler(
     response!(&ret)
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, OpgModel)]
 pub struct OwnerBidsInQuery {
     pub owner: Address,
     pub collections: Option<Vec<Address>>,
@@ -277,7 +278,7 @@ pub async fn get_owner_direct_sell_handler(
     response!(&ret)
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, OpgModel)]
 pub struct OwnerFeeQuery {
     pub owner: Address,
     #[serde(rename = "rootCode")]
@@ -305,7 +306,7 @@ pub async fn get_fee_handler(
     response!(&owner_fee)
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, OpgModel)]
 pub struct OwnerDirectSellQuery {
     pub owner: Address,
     pub collections: Option<Vec<Address>>,
@@ -314,7 +315,7 @@ pub struct OwnerDirectSellQuery {
     pub offset: Option<usize>,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, OpgModel)]
 pub struct OwnerDirectBuyQuery {
     pub owner: Address,
     pub collections: Option<Vec<Address>>,

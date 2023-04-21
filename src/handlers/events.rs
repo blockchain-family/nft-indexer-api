@@ -3,6 +3,7 @@ use crate::handlers::calculate_hash;
 use crate::model::NftEvents;
 use crate::{catch_error, db::Queries, model::SearchResult, response};
 use moka::future::Cache;
+use opg::OpgModel;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::convert::Infallible;
@@ -115,7 +116,7 @@ pub async fn get_events_handler(
     response!(&response)
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, Hash)]
+#[derive(Debug, Clone, Deserialize, Serialize, Hash, OpgModel)]
 pub struct EventsQuery {
     pub owner: Option<String>,
     pub collections: Option<Vec<String>>,
@@ -130,7 +131,7 @@ pub struct EventsQuery {
     pub verified: Option<bool>,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, OpgModel)]
 pub struct SearchRes {
     pub items: Vec<SearchResult>,
     pub count: usize,

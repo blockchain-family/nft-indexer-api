@@ -1,6 +1,7 @@
 use crate::db::{Address, Queries};
 use crate::model::{Auction, AuctionBid, Collection, VecWith, NFT};
 use crate::{catch_empty, catch_error, response};
+use opg::OpgModel;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, convert::Infallible};
 use warp::{http::StatusCode, Filter};
@@ -55,7 +56,7 @@ pub async fn get_auctions_handler(
     response!(&ret)
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, OpgModel)]
 pub struct AuctionsQuery {
     pub owners: Option<Vec<Address>>,
     pub collections: Option<Vec<Address>>,
@@ -65,14 +66,14 @@ pub struct AuctionsQuery {
     pub offset: Option<usize>,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, OpgModel)]
 pub struct AuctionBidsQuery {
     pub auction: Address,
     pub limit: Option<usize>,
     pub offset: Option<usize>,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, OpgModel)]
 pub enum AuctionsSortOrder {
     #[serde(rename = "start-date")]
     StartDate,
@@ -86,7 +87,7 @@ pub enum AuctionsSortOrder {
     AverageInDay,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, OpgModel)]
 pub struct GetAuctionResult {
     pub auction: Auction,
     pub bid: Option<AuctionBid>,
@@ -129,7 +130,7 @@ pub async fn get_auction_handler(
     response!(&ret)
 }
 
-/// POST /auction/{address}/bids
+/// POST /auction/bids
 pub fn get_auction_bids(
     db: Queries,
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
