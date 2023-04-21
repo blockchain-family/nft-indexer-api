@@ -1,12 +1,33 @@
 use crate::db::queries::Queries;
 use crate::db::Address;
 use crate::model::UserDto;
-use crate::{catch_error_500, response};
+use crate::{api_doc_addon, catch_error_500, response};
 use std::convert::Infallible;
+use utoipa::OpenApi;
 use warp::http::StatusCode;
 use warp::Filter;
 
-/// GET /user/:address
+#[derive(OpenApi)]
+#[openapi(
+    paths(get_user_by_address),
+    components(schemas(UserDto)),
+    tags(
+        (name = "user", description = "User handlers")
+    ),
+)]
+struct ApiDoc;
+api_doc_addon!(ApiDoc);
+
+#[utoipa::path(
+    get,
+    tag = "user",
+    path = "/user/{address}",
+    params(("address" = String, Path, description = "User address")),
+    responses(
+        (status = 200, body = UserDto),
+        (status = 500),
+    )
+)]
 pub fn get_user_by_address(
     db: Queries,
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {

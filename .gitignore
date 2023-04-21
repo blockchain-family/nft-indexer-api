@@ -6,3 +6,4 @@
 /ton-global.config.json
 .DS_Store
 Settings.toml
+.env

@@ -1,9 +1,9 @@
 use crate::db::queries::Queries;
 use crate::db::NftDetails;
-use crate::handlers::OrderDirection;
+use crate::model::OrderDirection;
 use crate::model::{DirectBuy, NFTPrice, NftTrait, VecWith, NFT};
 use crate::{
-    catch_empty, catch_error_500,
+    api_doc_addon, catch_empty, catch_error_500,
     db::{Address, DirectBuyState},
     model::{Auction, Collection, DirectSell},
     response,
@@ -17,8 +17,45 @@ use warp::http::StatusCode;
 use warp::Filter;
 
 use super::collect_collections;
+use crate::schema::VecWithDirectBuy;
+use crate::schema::VecWithNFT;
+use utoipa::OpenApi;
+use utoipa::ToSchema;
+#[derive(OpenApi)]
+#[openapi(
+    paths(get_nft, get_nft_direct_buy, get_nft_price_history, get_nft_list, get_nft_top_list),
+    components(schemas(
+        NFTParam,
+        GetNFTResult,
+        NftTrait,
+        NftPriceHistoryQuery,
+        NFTPrice,
+        VecWithNFT,
+        NFTListOrder,
+        AttributeFilter,
+        NFTListQuery,
+        PriceHistoryScale,
+        VecWithDirectBuy,
+        NFTListOrderField,
+        NFTTopListQuery
+    )),
+    tags(
+        (name = "nft", description = "NFT handlers"),
+    )
+)]
+struct ApiDoc;
+api_doc_addon!(ApiDoc);
 
-/// POST /nft/details
+#[utoipa::path(
+    post,
+    tag = "nft",
+    path = "/nft/details",
+    request_body(content = NFTParam, description = "Get NFT"),
+    responses(
+        (status = 200, body = GetNFTResult),
+        (status = 500),
+    ),
+)]
 pub fn get_nft(
     db: Queries,
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
@@ -112,7 +149,7 @@ pub async fn get_nft_handler(
     response!(&ret)
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, ToSchema)]
 pub struct GetNFTResult {
     pub nft: NFT,
     pub collection: HashMap<Address, Collection>,
@@ -124,7 +161,7 @@ pub struct GetNFTResult {
     pub traits: Vec<NftTrait>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, ToSchema)]
 pub struct NFTParam {
     pub nft: Address,
     pub status: Option<Vec<DirectBuyState>>,
@@ -132,7 +169,16 @@ pub struct NFTParam {
     pub offset: Option<usize>,
 }
 
-/// POST /nft/direct/buy
+#[utoipa::path(
+    post,
+    tag = "nft",
+    path = "/nft/direct/buy",
+    request_body(content = NFTParam, description = "Get NFT direct buy"),
+    responses(
+        (status = 200, body = VecWithDirectBuy),
+        (status = 500),
+    ),
+)]
 pub fn get_nft_direct_buy(
     db: Queries,
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
@@ -161,7 +207,7 @@ pub async fn get_nft_direct_buy_handler(
     let nft_ids = ret.iter().map(|x| x.nft.clone()).collect();
 
     let (nft, collection) = catch_error_500!(collect_nft_and_collection(&db, &nft_ids).await);
-    let ret = VecWith {
+    let ret = VecWithDirectBuy {
         count,
         items: ret,
         nft: Some(nft),
@@ -173,7 +219,16 @@ pub async fn get_nft_direct_buy_handler(
     response!(&ret)
 }
 
-/// POST /nft/price-history
+#[utoipa::path(
+    post,
+    tag = "nft",
+    path = "/nft/price-history",
+    request_body(content = NftPriceHistoryQuery, description = "Get NFT price history"),
+    responses(
+        (status = 200, body = Vec<NFTPrice>),
+        (status = 500),
+    ),
+)]
 pub fn get_nft_price_history(
     db: Queries,
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
@@ -190,14 +245,21 @@ pub async fn get_nft_price_history_handler(
 ) -> Result<Box<dyn warp::Reply>, Infallible> {
     let from = NaiveDateTime::from_timestamp_opt(query.from, 0).expect("Failed to get datetime");
     let to = NaiveDateTime::from_timestamp_opt(query.to, 0).expect("Failed to get datetime");
-
     let list = catch_error_500!(db.list_nft_price_history(&query.nft, from, to).await);
-
     let ret: Vec<NFTPrice> = list.into_iter().map(NFTPrice::from_db).collect();
     response!(&ret)
 }
 
-/// POST /nfts/top
+#[utoipa::path(
+    post,
+    tag = "nft",
+    path = "/nfts/top",
+    request_body(content = NFTTopListQuery, description = "Get NFT top list"),
+    responses(
+        (status = 200, body = VecWithNFT),
+        (status = 500),
+    ),
+)]
 pub fn get_nft_top_list(
     db: Queries,
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
@@ -207,14 +269,23 @@ pub fn get_nft_top_list(
         .and(warp::any().map(move || db.clone()))
         .and_then(get_nft_top_list_handler)
 }
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize, ToSchema)]
 pub struct NFTTopListQuery {
     pub from: i64,
     pub limit: i64,
     pub offset: i64,
 }
 
-/// POST /nfts/
+#[utoipa::path(
+    post,
+    tag = "nft",
+    path = "/nfts",
+    request_body(content = NFTListQuery, description = "NFT list"),
+    responses(
+        (status = 200, body = VecWithNFT),
+        (status = 500),
+    ),
+)]
 pub fn get_nft_list(
     db: Queries,
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
@@ -315,7 +386,7 @@ async fn make_nfts_response(list: Vec<NftDetails>, db: Queries) -> anyhow::Resul
     })
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, ToSchema)]
 pub struct AttributeFilter {
     #[serde(rename = "traitType")]
     pub trait_type: String,
@@ -323,7 +394,7 @@ pub struct AttributeFilter {
     pub trait_values: Vec<String>,
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize, ToSchema)]
 pub struct NFTListQuery {
     pub owners: Option<Vec<String>>,
     pub collections: Option<Vec<String>>,
@@ -344,7 +415,7 @@ pub struct NFTListQuery {
     pub with_count: Option<bool>,
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize, ToSchema)]
 pub enum NFTListOrderField {
     #[serde(rename = "floorPriceUsd")]
     FloorPriceUsd,
@@ -361,13 +432,13 @@ impl Display for NFTListOrderField {
     }
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize, ToSchema)]
 pub struct NFTListOrder {
     pub field: NFTListOrderField,
     pub direction: OrderDirection,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, ToSchema)]
 pub enum PriceHistoryScale {
     #[serde(rename = "h")]
     Hours,
@@ -390,7 +461,7 @@ impl Default for PriceHistoryScale {
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, ToSchema)]
 pub struct NftPriceHistoryQuery {
     pub nft: Address,
     pub scale: Option<PriceHistoryScale>,

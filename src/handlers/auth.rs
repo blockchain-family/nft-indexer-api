@@ -1,13 +1,21 @@
 use crate::model::LoginData;
 use crate::services::auth::AuthService;
-use crate::{catch_error_400, response};
+use crate::{api_doc_addon, catch_error_400, response};
 use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
 use std::sync::Arc;
+use utoipa::OpenApi;
+use utoipa::ToSchema;
 use warp::http::StatusCode;
 use warp::Filter;
+#[derive(OpenApi)]
+#[openapi(paths(sign_in), components(schemas(SignInPayload)), tags(
+(name = "auth", description = "Authorization handlers"),
+))]
+struct ApiDoc;
+api_doc_addon!(ApiDoc);
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct SignInPayload {
     pub public_key: String,
@@ -17,7 +25,16 @@ pub struct SignInPayload {
     pub signature: String,
 }
 
-/// POST /user/sign_in
+#[utoipa::path(
+    post,
+    tag = "auth",
+    path = "/user/sign_in",
+    request_body(content = SignInPayload, description = "Sign In"),
+    responses(
+        (status = 200, body = String),
+        (status = 400),
+    ),
+)]
 pub fn sign_in(
     auth_service: Arc<AuthService>,
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {

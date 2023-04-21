@@ -19,6 +19,7 @@ pub mod cfg;
 pub mod db;
 pub mod handlers;
 pub mod model;
+pub mod schema;
 pub mod services;
 pub mod token;
 pub mod usd_price;

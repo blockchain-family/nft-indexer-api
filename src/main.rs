@@ -18,20 +18,72 @@
 #![recursion_limit = "256"]
 
 use api::cfg::ApiConfig;
+use api::db::enums::{
+    AuctionStatus, DirectBuyState, DirectSellState, NftEventCategory, NftEventType,
+};
 use api::db::queries::Queries;
+use api::handlers;
 use api::handlers::*;
+use api::model::OrderDirection;
+use api::model::*;
+use api::schema::Address;
 use api::services::auth::AuthService;
 use api::token::TokenDict;
 use api::usd_price::CurrencyClient;
+use handlers::auction::ApiDocAddon as AuctionApiDocAddon;
+use handlers::auth::ApiDocAddon as AuthApiDocAddon;
+use handlers::collection::ApiDocAddon as CollectionApiDocAddon;
+use handlers::events::ApiDocAddon as EventApiDocAddon;
+use handlers::metrics::ApiDocAddon as MetricsApiDocAddon;
+use handlers::nft::ApiDocAddon as NftApiDocAddon;
+use handlers::owner::ApiDocAddon as OwnerApiDocAddon;
+use handlers::user::ApiDocAddon as UserApiDocAddon;
+use handlers::ApiDocAddon as ModuleApiDocAddon;
 use std::sync::Arc;
-use warp::{http::StatusCode, Filter};
 
-#[tokio::main(flavor = "current_thread")]
+use utoipa::OpenApi;
+
+use warp::{http::StatusCode, Filter};
+#[derive(OpenApi)]
+#[openapi(
+    components(schemas(
+        Address,
+        Auction,
+        Collection,
+        DirectBuy,
+        DirectSell,
+        Fee,
+        DirectBuyState,
+        NFT,
+        Contract,
+        Price,
+        AuctionBid,
+        DirectSellState,
+        AuctionStatus,
+        OrderDirection,
+        CollectionDetails,
+        CollectionDetailsPreviewMeta, NftEventType, NftEventCategory, Attribute
+    )),
+    info(title="Marketplace API"),
+    modifiers(
+        &AuctionApiDocAddon,
+        &AuthApiDocAddon,
+        &CollectionApiDocAddon,
+        &MetricsApiDocAddon,
+        &EventApiDocAddon,
+        &NftApiDocAddon,
+        &OwnerApiDocAddon,
+        &UserApiDocAddon,
+        &ModuleApiDocAddon
+    )
+)]
+struct ApiDoc;
+
+#[tokio::main]
 async fn main() {
     pretty_env_logger::init();
     log::info!("INDEXER-API SERVICE");
     let cfg = ApiConfig::new().expect("Failed to load config");
-
     let tokens = TokenDict::load()
         .await
         .expect("error loading tokens dictionary");
@@ -51,7 +103,12 @@ async fn main() {
 
     let cors = warp::cors()
         .allow_any_origin()
-        .allow_headers(vec!["authority", "user-agent", "content-type"])
+        .allow_headers(vec![
+            "authority",
+            "user-agent",
+            "content-type",
+            "authorization",
+        ])
         .allow_methods(vec!["GET", "POST", "OPTIONS"]);
 
     let mut cors_headers = warp::http::HeaderMap::new();
@@ -64,13 +121,17 @@ async fn main() {
         warp::http::HeaderValue::from_static("GET, POST, OPTIONS"),
     );
 
+    let api_doc = warp::path("swagger.json")
+        .and(warp::get())
+        .map(|| warp::reply::json(&ApiDoc::openapi()));
+
     let api = warp::any()
         .and(
             warp::options()
                 .map(|| StatusCode::NO_CONTENT)
                 .with(warp::reply::with::headers(cors_headers))
+                .or(api_doc)
                 .or(warp::path!("healthz").map(warp::reply))
-                .or(get_swagger())
                 .or(get_nft(db_service.clone()))
                 .or(get_nft_top_list(db_service.clone()))
                 .or(get_nft_list(db_service.clone()))

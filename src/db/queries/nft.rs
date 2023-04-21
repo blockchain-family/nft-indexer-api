@@ -3,8 +3,9 @@ use crate::db::NftDetails;
 use chrono::NaiveDateTime;
 
 use super::*;
-use crate::handlers::{AttributeFilter, NFTListOrder, OrderDirection};
+use crate::handlers::{AttributeFilter, NFTListOrder};
 
+use crate::model::OrderDirection;
 use sqlx::{self};
 use std::fmt::Write;
 

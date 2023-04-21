@@ -1,14 +1,61 @@
 use crate::db::queries::Queries;
 use crate::db::{NftEventCategory, NftEventType};
+use crate::model::AuctionActive;
+use crate::model::AuctionBidPlaced;
+use crate::model::AuctionCanceled;
+use crate::model::AuctionComplete;
+use crate::model::NftEvent;
+use crate::model::NftEventAuction;
+use crate::model::NftEventDirectBuy;
+use crate::model::NftEventDirectSell;
+use crate::model::NftEventMint;
+use crate::model::NftEventTransfer;
 use crate::model::NftEvents;
-use crate::{catch_error_500, model::SearchResult, response};
+use crate::{api_doc_addon, catch_error_500, model::SearchResult, response};
 use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
+use utoipa::OpenApi;
+use utoipa::ToSchema;
 use warp::http::StatusCode;
 use warp::hyper::body::Bytes;
 use warp::Filter;
+#[derive(OpenApi)]
+#[openapi(
+    paths(search_all, get_events),
+    components(schemas(
+        SearchResult,
+        SearchRes,
+        EventsQuery,
+        NftEvents,
+        NftEvent,
+        NftEventDirectSell,
+        NftEventDirectBuy,
+        NftEventAuction,
+        NftEventMint,
+        NftEventTransfer,
+        AuctionActive,
+        AuctionComplete,
+        AuctionCanceled,
+        AuctionBidPlaced
+    )),
+    tags(
+        (name = "event", description = "Event handlers"),
+    ),
+)]
 
-/// POST /search
+struct ApiDoc;
+api_doc_addon!(ApiDoc);
+
+#[utoipa::path(
+    post,
+    tag = "event",
+    path = "/search",
+    request_body(content = String, description = "Search events"),
+    responses(
+        (status = 200, body = SearchRes),
+        (status = 500),
+    ),
+)]
 pub fn search_all(
     db: Queries,
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
@@ -30,7 +77,16 @@ pub async fn search_all_handler(
     response!(&SearchRes { items, count })
 }
 
-/// POST /events
+#[utoipa::path(
+    post,
+    tag = "event",
+    path = "/events",
+    request_body(content = EventsQuery, description = "List events"),
+    responses(
+        (status = 200, body = NftEvents),
+        (status = 500),
+    ),
+)]
 pub fn get_events(
     db: Queries,
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
@@ -92,7 +148,7 @@ pub async fn get_events_handler(
     response!(&response)
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, ToSchema)]
 pub struct EventsQuery {
     pub owner: Option<String>,
     pub collections: Option<Vec<String>>,
@@ -107,7 +163,7 @@ pub struct EventsQuery {
     pub verified: Option<bool>,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, ToSchema)]
 pub struct SearchRes {
     pub items: Vec<SearchResult>,
     pub count: usize,

@@ -1,23 +1,65 @@
 use crate::db::queries::Queries;
 use crate::db::RootType;
 use crate::model::OwnerFee;
+use crate::schema::VecWithAuctionBids;
+use crate::schema::VecWithDirectBuy;
+use crate::schema::VecWithDirectSell;
 use crate::{
-    catch_error_500,
+    api_doc_addon, catch_error_500,
     db::{Address, DirectBuyState, DirectSellState},
     model::{AuctionBid, DirectBuy, DirectSell, VecWith},
     response,
 };
 use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
+use utoipa::IntoParams;
+use utoipa::OpenApi;
+use utoipa::ToSchema;
 use warp::http::StatusCode;
 use warp::Filter;
+#[derive(OpenApi)]
+#[openapi(
+    paths(
+        get_owner_bids_out,
+        get_owner_bids_in,
+        get_owner_direct_buy,
+        get_owner_direct_buy_in,
+        get_owner_direct_sell,
+        get_fee
+    ),
+    components(schemas(
+        OwnerBidsOutQuery,
+        VecWithAuctionBids,
+        OwnerDirectBuyQuery,
+        OwnerDirectSellQuery,
+        VecWithDirectSell,
+        VecWithDirectBuy,
+        OwnerBidsInQuery,
+        RootType,
+        OwnerFee
+    )),
+    tags(
+        (name = "owner", description = "Owner handlers"),
+    )
+)]
+struct ApiDoc;
+api_doc_addon!(ApiDoc);
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct OwnerParam {
     pub owner: Address,
 }
 
-/// POST /owner/bids-out
+#[utoipa::path(
+    post,
+    tag = "owner",
+    path = "/owner/bids-out",
+    request_body(content = OwnerBidsOutQuery, description = "Get bids out by owner"),
+    responses(
+        (status = 200, body = VecWithAuctionBids),
+        (status = 500),
+    ),
+)]
 pub fn get_owner_bids_out(
     db: Queries,
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
@@ -62,7 +104,7 @@ pub async fn get_owner_bids_out_handler(
     response!(&ret)
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, ToSchema)]
 pub struct OwnerBidsOutQuery {
     pub owner: Address,
     pub collections: Option<Vec<Address>>,
@@ -70,8 +112,16 @@ pub struct OwnerBidsOutQuery {
     pub limit: Option<usize>,
     pub offset: Option<usize>,
 }
-
-/// GET /owner/bids-in
+#[utoipa::path(
+    tag = "owner",
+    post,
+    path = "/owner/bids-in",
+    request_body(content = OwnerBidsInQuery, description = "Get bids in by owner"),
+    responses(
+        (status = 200, body = VecWithAuctionBids),
+        (status = 500),
+    ),
+)]
 pub fn get_owner_bids_in(
     db: Queries,
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
@@ -117,7 +167,7 @@ pub async fn get_owner_bids_in_handler(
     response!(&ret)
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, ToSchema)]
 pub struct OwnerBidsInQuery {
     pub owner: Address,
     pub collections: Option<Vec<Address>>,
@@ -126,7 +176,16 @@ pub struct OwnerBidsInQuery {
     pub offset: Option<usize>,
 }
 
-/// POST /owner/direct/buy
+#[utoipa::path(
+    tag = "owner",
+    post,
+    path = "/owner/direct/buy",
+    request_body(content = OwnerDirectBuyQuery, description = "Get direct buys by owner"),
+    responses(
+        (status = 200, body = VecWithDirectBuy),
+        (status = 500),
+    ),
+)]
 pub fn get_owner_direct_buy(
     db: Queries,
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
@@ -180,7 +239,16 @@ pub async fn get_owner_direct_buy_handler(
     response!(&ret)
 }
 
-/// POST /owner/direct/buy-in
+#[utoipa::path(
+    tag = "owner",
+    post,
+    path = "/owner/direct/buy-in",
+    request_body(content = OwnerDirectBuyQuery, description = "Get NFT direct buy in by owner"),
+    responses(
+        (status = 200, body = VecWithDirectBuy),
+        (status = 500),
+    ),
+)]
 pub fn get_owner_direct_buy_in(
     db: Queries,
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
@@ -233,7 +301,16 @@ pub async fn get_owner_direct_buy_in_handler(
     response!(&ret)
 }
 
-/// POST /owner/direct/sell
+#[utoipa::path(
+    tag = "owner",
+    post,
+    path = "/owner/direct/sell",
+    request_body(content = OwnerDirectSellQuery, description = "Get direct sell by owner"),
+    responses(
+        (status = 200, body = VecWithDirectSell),
+        (status = 500),
+    ),
+)]
 pub fn get_owner_direct_sell(
     db: Queries,
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
@@ -279,14 +356,24 @@ pub async fn get_owner_direct_sell_handler(
     response!(&ret)
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, ToSchema, IntoParams)]
+#[into_params(parameter_in = Query)]
 pub struct OwnerFeeQuery {
     pub owner: Address,
     #[serde(rename = "rootCode")]
     pub root_code: RootType,
 }
 
-/// POST /owner/fee
+#[utoipa::path(
+tag = "owner",
+    get,
+    path = "/owner/fee",
+    params(OwnerFeeQuery),
+    responses(
+        (status = 200, body = OwnerFee),
+        (status = 500),
+    ),
+)]
 pub fn get_fee(
     db: Queries,
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
@@ -307,7 +394,7 @@ pub async fn get_fee_handler(
     response!(&owner_fee)
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, ToSchema)]
 pub struct OwnerDirectSellQuery {
     pub owner: Address,
     pub collections: Option<Vec<Address>>,
@@ -316,7 +403,7 @@ pub struct OwnerDirectSellQuery {
     pub offset: Option<usize>,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, ToSchema)]
 pub struct OwnerDirectBuyQuery {
     pub owner: Address,
     pub collections: Option<Vec<Address>>,

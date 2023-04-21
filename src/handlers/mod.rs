@@ -1,26 +1,27 @@
-mod nft;
+pub mod nft;
 pub use self::nft::*;
 
-mod auction;
+pub mod auction;
 pub use self::auction::*;
 
-mod events;
+pub mod events;
 pub use self::events::*;
 
-mod collection;
+pub mod collection;
 pub use self::collection::*;
 
-mod owner;
+pub mod owner;
 pub use self::owner::*;
 
 pub use self::metrics::*;
-mod metrics;
+pub mod metrics;
 
 pub use self::auth::*;
-mod auth;
+pub mod auth;
 
 pub use self::user::*;
-mod user;
+pub mod user;
+use warp::http::StatusCode;
 
 #[macro_export]
 macro_rules! catch_error_500 {
@@ -77,41 +78,65 @@ macro_rules! response {
     };
 }
 
-use std::convert::Infallible;
-use std::fmt::Display;
-use warp::{
-    http::{Response, StatusCode},
-    Filter,
-};
-
-use crate::db::queries::Queries;
-use crate::model::{Root, Roots};
-use serde::{Deserialize, Serialize};
-
-lazy_static::lazy_static! {
-    static ref SWAGGER: Vec<u8> = {
-        std::fs::read("openapi.yml").expect("cannot read 'openapi.yml' from disk")
+#[macro_export]
+macro_rules! api_doc_addon {
+    ($addon:ty) => {
+        use utoipa::openapi::Components;
+        use utoipa::Modify;
+        pub struct ApiDocAddon;
+        impl Modify for ApiDocAddon {
+            fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
+                let mut addon = <$addon>::openapi();
+                openapi.paths.paths.append(&mut addon.paths.paths);
+                if openapi.tags.is_none() {
+                    openapi.tags = Some(vec![]);
+                }
+                if let Some(tags) = openapi.tags.as_mut() {
+                    if let Some(addon_tags) = addon.tags.as_mut() {
+                        tags.append(addon_tags);
+                    }
+                }
+                if openapi.components.is_none() {
+                    openapi.components = Some(Components::new());
+                }
+                if let Some(components) = openapi.components.as_mut() {
+                    if let Some(addon_components) = addon.components.as_mut() {
+                        components.schemas.append(&mut addon_components.schemas);
+                    }
+                }
+            }
+        }
     };
 }
 
-/// GET /swagger
-pub fn get_swagger() -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone
-{
-    warp::path!("swagger")
-        .and(warp::get())
-        .and_then(get_swagger_handler)
-}
+use std::convert::Infallible;
 
-async fn get_swagger_handler() -> Result<impl warp::Reply, Infallible> {
-    Ok(Box::from(warp::reply::with_status(
-        Response::builder()
-            .header("Content-Type", "application/yaml")
-            .body::<&[u8]>(SWAGGER.as_ref()),
-        StatusCode::OK,
-    )))
-}
+use crate::db::queries::Queries;
+use crate::model::{Root, Roots};
 
-/// POST /roots
+use utoipa::OpenApi;
+use warp::Filter;
+
+#[derive(OpenApi)]
+#[openapi(
+    paths(list_roots),
+    components(schemas(Roots, Root)),
+    tags(
+        (name = "service", description = "Service handlers"),
+    )
+)]
+struct ApiDoc;
+api_doc_addon!(ApiDoc);
+
+#[utoipa::path(
+    get,
+    tag = "service",
+    path = "/roots",
+    responses(
+        (status = 200, body = Roots),
+        (status = 500),
+    ),
+)]
 pub fn list_roots(
     db: Queries,
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
@@ -123,24 +148,6 @@ pub fn list_roots(
 
 pub async fn list_roots_handler(db: Queries) -> Result<Box<dyn warp::Reply>, Infallible> {
     let list = catch_error_500!(db.list_roots().await);
-
     let roots: Vec<Root> = list.into_iter().map(Root::from).collect();
     response!(&Roots { roots })
-}
-
-#[derive(Clone, Deserialize, Serialize)]
-pub enum OrderDirection {
-    #[serde(rename = "asc")]
-    Asc,
-    #[serde(rename = "desc")]
-    Desc,
-}
-
-impl Display for OrderDirection {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            OrderDirection::Asc => write!(f, "asc"),
-            OrderDirection::Desc => write!(f, "desc"),
-        }
-    }
 }

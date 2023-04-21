@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter};
 
 use serde::{Deserialize, Serialize};
-
+use utoipa::ToSchema;
 #[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type)]
 #[sqlx(type_name = "event_type", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
@@ -46,7 +46,7 @@ pub enum EventCategory {
     Collection,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type)]
+#[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type, ToSchema)]
 #[sqlx(type_name = "auction_status", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum AuctionStatus {
@@ -56,7 +56,7 @@ pub enum AuctionStatus {
     Expired,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type)]
+#[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type, ToSchema)]
 #[sqlx(type_name = "direct_sell_state", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum DirectSellState {
@@ -68,7 +68,7 @@ pub enum DirectSellState {
     Expired,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type)]
+#[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type, ToSchema)]
 #[sqlx(type_name = "direct_buy_state", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum DirectBuyState {
@@ -92,7 +92,7 @@ pub enum NftPriceSource {
     DirectSell,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type)]
+#[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type, ToSchema)]
 #[sqlx(type_name = "t_root_types")]
 #[serde(rename_all = "snake_case")]
 pub enum RootType {
@@ -104,7 +104,7 @@ pub enum RootType {
     Sell,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type)]
+#[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type, ToSchema)]
 #[sqlx(type_name = "event_category", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum NftEventCategory {
@@ -115,7 +115,7 @@ pub enum NftEventCategory {
     Nft,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type)]
+#[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type, ToSchema)]
 #[sqlx(type_name = "event_category")]
 #[serde(rename_all = "snake_case")]
 pub enum NftEventType {
