@@ -24,7 +24,7 @@ use api::usd_price::CurrencyClient;
 use std::sync::Arc;
 use warp::{http::StatusCode, Filter};
 
-#[tokio::main(flavor = "current_thread")]
+#[tokio::main(flavor = "multi_thread", worker_threads = 16)]
 async fn main() {
     pretty_env_logger::init();
     log::info!("INDEXER-API SERVICE");
