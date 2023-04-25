@@ -155,6 +155,7 @@ async fn main() {
                 .or(search_all(db_service.clone()))
                 .or(get_fee(db_service.clone()))
                 .or(get_user_by_address(db_service.clone()))
+                .or(upsert_user(db_service.clone()))
                 .or(sign_in(auth_service.clone())),
         )
         .with(cors);

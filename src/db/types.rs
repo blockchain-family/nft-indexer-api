@@ -364,4 +364,5 @@ pub struct UserRecord {
     pub facebook: Option<String>,
     pub link: Option<String>,
     pub email: Option<String>,
+    pub avatar_url: Option<String>,
 }

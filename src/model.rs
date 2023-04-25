@@ -787,6 +787,7 @@ pub struct UserDto {
     pub facebook: Option<String>,
     pub link: Option<String>,
     pub email: Option<String>,
+    pub avatar_url: Option<String>,
 }
 
 impl From<UserRecord> for UserDto {
@@ -801,6 +802,7 @@ impl From<UserRecord> for UserDto {
             facebook: value.facebook,
             link: value.link,
             email: value.email,
+            avatar_url: value.avatar_url,
         }
     }
 }
