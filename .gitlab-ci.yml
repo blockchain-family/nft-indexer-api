@@ -12,7 +12,7 @@ stages:
 
 cloudbuild:image:api:
   only:
-    - dev
+    - dev2
   except:
     - tags
   extends: .cloudbuild:common
@@ -38,7 +38,7 @@ stop:api:
 
 deploy:venom-stage:
   only:
-    - dev
+    - dev2
   extends: .deploy
   variables:
     APP_CONFIG: venom
@@ -48,7 +48,7 @@ deploy:venom-stage:
 
 stop:venom-stage:
   only:
-    - dev
+    - dev2
   extends: .stop
   variables:
     APP_CONFIG: venom
