@@ -26,7 +26,8 @@ use warp::{http::StatusCode, Filter};
 
 #[tokio::main(flavor = "multi_thread", worker_threads = 16)]
 async fn main() {
-    pretty_env_logger::init();
+    dotenv::dotenv().ok();
+    stackdriver_logger::init_with_cargo!();
     log::info!("INDEXER-API SERVICE");
     let cfg = ApiConfig::new().expect("Failed to load config");
     log::info!(
