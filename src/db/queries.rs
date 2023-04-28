@@ -631,20 +631,28 @@ impl Queries {
     ) -> sqlx::Result<Vec<NftDetails>> {
         sqlx::query_as(
             r#"
-                select ag.* from (
-                SELECT n.*,
-                    n."auction_status: _" as auction_status,
-                    n."forsale_status: _" as forsale_status,
-                    0::int8 total_count
-                    FROM nft_details n
-                    INNER JOIN nft_collection c ON n.collection = c.address
-                    WHERE n.burned = false
-                    and c.verified = true and n."forsale_status: _" = 'active'
-                    and exists(select 1 from nft_direct_sell nds where nds.nft = n.address and nds.created <= now() and (now() <= nds.expired_at or nds.expired_at = '1970-01-01 00:00:00.000000') and nds.state = 'active')
-                    and n.floor_price <= $1
-                    ) ag
-                order by random()
-                limit $2
+                select nd.*,
+                       nd."auction_status: _" as auction_status,
+                       nd."forsale_status: _" as forsale_status,
+                       0::int8                   total_count
+                from (
+                         SELECT n.*
+
+                         FROM nft n
+                                  JOIN nft_collection c ON n.collection = c.address
+                                  join nft_direct_sell nds
+                                       on nds.nft = n.address and nds.created <= now() and
+                                          (now() <= nds.expired_at or nds.expired_at = '1970-01-01 00:00:00.000000')
+                                           and nds.state = 'active'
+                                            and nds.price <= $1
+                         WHERE n.burned = false
+                           and c.verified = true
+                         order by random()
+                         limit $2
+                     ) ag
+                         join nft_details nd
+                              on nd.address = ag.address
+
             "#,
         )
         .bind(max_price)
