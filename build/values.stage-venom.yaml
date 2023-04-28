@@ -13,6 +13,7 @@ service:
 
 autoscaling:
   enabled: true
+  minReplicas: 5
 
 ingress:
   enabled: true
