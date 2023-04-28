@@ -18,6 +18,13 @@ pub struct MetricsSummaryQuery {
     pub offset: i64,
 }
 
+#[derive(Debug, Clone, Deserialize, Serialize, Hash)]
+pub struct MetricsSummaryQueryCache {
+    pub name: String,
+    pub limit: i64,
+    pub offset: i64,
+}
+
 /// GET /metrics/summary
 pub fn get_metrics_summary(
     db: Queries,
@@ -36,7 +43,12 @@ pub async fn metrics_summary_handler(
     db: Queries,
     cache: Cache<u64, Value>,
 ) -> Result<Box<dyn warp::Reply>, Infallible> {
-    let hash = calculate_hash(&query);
+    let query_cache = MetricsSummaryQueryCache{
+        name: "MetricsSummaryQueryCache".to_string(),
+        limit: query.limit,
+        offset: query.offset
+    };
+    let hash = calculate_hash(&query_cache);
     let cached_value = cache.get(&hash);
 
     let response;
