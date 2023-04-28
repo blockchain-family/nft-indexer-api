@@ -645,6 +645,7 @@ impl Queries {
                                           (now() <= nds.expired_at or nds.expired_at = '1970-01-01 00:00:00.000000')
                                            and nds.state = 'active'
                                             and nds.price <= $1
+                                  join events_whitelist ew on nds.address = ew.address
                          WHERE n.burned = false
                            and c.verified = true
                          order by random()
