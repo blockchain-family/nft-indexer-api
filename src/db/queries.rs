@@ -631,16 +631,20 @@ impl Queries {
     ) -> sqlx::Result<Vec<NftDetails>> {
         sqlx::query_as(
             r#"
+                select ag.* from (
                 SELECT n.*,
-                n."auction_status: _" as auction_status,
-                n."forsale_status: _" as forsale_status,
-                0::int8 total_count
-                FROM nft_details n
-                INNER JOIN nft_collection c ON n.collection = c.address
-                WHERE n.burned = false
-                and c.verified = true and n."forsale_status: _" = 'active'
-                and c.created <= now()
-                and n.floor_price <= $1
+                    n."auction_status: _" as auction_status,
+                    n."forsale_status: _" as forsale_status,
+                    0::int8 total_count
+                    FROM nft_details n
+                    INNER JOIN nft_collection c ON n.collection = c.address
+                    WHERE n.burned = false
+                    and c.verified = true and n."forsale_status: _" = 'active'
+                    and c.created <= now()
+                    and n.floor_price <= $1
+                    limit 50
+                    ) ag
+                order by random()
                 limit $2
             "#,
         )

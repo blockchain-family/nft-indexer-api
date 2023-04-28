@@ -74,8 +74,8 @@ async fn main() {
         .build();
 
     let cache_3_sec = Cache::builder()
-        .time_to_live(Duration::from_secs(10))
-        .time_to_idle(Duration::from_secs(10))
+        .time_to_live(Duration::from_secs(3))
+        .time_to_idle(Duration::from_secs(3))
         .build();
 
     let cache_30_sec = Cache::builder()
