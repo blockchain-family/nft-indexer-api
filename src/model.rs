@@ -673,14 +673,14 @@ struct NftEventTransfer {
     to: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct MetricsSummaryBase {
     total_rows_count: i32,
     data: Vec<MetricsSummary>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 struct MetricsSummary {
     pub collection: String,

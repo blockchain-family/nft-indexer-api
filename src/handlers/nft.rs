@@ -218,6 +218,13 @@ pub struct NFTTopListQuery {
     pub offset: i64,
 }
 
+#[derive(Clone, Deserialize, Serialize, Hash)]
+struct NFTTopListQueryCache {
+    pub limit: i64,
+    pub offset: i64,
+}
+
+
 /// POST /nfts/
 pub fn get_nft_list(
     db: Queries,
@@ -351,7 +358,8 @@ pub async fn get_nft_top_list_handler(
     db: Queries,
     cache: Cache<u64, Value>,
 ) -> Result<Box<dyn warp::Reply>, Infallible> {
-    let hash = calculate_hash(&params);
+    let params_cache = NFTTopListQueryCache{ limit: params.limit, offset: params.offset };
+    let hash = calculate_hash(&params_cache);
     let cached_value = cache.get(&hash);
 
     let response;
