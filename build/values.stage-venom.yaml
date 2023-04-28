@@ -11,6 +11,9 @@ controller: statefulset
 service:
   port: 8080
 
+autoscaling:
+  enabled: true
+
 ingress:
   enabled: true
   hosts:
