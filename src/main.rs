@@ -68,6 +68,16 @@ async fn main() {
         .time_to_idle(Duration::from_secs(60))
         .build();
 
+    let cache_10_sec = Cache::builder()
+        .time_to_live(Duration::from_secs(10))
+        .time_to_idle(Duration::from_secs(10))
+        .build();
+
+    let cache_30_sec = Cache::builder()
+        .time_to_live(Duration::from_secs(30))
+        .time_to_idle(Duration::from_secs(30))
+        .build();
+
     let api = warp::any()
         .and(
             warp::options()
@@ -77,7 +87,7 @@ async fn main() {
                 .or(get_swagger())
                 .or(get_nft(service.clone()))
                 .or(get_nft_top_list(service.clone(), cache_minute.clone()))
-                .or(get_nft_list(service.clone()))
+                .or(get_nft_list(service.clone(), cache_10_sec.clone()))
                 .or(get_nft_direct_buy(service.clone()))
                 .or(get_nft_price_history(service.clone()))
                 .or(list_collections(service.clone(), cache_minute.clone()))
@@ -92,7 +102,7 @@ async fn main() {
                 .or(get_auctions(service.clone()))
                 .or(get_auction(service.clone()))
                 .or(get_auction_bids(service.clone()))
-                .or(get_events(service.clone()))
+                .or(get_events(service.clone(), cache_30_sec))
                 .or(get_metrics_summary(service.clone()))
                 .or(list_roots(service.clone()))
                 .or(search_all(service.clone()))

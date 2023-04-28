@@ -221,11 +221,13 @@ pub struct NFTTopListQuery {
 /// POST /nfts/
 pub fn get_nft_list(
     db: Queries,
+    cache: Cache<u64, Value>,
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path!("nfts")
         .and(warp::post())
         .and(warp::body::json::<NFTListQuery>())
         .and(warp::any().map(move || db.clone()))
+        .and(warp::any().map(move || cache.clone()))
         .and_then(get_nft_list_handler)
 }
 
@@ -258,48 +260,62 @@ pub async fn get_nft_top_list_handler(
 pub async fn get_nft_list_handler(
     params: NFTListQuery,
     db: Queries,
+    cache: Cache<u64, Value>,
 ) -> Result<Box<dyn warp::Reply>, Infallible> {
-    let owners = params.owners.as_deref().unwrap_or(&[]);
-    let collections = params.collections.as_deref().unwrap_or(&[]);
-    let verified = Some(params.verified.unwrap_or(true));
-    let offset = params.offset.unwrap_or_default();
-    let with_count = params.with_count.unwrap_or(false);
-    let limit = params.limit.unwrap_or(100);
+    let hash = calculate_hash(&params);
+    let cached_value = cache.get(&hash);
 
-    let final_limit = match with_count {
-        true => limit,
-        false => limit + 1,
-    };
+    let response;
+    match cached_value {
+        None => {
+            let owners = params.owners.as_deref().unwrap_or(&[]);
+            let collections = params.collections.as_deref().unwrap_or(&[]);
+            let verified = Some(params.verified.unwrap_or(true));
+            let offset = params.offset.unwrap_or_default();
+            let with_count = params.with_count.unwrap_or(false);
+            let limit = params.limit.unwrap_or(100);
 
-    let list = catch_error!(
-        db.nft_search(
-            owners,
-            collections,
-            params.price_from,
-            params.price_to,
-            params.price_token,
-            params.forsale,
-            params.auction,
-            verified,
-            final_limit,
-            offset,
-            &params.attributes.unwrap_or_default(),
-            params.order,
-            with_count,
-        )
-        .await
-    );
+            let final_limit = match with_count {
+                true => limit,
+                false => limit + 1,
+            };
 
-    let mut response = catch_error!(make_nfts_response(list, db).await);
+            let list = catch_error!(
+                db.nft_search(
+                    owners,
+                    collections,
+                    params.price_from,
+                    params.price_to,
+                    params.price_token,
+                    params.forsale,
+                    params.auction,
+                    verified,
+                    final_limit,
+                    offset,
+                    &params.attributes.unwrap_or_default(),
+                    params.order,
+                    with_count,
+                )
+                .await
+            );
 
-    if !with_count {
-        if response.items.len() < final_limit {
-            response.count = (response.items.len() + offset) as i64
-        } else {
-            response.items.pop();
-            response.count = (response.items.len() + offset + 1) as i64;
+            let mut r = catch_error!(make_nfts_response(list, db).await);
+
+            if !with_count {
+                if r.items.len() < final_limit {
+                    r.count = (r.items.len() + offset) as i64
+                } else {
+                    r.items.pop();
+                    r.count = (r.items.len() + offset + 1) as i64;
+                }
+            }
+            response = r;
+            let value_for_cache = serde_json::to_value(response.clone()).unwrap();
+            cache.insert(hash, value_for_cache).await;
         }
+        Some(cached_value) => response = serde_json::from_value(cached_value).unwrap(),
     }
+
     response!(&response)
 }
 

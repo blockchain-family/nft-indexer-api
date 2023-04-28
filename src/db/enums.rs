@@ -104,7 +104,7 @@ pub enum RootType {
     Sell,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type)]
+#[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type, Hash)]
 #[sqlx(type_name = "event_category", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum NftEventCategory {
@@ -115,7 +115,7 @@ pub enum NftEventCategory {
     Nft,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type)]
+#[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type, Hash)]
 #[sqlx(type_name = "event_category")]
 #[serde(rename_all = "snake_case")]
 pub enum NftEventType {
