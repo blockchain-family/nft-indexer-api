@@ -435,6 +435,8 @@ pub enum NFTListOrderField {
     FloorPriceUsd,
     #[serde(rename = "dealPriceUsd")]
     DealPriceUsd,
+    #[serde(rename = "name")]
+    Name,
 }
 
 impl Display for NFTListOrderField {
@@ -442,6 +444,7 @@ impl Display for NFTListOrderField {
         match self {
             NFTListOrderField::FloorPriceUsd => write!(f, "floor_price_usd"),
             NFTListOrderField::DealPriceUsd => write!(f, "deal_price_usd"),
+            NFTListOrderField::Name => write!(f, "name"),
         }
     }
 }

@@ -1,5 +1,5 @@
 use super::*;
-use crate::handlers::{AttributeFilter, CollectionListOrder, NFTListOrder, OrderDirection};
+use crate::handlers::{AttributeFilter, CollectionListOrder, NFTListOrder, NFTListOrderField, OrderDirection};
 use crate::{handlers::AuctionsSortOrder, token::TokenDict};
 use chrono::NaiveDateTime;
 use sqlx::{self, postgres::PgPool};
@@ -591,7 +591,14 @@ impl Queries {
                         let _ = write!(sql, "order by n.{field}, n.name");
                     }
                     OrderDirection::Desc => {
-                        let _ = write!(sql, "order by coalesce(n.{field}, 0) desc, n.name desc");
+                        match order.field {
+                            NFTListOrderField::Name => {
+                                let _ = write!(sql, "order by n.name desc");
+                            },
+                            _ => {
+                                let _ = write!(sql, "order by coalesce(n.{field}, 0) desc, n.name desc");
+                            }
+                        }
                     }
                 }
             }

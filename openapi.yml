@@ -1096,6 +1096,7 @@ paths:
                       enum:
                         - floorPriceUsd
                         - dealPriceUsd
+                        - name
                     direction:
                       type: string
                       enum:
