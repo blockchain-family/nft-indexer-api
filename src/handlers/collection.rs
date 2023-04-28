@@ -1,14 +1,16 @@
 use crate::db::{Address, Queries};
-use crate::handlers::OrderDirection;
+use crate::handlers::{calculate_hash, OrderDirection};
 use crate::model::{Collection, CollectionDetails, CollectionSimple, VecWithTotal};
 use crate::{catch_empty, catch_error, response};
+use moka::future::Cache;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::fmt::Display;
 use std::{collections::HashMap, convert::Infallible};
 use warp::http::StatusCode;
 use warp::Filter;
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize, Hash)]
 pub enum CollectionListOrderField {
     #[serde(rename = "firstMint")]
     FirstMint,
@@ -22,13 +24,13 @@ impl Display for CollectionListOrderField {
     }
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize, Hash)]
 pub struct CollectionListOrder {
     pub field: CollectionListOrderField,
     pub direction: OrderDirection,
 }
 
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Deserialize, Hash)]
 pub struct ListCollectionsParams {
     pub name: Option<String>,
     pub owners: Option<Vec<String>>,
@@ -42,41 +44,57 @@ pub struct ListCollectionsParams {
 /// POST /collections
 pub fn list_collections(
     db: Queries,
+    cache: Cache<u64, Value>,
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path!("collections")
         .and(warp::post())
         .and(warp::body::json::<ListCollectionsParams>())
         .and(warp::any().map(move || db.clone()))
+        .and(warp::any().map(move || cache.clone()))
         .and_then(list_collections_handler)
 }
 
 pub async fn list_collections_handler(
     params: ListCollectionsParams,
     db: Queries,
+    cache: Cache<u64, Value>,
 ) -> Result<Box<dyn warp::Reply>, Infallible> {
-    let owners = params.owners.as_deref().unwrap_or(&[]);
-    let verified = Some(params.verified.unwrap_or(true));
-    let name = params.name.as_ref();
-    let collections = params.collections.as_deref().unwrap_or(&[]);
-    let limit = params.limit.unwrap_or(100);
-    let offset = params.offset.unwrap_or_default();
+    let hash = calculate_hash(&params);
+    let cached_value = cache.get(&hash);
 
-    let list = catch_error!(
-        db.list_collections(
-            name,
-            owners,
-            verified.as_ref(),
-            collections,
-            limit,
-            offset,
-            params.order,
-        )
-        .await
-    );
+    let ret;
+    match cached_value {
+        None => {
+            let owners = params.owners.as_deref().unwrap_or(&[]);
+            let verified = Some(params.verified.unwrap_or(true));
+            let name = params.name.as_ref();
+            let collections = params.collections.as_deref().unwrap_or(&[]);
+            let limit = params.limit.unwrap_or(100);
+            let offset = params.offset.unwrap_or_default();
 
-    let count = list.first().map(|it| it.cnt).unwrap_or_default();
-    let ret: Vec<CollectionDetails> = list.into_iter().map(CollectionDetails::from_db).collect();
-    let ret = VecWithTotal { count, items: ret };
+            let list = catch_error!(
+                db.list_collections(
+                    name,
+                    owners,
+                    verified.as_ref(),
+                    collections,
+                    limit,
+                    offset,
+                    params.order,
+                )
+                .await
+            );
+
+            let count = list.first().map(|it| it.cnt).unwrap_or_default();
+            let items: Vec<CollectionDetails> =
+                list.into_iter().map(CollectionDetails::from_db).collect();
+            ret = VecWithTotal { count, items };
+            let value_for_cache = serde_json::to_value(ret.clone()).unwrap();
+            cache.insert(hash, value_for_cache).await;
+        }
+        Some(cached_value) => ret = serde_json::from_value(cached_value).unwrap(),
+    }
+
     response!(&ret)
 }
 
@@ -85,7 +103,7 @@ pub struct CollectionParam {
     pub collection: Address,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Hash)]
 pub struct ListCollectionsSimpleParams {
     pub name: Option<String>,
     pub verified: Option<bool>,
@@ -96,31 +114,47 @@ pub struct ListCollectionsSimpleParams {
 /// POST /collections/simple
 pub fn list_collections_simple(
     db: Queries,
+    cache: Cache<u64, Value>,
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path!("collections" / "simple")
         .and(warp::post())
         .and(warp::body::json::<ListCollectionsSimpleParams>())
         .and(warp::any().map(move || db.clone()))
+        .and(warp::any().map(move || cache.clone()))
         .and_then(list_collections_simple_handler)
 }
 
 pub async fn list_collections_simple_handler(
     params: ListCollectionsSimpleParams,
     db: Queries,
+    cache: Cache<u64, Value>,
 ) -> Result<Box<dyn warp::Reply>, Infallible> {
-    let verified = Some(params.verified.unwrap_or(true));
-    let name = params.name.as_ref();
-    let limit = params.limit.unwrap_or(100);
-    let offset = params.offset.unwrap_or_default();
-    let list = catch_error!(
-        db.list_collections_simple(name, verified.as_ref(), limit, offset)
-            .await
-    );
+    let hash = calculate_hash(&params);
+    let cached_value = cache.get(&hash);
 
-    let count = list.first().map(|it| it.cnt).unwrap_or_default();
-    let ret: Vec<CollectionSimple> = list.into_iter().map(CollectionSimple::from_db).collect();
+    let ret;
+    match cached_value {
+        None => {
+            let verified = Some(params.verified.unwrap_or(true));
+            let name = params.name.as_ref();
+            let limit = params.limit.unwrap_or(100);
+            let offset = params.offset.unwrap_or_default();
+            let list = catch_error!(
+                db.list_collections_simple(name, verified.as_ref(), limit, offset)
+                    .await
+            );
 
-    let ret = VecWithTotal { count, items: ret };
+            let count = list.first().map(|it| it.cnt).unwrap_or_default();
+            let items: Vec<CollectionSimple> =
+                list.into_iter().map(CollectionSimple::from_db).collect();
+
+            ret = VecWithTotal { count, items };
+            let value_for_cache = serde_json::to_value(ret.clone()).unwrap();
+            cache.insert(hash, value_for_cache).await;
+        }
+        Some(cached_value) => ret = serde_json::from_value(cached_value).unwrap(),
+    }
+
     response!(&ret)
 }
 

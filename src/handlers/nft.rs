@@ -1,5 +1,5 @@
 use crate::db::NftDetails;
-use crate::handlers::OrderDirection;
+use crate::handlers::{calculate_hash, OrderDirection};
 use crate::model::{DirectBuy, NFTPrice, NftTrait, VecWith, NFT};
 use crate::{
     catch_empty, catch_error,
@@ -8,10 +8,13 @@ use crate::{
     response,
 };
 use chrono::NaiveDateTime;
+use moka::future::Cache;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::collections::HashMap;
 use std::convert::Infallible;
 use std::fmt::{Display, Formatter};
+use std::hash::Hash;
 use warp::http::StatusCode;
 use warp::Filter;
 
@@ -199,14 +202,16 @@ pub async fn get_nft_price_history_handler(
 /// POST /nfts/top
 pub fn get_nft_top_list(
     db: Queries,
+    cache: Cache<u64, Value>,
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path!("nfts" / "top")
         .and(warp::post())
         .and(warp::body::json::<NFTTopListQuery>())
         .and(warp::any().map(move || db.clone()))
+        .and(warp::any().map(move || cache.clone()))
         .and_then(get_nft_top_list_handler)
 }
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize, Hash)]
 pub struct NFTTopListQuery {
     pub from: i64,
     pub limit: i64,
@@ -227,11 +232,23 @@ pub fn get_nft_list(
 pub async fn get_nft_top_list_handler(
     params: NFTTopListQuery,
     db: Queries,
+    cache: Cache<u64, Value>,
 ) -> Result<Box<dyn warp::Reply>, Infallible> {
-    let from = NaiveDateTime::from_timestamp(params.from, 0);
-    let list = catch_error!(db.nft_top_search(from, params.limit, params.offset).await);
+    let hash = calculate_hash(&params);
+    let cached_value = cache.get(&hash);
 
-    let response = catch_error!(make_nfts_response(list, db).await);
+    let response;
+    match cached_value {
+        None => {
+            let from = NaiveDateTime::from_timestamp(params.from, 0);
+            let list = catch_error!(db.nft_top_search(from, params.limit, params.offset).await);
+            response = catch_error!(make_nfts_response(list, db).await);
+            let value_for_cache = serde_json::to_value(response.clone()).unwrap();
+            cache.insert(hash, value_for_cache).await;
+        }
+        Some(cached_value) => response = serde_json::from_value(cached_value).unwrap(),
+    }
+
     Ok(Box::from(warp::reply::with_status(
         warp::reply::json(&response),
         StatusCode::OK,

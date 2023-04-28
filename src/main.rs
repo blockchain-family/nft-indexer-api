@@ -21,7 +21,9 @@ use api::db::Queries;
 use api::handlers::*;
 use api::token::TokenDict;
 use api::usd_price::CurrencyClient;
+use moka::future::Cache;
 use std::sync::Arc;
+use std::time::Duration;
 use warp::{http::StatusCode, Filter};
 
 #[tokio::main(flavor = "multi_thread", worker_threads = 16)]
@@ -61,6 +63,11 @@ async fn main() {
         warp::http::HeaderValue::from_static("GET, POST, OPTIONS"),
     );
 
+    let cache_minute = Cache::builder()
+        .time_to_live(Duration::from_secs(60))
+        .time_to_idle(Duration::from_secs(60))
+        .build();
+
     let api = warp::any()
         .and(
             warp::options()
@@ -69,12 +76,12 @@ async fn main() {
                 .or(warp::path!("healthz").map(warp::reply))
                 .or(get_swagger())
                 .or(get_nft(service.clone()))
-                .or(get_nft_top_list(service.clone()))
+                .or(get_nft_top_list(service.clone(), cache_minute.clone()))
                 .or(get_nft_list(service.clone()))
                 .or(get_nft_direct_buy(service.clone()))
                 .or(get_nft_price_history(service.clone()))
-                .or(list_collections(service.clone()))
-                .or(list_collections_simple(service.clone()))
+                .or(list_collections(service.clone(), cache_minute.clone()))
+                .or(list_collections_simple(service.clone(), cache_minute))
                 .or(get_collection(service.clone()))
                 .or(get_collections_by_owner(service.clone()))
                 .or(get_owner_bids_out(service.clone()))

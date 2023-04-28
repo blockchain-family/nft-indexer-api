@@ -1,5 +1,7 @@
 mod nft;
+
 pub use self::nft::*;
+use std::collections::hash_map::DefaultHasher;
 
 mod auction;
 pub use self::auction::*;
@@ -59,6 +61,7 @@ macro_rules! response {
 
 use std::convert::Infallible;
 use std::fmt::Display;
+use std::hash::{Hash, Hasher};
 use warp::{
     http::{Response, StatusCode},
     Filter,
@@ -123,4 +126,10 @@ impl Display for OrderDirection {
             OrderDirection::Desc => write!(f, "desc"),
         }
     }
+}
+
+pub fn calculate_hash<T: Hash>(t: &T) -> u64 {
+    let mut s = DefaultHasher::new();
+    t.hash(&mut s);
+    s.finish()
 }
