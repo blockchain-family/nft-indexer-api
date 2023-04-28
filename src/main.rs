@@ -78,11 +78,6 @@ async fn main() {
         .time_to_idle(Duration::from_secs(1))
         .build();
 
-    let cache_30_sec = Cache::builder()
-        .time_to_live(Duration::from_secs(30))
-        .time_to_idle(Duration::from_secs(30))
-        .build();
-
     let api = warp::any()
         .and(
             warp::options()
@@ -108,7 +103,7 @@ async fn main() {
                 .or(get_auctions(service.clone()))
                 .or(get_auction(service.clone()))
                 .or(get_auction_bids(service.clone()))
-                .or(get_events(service.clone(), cache_30_sec))
+                .or(get_events(service.clone(), cache_1_sec))
                 .or(get_metrics_summary(service.clone()))
                 .or(list_roots(service.clone()))
                 .or(search_all(service.clone()))
