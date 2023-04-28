@@ -640,7 +640,7 @@ impl Queries {
                     INNER JOIN nft_collection c ON n.collection = c.address
                     WHERE n.burned = false
                     and c.verified = true and n."forsale_status: _" = 'active'
-                    and c.created <= now()
+                    and exists(select 1 from nft_direct_sell nds where nds.nft = n.address and nds.created <= now() and (now() <= nds.expired_at or nds.expired_at = '1970-01-01 00:00:00.000000') and nds.state = 'active')
                     and n.floor_price <= $1
                     limit 50
                     ) ag
