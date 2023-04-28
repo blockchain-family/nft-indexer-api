@@ -231,32 +231,6 @@ pub fn get_nft_list(
         .and_then(get_nft_list_handler)
 }
 
-pub async fn get_nft_top_list_handler(
-    params: NFTTopListQuery,
-    db: Queries,
-    cache: Cache<u64, Value>,
-) -> Result<Box<dyn warp::Reply>, Infallible> {
-    let hash = calculate_hash(&params);
-    let cached_value = cache.get(&hash);
-
-    let response;
-    match cached_value {
-        None => {
-            let from = NaiveDateTime::from_timestamp(params.from, 0);
-            let list = catch_error!(db.nft_top_search(from, params.limit, params.offset).await);
-            response = catch_error!(make_nfts_response(list, db).await);
-            let value_for_cache = serde_json::to_value(response.clone()).unwrap();
-            cache.insert(hash, value_for_cache).await;
-        }
-        Some(cached_value) => response = serde_json::from_value(cached_value).unwrap(),
-    }
-
-    Ok(Box::from(warp::reply::with_status(
-        warp::reply::json(&response),
-        StatusCode::OK,
-    )))
-}
-
 pub async fn get_nft_list_handler(
     params: NFTListQuery,
     db: Queries,
@@ -317,6 +291,85 @@ pub async fn get_nft_list_handler(
     }
 
     response!(&response)
+}
+
+#[derive(Clone, Deserialize, Serialize, Hash)]
+#[serde(rename_all = "camelCase")]
+pub struct NFTListRandomBuyQuery {
+    pub max_price: i64,
+    pub limit: i32,
+}
+
+/// POST /nfts/random-buy
+pub fn get_nft_random_list(
+    db: Queries,
+    cache: Cache<u64, Value>,
+) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
+    warp::path!("nfts" / "random-buy")
+        .and(warp::post())
+        .and(warp::body::json::<NFTListRandomBuyQuery>())
+        .and(warp::any().map(move || db.clone()))
+        .and(warp::any().map(move || cache.clone()))
+        .and_then(get_nft_random_list_handler)
+}
+
+pub async fn get_nft_random_list_handler(
+    params: NFTListRandomBuyQuery,
+    db: Queries,
+    cache: Cache<u64, Value>,
+) -> Result<Box<dyn warp::Reply>, Infallible> {
+    let hash = calculate_hash(&params);
+    let cached_value = cache.get(&hash);
+
+    let response;
+    match cached_value {
+        None => {
+            let mut limit = params.limit;
+            if limit > 30 {
+                limit = 30
+            }
+            let max_price = params.max_price;
+
+            let list = catch_error!(db.nft_random_buy(max_price, limit).await);
+
+            let mut r = catch_error!(make_nfts_response(list, db).await);
+
+            r.count = r.items.len() as i64;
+
+            response = r;
+            let value_for_cache = serde_json::to_value(response.clone()).unwrap();
+            cache.insert(hash, value_for_cache).await;
+        }
+        Some(cached_value) => response = serde_json::from_value(cached_value).unwrap(),
+    }
+
+    response!(&response)
+}
+
+pub async fn get_nft_top_list_handler(
+    params: NFTTopListQuery,
+    db: Queries,
+    cache: Cache<u64, Value>,
+) -> Result<Box<dyn warp::Reply>, Infallible> {
+    let hash = calculate_hash(&params);
+    let cached_value = cache.get(&hash);
+
+    let response;
+    match cached_value {
+        None => {
+            let from = NaiveDateTime::from_timestamp(params.from, 0);
+            let list = catch_error!(db.nft_top_search(from, params.limit, params.offset).await);
+            response = catch_error!(make_nfts_response(list, db).await);
+            let value_for_cache = serde_json::to_value(response.clone()).unwrap();
+            cache.insert(hash, value_for_cache).await;
+        }
+        Some(cached_value) => response = serde_json::from_value(cached_value).unwrap(),
+    }
+
+    Ok(Box::from(warp::reply::with_status(
+        warp::reply::json(&response),
+        StatusCode::OK,
+    )))
 }
 
 async fn make_nfts_response(list: Vec<NftDetails>, db: Queries) -> anyhow::Result<VecWith<NFT>> {

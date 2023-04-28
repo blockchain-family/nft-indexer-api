@@ -617,6 +617,32 @@ impl Queries {
             .await
     }
 
+    pub async fn nft_random_buy(
+        &self,
+        max_price: i64,
+        limit: i32,
+    ) -> sqlx::Result<Vec<NftDetails>> {
+        sqlx::query_as(
+            r#"
+                SELECT n.*,
+                n."auction_status: _" as auction_status,
+                n."forsale_status: _" as forsale_status,
+                0::int8 total_count
+                FROM nft_details n
+                INNER JOIN nft_collection c ON n.collection = c.address
+                WHERE n.burned = false
+                and c.verified = true and n."forsale_status: _" = 'active'
+                and c.created <= now()
+                and n.floor_price <= $1
+                limit $2
+            "#,
+        )
+        .bind(max_price)
+        .bind(limit)
+        .fetch_all(self.db.as_ref())
+        .await
+    }
+
     pub async fn get_nft_auction(&self, address: &String) -> sqlx::Result<Option<NftAuction>> {
         sqlx::query_as!(
             NftAuction,
