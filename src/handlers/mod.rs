@@ -108,7 +108,7 @@ pub async fn list_roots_handler(db: Queries) -> Result<Box<dyn warp::Reply>, Inf
     response!(&Roots { roots })
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize, Hash)]
 pub enum OrderDirection {
     #[serde(rename = "asc")]
     Asc,

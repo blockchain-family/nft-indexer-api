@@ -534,16 +534,20 @@ impl Queries {
             and n.burned = false
             and (($3::bool is null and $4::bool is null)
                 or ($3::bool is not null and $4::bool is not null
-                    and (($4::bool and n.forsale is not null and n."forsale_status: _" = 'active') or (not $4::bool and n.forsale is null)
+                    and (($4::bool and n.forsale is not null and n."forsale_status: _" = 'active' and exists (
+                        select 1 from nft_direct_sell nds where nds.nft = n.address and nds.created <= now() and nds.state = 'active'
+                    )) or (not $4::bool and n.forsale is null)
                     or ($3::bool and n.auction is not null and n."auction_status: _" = 'active') or (not $3::bool and n.auction is null))
                 )
                 or (
                     $3::bool is null
-                    and (($4::bool and n.forsale is not null and n."forsale_status: _" = 'active') or (not $4::bool and n.forsale is null))
+                    and (($4::bool and n.forsale is not null and n."forsale_status: _" = 'active'  and exists (
+                        select 1 from nft_direct_sell nds where nds.nft = n.address and nds.created <= now() and nds.state = 'active'
+                    )) or (not $4::bool and n.forsale is null))
                 )
                 or (
                     $4::bool is null
-                    and (($3::bool and n.auction is not null and n."auction_status: _" = 'active') or (not $3::bool and n.auction is null))
+                    and (($3::bool and n.auction is not null and n."auction_status: _" = 'active' ) or (not $3::bool and n.auction is null))
                 )
             )
             and ($5::boolean is false OR c.verified is true)

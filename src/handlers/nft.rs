@@ -314,7 +314,7 @@ async fn make_nfts_response(list: Vec<NftDetails>, db: Queries) -> anyhow::Resul
     })
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, Hash)]
 pub struct AttributeFilter {
     #[serde(rename = "traitType")]
     pub trait_type: String,
@@ -322,7 +322,7 @@ pub struct AttributeFilter {
     pub trait_values: Vec<String>,
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize, Hash)]
 pub struct NFTListQuery {
     pub owners: Option<Vec<String>>,
     pub collections: Option<Vec<String>>,
@@ -343,7 +343,7 @@ pub struct NFTListQuery {
     pub with_count: Option<bool>,
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize, Hash)]
 pub enum NFTListOrderField {
     #[serde(rename = "floorPriceUsd")]
     FloorPriceUsd,
@@ -360,7 +360,7 @@ impl Display for NFTListOrderField {
     }
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize, Hash)]
 pub struct NFTListOrder {
     pub field: NFTListOrderField,
     pub direction: OrderDirection,
