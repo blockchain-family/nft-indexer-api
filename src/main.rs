@@ -68,6 +68,11 @@ async fn main() {
         .time_to_idle(Duration::from_secs(60))
         .build();
 
+    let cache_5_minutes = Cache::builder()
+        .time_to_live(Duration::from_secs(60 * 5))
+        .time_to_idle(Duration::from_secs(60 * 5))
+        .build();
+
     let cache_10_sec = Cache::builder()
         .time_to_live(Duration::from_secs(10))
         .time_to_idle(Duration::from_secs(10))
@@ -91,8 +96,12 @@ async fn main() {
                 .or(get_nft_random_list(service.clone(), cache_1_sec.clone()))
                 .or(get_nft_direct_buy(service.clone()))
                 .or(get_nft_price_history(service.clone()))
+                .or(get_nft_sell_count(service.clone(), cache_5_minutes))
                 .or(list_collections(service.clone(), cache_minute.clone()))
-                .or(list_collections_simple(service.clone(), cache_minute.clone()))
+                .or(list_collections_simple(
+                    service.clone(),
+                    cache_minute.clone(),
+                ))
                 .or(get_collection(service.clone()))
                 .or(get_collections_by_owner(service.clone()))
                 .or(get_owner_bids_out(service.clone()))

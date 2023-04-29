@@ -1,14 +1,14 @@
 use crate::db::Queries;
+use crate::handlers::calculate_hash;
 use crate::model::MetricsSummaryBase;
 use crate::{catch_error, response};
 use chrono::NaiveDateTime;
-use serde::{Deserialize, Serialize};
-use std::convert::Infallible;
 use moka::future::Cache;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::convert::Infallible;
 use warp::http::StatusCode;
 use warp::Filter;
-use crate::handlers::calculate_hash;
 
 #[derive(Debug, Clone, Deserialize, Serialize, Hash)]
 pub struct MetricsSummaryQuery {
@@ -43,10 +43,10 @@ pub async fn metrics_summary_handler(
     db: Queries,
     cache: Cache<u64, Value>,
 ) -> Result<Box<dyn warp::Reply>, Infallible> {
-    let query_cache = MetricsSummaryQueryCache{
+    let query_cache = MetricsSummaryQueryCache {
         name: "MetricsSummaryQueryCache".to_string(),
         limit: query.limit,
-        offset: query.offset
+        offset: query.offset,
     };
     let hash = calculate_hash(&query_cache);
     let cached_value = cache.get(&hash);

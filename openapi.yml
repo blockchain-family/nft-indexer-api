@@ -1187,6 +1187,30 @@ paths:
                 required:
                   - totalCount
                   - items
+  /nfts/sell-count:
+    get:
+      parameters:
+        - in: query
+          name: maxPrice
+          schema:
+            type: integer
+            format: int64
+          required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                  timestamp:
+                    type: integer
+                required:
+                  - count
+                  - timestamp
   /nfts/top:
     post:
       operationId: listTopNFT

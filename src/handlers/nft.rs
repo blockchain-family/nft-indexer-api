@@ -224,7 +224,6 @@ struct NFTTopListQueryCache {
     pub offset: i64,
 }
 
-
 /// POST /nfts/
 pub fn get_nft_list(
     db: Queries,
@@ -353,12 +352,66 @@ pub async fn get_nft_random_list_handler(
     response!(&response)
 }
 
+#[derive(Clone, Deserialize, Serialize, Hash)]
+#[serde(rename_all = "camelCase")]
+pub struct NFTSellCountQuery {
+    pub max_price: i64,
+}
+
+#[derive(Clone, Deserialize, Serialize, Hash)]
+#[serde(rename_all = "camelCase")]
+pub struct NFTSellCountResponse {
+    pub count: i64,
+    pub timestamp: i64,
+}
+
+/// POST /nfts/sell-count
+pub fn get_nft_sell_count(
+    db: Queries,
+    cache: Cache<u64, Value>,
+) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
+    warp::path!("nfts" / "sell-count")
+        .and(warp::get())
+        .and(warp::body::json::<NFTSellCountQuery>())
+        .and(warp::any().map(move || db.clone()))
+        .and(warp::any().map(move || cache.clone()))
+        .and_then(get_nft_sell_count_handler)
+}
+
+pub async fn get_nft_sell_count_handler(
+    params: NFTSellCountQuery,
+    db: Queries,
+    cache: Cache<u64, Value>,
+) -> Result<Box<dyn warp::Reply>, Infallible> {
+    let hash = calculate_hash(&params);
+    let cached_value = cache.get(&hash);
+    let response;
+    match cached_value {
+        None => {
+            let max_price = params.max_price;
+            let sell_count = catch_error!(db.nft_sell_count(max_price).await).unwrap_or_default();
+            response = NFTSellCountResponse {
+                count: sell_count,
+                timestamp: chrono::offset::Utc::now().naive_utc().timestamp(),
+            };
+            let value_for_cache = serde_json::to_value(response.clone()).unwrap();
+            cache.insert(hash, value_for_cache).await;
+        }
+        Some(cached_value) => response = serde_json::from_value(cached_value).unwrap(),
+    }
+
+    response!(&response)
+}
+
 pub async fn get_nft_top_list_handler(
     params: NFTTopListQuery,
     db: Queries,
     cache: Cache<u64, Value>,
 ) -> Result<Box<dyn warp::Reply>, Infallible> {
-    let params_cache = NFTTopListQueryCache{ limit: params.limit, offset: params.offset };
+    let params_cache = NFTTopListQueryCache {
+        limit: params.limit,
+        offset: params.offset,
+    };
     let hash = calculate_hash(&params_cache);
     let cached_value = cache.get(&hash);
 

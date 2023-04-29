@@ -1,5 +1,7 @@
 use super::*;
-use crate::handlers::{AttributeFilter, CollectionListOrder, NFTListOrder, NFTListOrderField, OrderDirection};
+use crate::handlers::{
+    AttributeFilter, CollectionListOrder, NFTListOrder, NFTListOrderField, OrderDirection,
+};
 use crate::{handlers::AuctionsSortOrder, token::TokenDict};
 use chrono::NaiveDateTime;
 use sqlx::{self, postgres::PgPool};
@@ -590,16 +592,15 @@ impl Queries {
                     OrderDirection::Asc => {
                         let _ = write!(sql, "order by n.{field}, n.name");
                     }
-                    OrderDirection::Desc => {
-                        match order.field {
-                            NFTListOrderField::Name => {
-                                let _ = write!(sql, "order by n.name desc");
-                            },
-                            _ => {
-                                let _ = write!(sql, "order by coalesce(n.{field}, 0) desc, n.name desc");
-                            }
+                    OrderDirection::Desc => match order.field {
+                        NFTListOrderField::Name => {
+                            let _ = write!(sql, "order by n.name desc");
                         }
-                    }
+                        _ => {
+                            let _ =
+                                write!(sql, "order by coalesce(n.{field}, 0) desc, n.name desc");
+                        }
+                    },
                 }
             }
         };
@@ -659,6 +660,27 @@ impl Queries {
         .bind(max_price)
         .bind(limit)
         .fetch_all(self.db.as_ref())
+        .await
+    }
+
+    pub async fn nft_sell_count(&self, max_price: i64) -> sqlx::Result<Option<i64>> {
+        sqlx::query_scalar!(
+            r#"
+            SELECT count(1)
+                FROM nft n
+                         JOIN nft_collection c ON n.collection = c.address
+                         join nft_direct_sell nds
+                              on nds.nft = n.address and nds.created <= now() and
+                                 (now() <= nds.expired_at or nds.expired_at = '1970-01-01 00:00:00.000000')
+                                  and nds.state = 'active'
+                                  and nds.price <= $1::int8
+                         join events_whitelist ew on nds.address = ew.address
+                WHERE n.burned = false
+                  and c.verified = true
+           "#,
+            max_price
+        )
+        .fetch_one(self.db.as_ref())
         .await
     }
 
@@ -1241,6 +1263,25 @@ impl Queries {
     }
 
     pub async fn get_metrics_summary(
+        &self,
+        from: NaiveDateTime,
+        to: NaiveDateTime,
+        limit: i64,
+        offset: i64,
+    ) -> sqlx::Result<Vec<MetricsSummaryRecord>> {
+        sqlx::query_file_as!(
+            MetricsSummaryRecord,
+            "src/db/sql/metrics_summary.sql",
+            from,
+            to,
+            limit,
+            offset
+        )
+        .fetch_all(self.db.as_ref())
+        .await
+    }
+
+    pub async fn nfts(
         &self,
         from: NaiveDateTime,
         to: NaiveDateTime,
