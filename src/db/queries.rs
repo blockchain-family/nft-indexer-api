@@ -483,13 +483,13 @@ impl Queries {
                                          join events_whitelist ew on na.address = ew.address
                                          where n.address = na.nft
                                            and na.state = 'filled'
-                                           and na.finished_at >= $1) ds on true
+                                           and na.updated >= $1) ds on true
                      left join lateral ( select count(1) as cnt
                                          from nft_direct_buy na
                                          join events_whitelist ew on na.address = ew.address
                                          where n.address = na.nft
                                            and na.state = 'filled'
-                                           and na.finished_at >= $1) db on true
+                                           and na.updated >= $1) db on true
                 where n.updated >= $1
                 and auc.cnt + ds.cnt + db.cnt > 0
                 order by auc.cnt + ds.cnt + db.cnt desc, n.updated desc, n.address desc
