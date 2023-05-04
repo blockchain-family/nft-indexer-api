@@ -98,7 +98,7 @@ pub async fn list_collections_handler(
     response!(&ret)
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Hash)]
 pub struct CollectionParam {
     pub collection: Address,
 }
@@ -161,21 +161,36 @@ pub async fn list_collections_simple_handler(
 /// POST /collection/details
 pub fn get_collection(
     db: Queries,
+    cache: Cache<u64, Value>,
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path!("collection" / "details")
         .and(warp::post())
         .and(warp::body::json::<CollectionParam>())
         .and(warp::any().map(move || db.clone()))
+        .and(warp::any().map(move || cache.clone()))
         .and_then(get_collection_handler)
 }
 
 pub async fn get_collection_handler(
     param: CollectionParam,
     db: Queries,
+    cache: Cache<u64, Value>,
 ) -> Result<Box<dyn warp::Reply>, Infallible> {
-    let col = catch_error!(db.get_collection(&param.collection).await);
-    let col = catch_empty!(col, "");
-    let ret = CollectionDetails::from_db(col);
+    let hash = calculate_hash(&param);
+    let cached_value = cache.get(&hash);
+
+    let ret;
+    match cached_value {
+        None => {
+            let col = catch_error!(db.get_collection(&param.collection).await);
+            let col = catch_empty!(col, "");
+            ret = CollectionDetails::from_db(col);
+            let value_for_cache = serde_json::to_value(ret.clone()).unwrap();
+            cache.insert(hash, value_for_cache).await;
+        }
+        Some(cached_value) => ret = serde_json::from_value(cached_value).unwrap(),
+    }
+
     response!(&ret)
 }
 

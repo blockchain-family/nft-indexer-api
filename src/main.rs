@@ -102,7 +102,7 @@ async fn main() {
                     service.clone(),
                     cache_minute.clone(),
                 ))
-                .or(get_collection(service.clone()))
+                .or(get_collection(service.clone(), cache_5_minutes.clone()))
                 .or(get_collections_by_owner(service.clone()))
                 .or(get_owner_bids_out(service.clone()))
                 .or(get_owner_bids_in(service.clone()))
