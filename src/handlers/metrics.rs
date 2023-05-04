@@ -36,6 +36,9 @@ pub async fn metrics_summary_handler(
     db: Queries,
     cache: Cache<u64, Value>,
 ) -> Result<Box<dyn warp::Reply>, Infallible> {
+    let mut query = query;
+    query.from = (query.from / 300) * 300;
+    query.to = (query.to / 300) * 300;
 
     let hash = calculate_hash(&query);
     let cached_value = cache.get(&hash);

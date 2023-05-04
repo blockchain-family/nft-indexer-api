@@ -96,8 +96,8 @@ async fn main() {
                 .or(get_nft_random_list(service.clone(), cache_1_sec.clone()))
                 .or(get_nft_direct_buy(service.clone()))
                 .or(get_nft_price_history(service.clone()))
-                .or(get_nft_sell_count(service.clone(), cache_5_minutes))
-                .or(list_collections(service.clone(), cache_minute.clone()))
+                .or(get_nft_sell_count(service.clone(), cache_5_minutes.clone()))
+                .or(list_collections(service.clone(), cache_5_minutes.clone()))
                 .or(list_collections_simple(
                     service.clone(),
                     cache_minute.clone(),
@@ -113,7 +113,7 @@ async fn main() {
                 .or(get_auction(service.clone()))
                 .or(get_auction_bids(service.clone()))
                 .or(get_events(service.clone(), cache_1_sec))
-                .or(get_metrics_summary(service.clone(), cache_minute))
+                .or(get_metrics_summary(service.clone(), cache_5_minutes))
                 .or(list_roots(service.clone()))
                 .or(search_all(service.clone()))
                 .or(get_fee(service.clone())),
