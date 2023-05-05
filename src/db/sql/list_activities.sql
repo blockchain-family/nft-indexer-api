@@ -69,17 +69,18 @@ with result as (
                         ne.args ->> 'buyer',
                         ne.args ->> 'seller',
                         ne.args ->> 'old_owner',
-                        ne.args ->> 'new_owner',
-                        auction.args ->> 'subject_owner',
-                        direct_buy_chaned_owner.old_owner,
-                        direct_sell_chaned_owner.new_owner
+                        ne.args ->> 'new_owner'
+--                        ,
+--                        auction.args ->> 'subject_owner',
+--                        direct_buy_chaned_owner.old_owner,
+--                        direct_sell_chaned_owner.new_owner
                 )
             or $3 is null))
       and (exists(select 1 from  events_whitelist ew where ne.address = ew.address ) or (ne.event_type in ('nft_owner_changed', 'nft_created')))
       and (ne.nft = $4 or $4 is null)
       and (n.collection = any ($5) or $5 = '{}')
-      and n.collection in ('0:ec0ab798c85aa7256865221bacd4f3df220cf60277a2b79b3091b76c265d1cd7', '0:d62691c79f447f512d7ad235a291435a8a886debff1b72dfc3ff5e486798d96e',
-                           '0:33a630f9c54fc4092f43ab978f3fd65964bb0d775553c16953aa1568eb63ab0f', '0:7eb6488246ba08f88fe8779e9257ca9ebc7d2f82f6111ce6747abda368e3c7a8')
+--      and n.collection in ('0:ec0ab798c85aa7256865221bacd4f3df220cf60277a2b79b3091b76c265d1cd7', '0:d62691c79f447f512d7ad235a291435a8a886debff1b72dfc3ff5e486798d96e',
+--                           '0:33a630f9c54fc4092f43ab978f3fd65964bb0d775553c16953aa1568eb63ab0f', '0:7eb6488246ba08f88fe8779e9257ca9ebc7d2f82f6111ce6747abda368e3c7a8')
 
       and (ne.event_cat::text = any ($1) or $1 = '{}')
       and (

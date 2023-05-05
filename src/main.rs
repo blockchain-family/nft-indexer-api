@@ -112,7 +112,7 @@ async fn main() {
                 .or(get_auctions(service.clone()))
                 .or(get_auction(service.clone()))
                 .or(get_auction_bids(service.clone()))
-                .or(get_events(service.clone(), cache_1_sec))
+                .or(get_events(service.clone(), cache_minute))
                 .or(get_metrics_summary(service.clone(), cache_5_minutes))
                 .or(list_roots(service.clone()))
                 .or(search_all(service.clone()))
