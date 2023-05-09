@@ -187,6 +187,77 @@
     },
     "query": "\n                 select ag.dt as \"ts!\", (price * tup.usd_price) as \"usd_price!\"\n                 from (\n                 select t.finished_at dt, t.price_token, t.price\n                 from nft_direct_sell t\n                 join events_whitelist ew on t.address = ew.address\n                 where t.nft = $1\n                   and t.finished_at between $2 and $3\n                   and t.state = 'filled'\n                 union all\n                 select t.finished_at, t.price_token, t.price\n                 from nft_direct_buy t\n                 join events_whitelist ew on t.address = ew.address\n                 where t.nft = $1\n                   and t.finished_at between $2 and $3\n                   and t.state = 'filled'\n                 union all\n                 select t.finished_at, t.price_token, t.max_bid\n                 from nft_auction t\n                 join events_whitelist ew on t.address = ew.address\n                 where t.nft = $1\n                   and t.finished_at between $2 and $3\n                   and t.status = 'completed') as ag\n                 join token_usd_prices tup\n                      on tup.token = ag.price_token\n                      where (price * tup.usd_price) is not null\n                 order by 1\n            "
   },
+  "0cc2655cdbad6cfdb31d5b62a40481fc2227be2cd2e8d69d10fbd1d5e3692bf7": {
+    "describe": {
+      "columns": [
+        {
+          "name": "collection!",
+          "ordinal": 0,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "logo",
+          "ordinal": 2,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "floor_price",
+          "ordinal": 3,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "total_volume_usd_now!",
+          "ordinal": 4,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "total_volume_usd_previous!",
+          "ordinal": 5,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "owners_count!",
+          "ordinal": 6,
+          "type_info": "Int4"
+        },
+        {
+          "name": "nfts_count!",
+          "ordinal": 7,
+          "type_info": "Int4"
+        },
+        {
+          "name": "total_rows_count!",
+          "ordinal": 8,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false,
+        true,
+        true,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Timestamp",
+          "Timestamp",
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "with periods as (\n    select $1::timestamp as date_from, $2::timestamp as date_to, 'current' as period_type\n    union all\n    select $1::timestamp - ($2::timestamp - $1::timestamp)::interval as date_from,\n           $1::timestamp - interval '1 seconds'                      as date_to,\n           'previous'                                                as period_type\n)\nselect c.address                             as        \"collection!\",\n       c.name,\n       c.logo,\n       least(direct_sell.price_usd, auction.price_usd) \"floor_price\",\n       coalesce(total_volume.cur, 0)         as        \"total_volume_usd_now!\",\n       coalesce(total_volume.prev, 0)        as        \"total_volume_usd_previous!\",\n       coalesce(c.owners_count, 0)::integer  as        \"owners_count!\",\n       coalesce(nft_counter.cnt, 0)::integer as        \"nfts_count!\",\n       (count(1) over ())::integer           as        \"total_rows_count!\"\nfrom nft_collection c\n         left join lateral (select min(case\n                                           when n.address is not null then tup.usd_price * na.min_bid\n                                           else 0 end) as price_usd\n                            from nft_auction na\n                                     join events_whitelist ew on ew.address = na.address\n                                     join nft n\n                                          on n.address = na.nft\n                                              and n.collection = c.address and not n.burned\n                                     left join token_usd_prices tup\n                                               on tup.token = na.price_token\n                            where na.status = 'active'\n    ) as auction on true\n         left join lateral (select min(\n                                           case when n.address is not null then tup.usd_price * ds.price else 0 end) as price_usd\n\n                            from nft_direct_sell ds\n                                     join events_whitelist ew on ew.address = ds.address\n                                     join nft n\n                                          on n.address = ds.nft\n                                              and n.collection = c.address and not n.burned\n                                     left join token_usd_prices tup\n                                               on tup.token = ds.price_token\n                            where ds.state = 'active'\n    ) as direct_sell on true\n\n         left join lateral (\n    select count(1) cnt\n    from nft n\n    where n.burned = false\n      and n.collection = c.address ) as nft_counter on true\n         left join lateral (\n    select sum(case when ag.period_type = 'current' then ag.price_usd else 0 end)  cur,\n           sum(case when ag.period_type = 'previous' then ag.price_usd else 0 end) prev\n    from (\n             select p.period_type,\n                    case when n.address is not null then tup.usd_price * ndb.price else 0 end as price_usd\n             from periods p\n                      left join nft_direct_buy ndb\n                                on ndb.updated between p.date_from and p.date_to\n                                    and ndb.state = 'filled'\n                      left join events_whitelist ew on ew.address = ndb.address\n\n                      left join token_usd_prices tup\n                                on tup.token = ndb.price_token\n                      left join nft n on ndb.nft = n.address and n.collection = c.address and not n.burned and ew.address is not null\n\n             union all\n             select p.period_type,\n                    case when n.address is not null then tup.usd_price * nds.price else 0 end as price_usd\n             from periods p\n                      left join nft_direct_sell nds\n                                on nds.state = 'filled'\n                                    and nds.updated between p.date_from and p.date_to\n                      left join token_usd_prices tup on tup.token = nds.price_token\n                      left join events_whitelist ew on ew.address = nds.address\n                      left join nft n on nds.nft = n.address and n.collection = c.address and not n.burned and ew.address is not null\n             union all\n             select p.period_type,\n                    case when n.address is not null then tup.usd_price * na.max_bid else 0 end as price_usd\n             from periods p\n                      left join public.nft_auction na\n                                on na.status = 'completed'\n                                    and na.finished_at between p.date_from and p.date_to\n                      left join events_whitelist ew on ew.address = na.address\n                      left join nft n on na.nft = n.address and not n.burned and ew.address is not null\n                 and n.collection = c.address\n                      left join token_usd_prices tup\n                                on tup.token = na.price_token\n         ) as ag\n    ) as total_volume on true\nwhere c.verified = true\norder by coalesce(total_volume.cur, 0) desc\nlimit $3 offset $4"
+  },
   "0e817af2f6b0d1db48d2551845b1aba5432edebe82877a7139886112a6250acf": {
     "describe": {
       "columns": [
@@ -2377,77 +2448,6 @@
       }
     },
     "query": "\n            SELECT\n            x.auction as \"auction!\",\n            x.buyer as \"buyer!\",\n            x.price as \"price!\",\n            x.price_token,\n            x.created_at as \"created_at!\",\n            x.next_bid_value,\n            x.tx_lt,\n            x.active,\n            x.usd_price,\n            x.next_bid_usd_value,\n            x.nft,\n            x.collection,\n             count (1) over () as \"cnt!\"\n            FROM nft_auction_bids_view x\n                join nft n on x.nft = n.address\n                and (x.collection = ANY($2) OR array_length($2::varchar[], 1) is null)\n            WHERE x.owner = $1\n                and (x.active = true OR ($3::bool IS NULL OR $3::bool = false))\n            ORDER BY x.created_at DESC LIMIT $4 OFFSET $5\n        "
-  },
-  "a09934f783ec19ff84e4ae692d607bcf9725b6e32f906de24c5adb84ec02d7ee": {
-    "describe": {
-      "columns": [
-        {
-          "name": "collection!",
-          "ordinal": 0,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "name",
-          "ordinal": 1,
-          "type_info": "Text"
-        },
-        {
-          "name": "logo",
-          "ordinal": 2,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "floor_price",
-          "ordinal": 3,
-          "type_info": "Numeric"
-        },
-        {
-          "name": "total_volume_usd_now!",
-          "ordinal": 4,
-          "type_info": "Numeric"
-        },
-        {
-          "name": "total_volume_usd_previous!",
-          "ordinal": 5,
-          "type_info": "Numeric"
-        },
-        {
-          "name": "owners_count!",
-          "ordinal": 6,
-          "type_info": "Int4"
-        },
-        {
-          "name": "nfts_count!",
-          "ordinal": 7,
-          "type_info": "Int4"
-        },
-        {
-          "name": "total_rows_count!",
-          "ordinal": 8,
-          "type_info": "Int4"
-        }
-      ],
-      "nullable": [
-        false,
-        true,
-        true,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "Timestamp",
-          "Timestamp",
-          "Int8",
-          "Int8"
-        ]
-      }
-    },
-    "query": "with periods as (\n    select $1::timestamp as date_from, $2::timestamp as date_to, 'current' as period_type\n    union all\n    select $1::timestamp - ($2::timestamp - $1::timestamp)::interval as date_from,\n           $1::timestamp - interval '1 seconds'                      as date_to,\n           'previous'                                                as period_type\n)\nselect c.address                             as        \"collection!\",\n       c.name,\n       c.logo,\n       least(direct_sell.price_usd, auction.price_usd) \"floor_price\",\n       coalesce(total_volume.cur, 0)         as        \"total_volume_usd_now!\",\n       coalesce(total_volume.prev, 0)        as        \"total_volume_usd_previous!\",\n       coalesce(c.owners_count, 0)::integer  as        \"owners_count!\",\n       coalesce(nft_counter.cnt, 0)::integer as        \"nfts_count!\",\n       (count(1) over ())::integer           as        \"total_rows_count!\"\nfrom nft_collection c\n         left join lateral (select min(case\n                                           when n.address is not null then tup.usd_price * na.min_bid\n                                           else 0 end) as price_usd\n                            from nft_auction na\n                                     join events_whitelist ew on ew.address = na.address\n                                     join nft n\n                                          on n.address = na.nft\n                                              and n.collection = c.address and not n.burned\n                                     left join token_usd_prices tup\n                                               on tup.token = na.price_token\n                            where na.status = 'active'\n    ) as auction on true\n         left join lateral (select min(\n                                           case when n.address is not null then tup.usd_price * ds.price else 0 end) as price_usd\n\n                            from nft_direct_sell ds\n                                     join events_whitelist ew on ew.address = ds.address\n                                     join nft n\n                                          on n.address = ds.nft\n                                              and n.collection = c.address and not n.burned\n                                     left join token_usd_prices tup\n                                               on tup.token = ds.price_token\n                            where ds.state = 'active'\n    ) as direct_sell on true\n\n         left join lateral (\n    select count(1) cnt\n    from nft n\n    where n.burned = false\n      and n.collection = c.address ) as nft_counter on true\n         left join lateral (\n    select sum(case when ag.period_type = 'current' then ag.price_usd else 0 end)  cur,\n           sum(case when ag.period_type = 'previous' then ag.price_usd else 0 end) prev\n    from (\n             select p.period_type,\n                    case when n.address is not null then tup.usd_price * ndb.price else 0 end as price_usd\n             from periods p\n                      left join nft_direct_buy ndb\n                                on ndb.finished_at between p.date_from and p.date_to\n                                    and ndb.state = 'filled'\n                      left join events_whitelist ew on ew.address = ndb.address\n\n                      left join token_usd_prices tup\n                                on tup.token = ndb.price_token\n                      left join nft n on ndb.nft = n.address and n.collection = c.address and not n.burned and ew.address is not null\n\n             union all\n             select p.period_type,\n                    case when n.address is not null then tup.usd_price * nds.price else 0 end as price_usd\n             from periods p\n                      left join nft_direct_sell nds\n                                on nds.state = 'filled'\n                                    and nds.finished_at between p.date_from and p.date_to\n                      left join token_usd_prices tup on tup.token = nds.price_token\n                      left join events_whitelist ew on ew.address = nds.address\n                      left join nft n on nds.nft = n.address and n.collection = c.address and not n.burned and ew.address is not null\n             union all\n             select p.period_type,\n                    case when n.address is not null then tup.usd_price * na.max_bid else 0 end as price_usd\n             from periods p\n                      left join public.nft_auction na\n                                on na.status = 'completed'\n                                    and na.finished_at between p.date_from and p.date_to\n                      left join events_whitelist ew on ew.address = na.address\n                      left join nft n on na.nft = n.address and not n.burned and ew.address is not null\n                 and n.collection = c.address\n                      left join token_usd_prices tup\n                                on tup.token = na.price_token\n         ) as ag\n    ) as total_volume on true\nwhere c.verified = true\norder by coalesce(total_volume.cur, 0) desc\nlimit $3 offset $4"
   },
   "a4e5336b8d46f435eb0036f6939b71cde2ecf9dbe6b158ee1770f8c551bc1445": {
     "describe": {
