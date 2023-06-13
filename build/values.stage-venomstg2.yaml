@@ -23,7 +23,7 @@ ingress:
         - path: /
           pathType: ImplementationSpecific
   tls:
-    - secretName: indexer-api-venom-tls
+    - secretName: indexer-api-venom-stg2-tls
       hosts:
         - indexer-api-venom-stg2.bf.works
 
