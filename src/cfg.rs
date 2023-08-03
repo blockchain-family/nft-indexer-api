@@ -15,7 +15,7 @@ fn default_url() -> String {
 }
 
 fn default_max_connections() -> u32 {
-    1
+    30
 }
 
 #[derive(Debug, Deserialize, Clone)]

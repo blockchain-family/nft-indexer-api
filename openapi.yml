@@ -1096,6 +1096,7 @@ paths:
                       enum:
                         - floorPriceUsd
                         - dealPriceUsd
+                        - name
                     direction:
                       type: string
                       enum:
@@ -1138,6 +1139,78 @@ paths:
                 required:
                   - totalCount
                   - items
+  /nfts/random-buy:
+    post:
+      operationId: listRandomBuyNFT
+      requestBody:
+        required: true
+        content:
+          'application/json':
+            schema:
+              type: object
+              properties:
+                maxPrice:
+                  type: integer
+                  format: int64
+                limit:
+                  type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  totalCount:
+                    type: integer
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/nft'
+                  collection:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/collection'
+                  auction:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/auction'
+                  directSell:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/directSell'
+                  directBuy:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/directBuy'
+                required:
+                  - totalCount
+                  - items
+  /nfts/sell-count:
+    get:
+      parameters:
+        - in: query
+          name: maxPrice
+          schema:
+            type: integer
+            format: int64
+          required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                  timestamp:
+                    type: integer
+                required:
+                  - count
+                  - timestamp
   /nfts/top:
     post:
       operationId: listTopNFT
