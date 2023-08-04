@@ -447,6 +447,13 @@ components:
         - nft
         - bidToken
         - fee
+    royalty:
+      type: object
+      properties:
+        description:
+          type: string
+        royaltyType:
+          type: string
     auctionStatus:
       type: string
       enum:
@@ -504,6 +511,8 @@ components:
               $ref: '#/components/schemas/address'
             nftId:
               $ref: '#/components/schemas/address'
+            royalty:
+              $ref: '#/components/schemas/royalty'
           required:
             - image
             - collection
