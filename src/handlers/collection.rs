@@ -89,10 +89,13 @@ pub async fn list_collections_handler(
             let items: Vec<CollectionDetails> =
                 list.into_iter().map(CollectionDetails::from_db).collect();
             ret = VecWithTotal { count, items };
-            let value_for_cache = serde_json::to_value(ret.clone()).unwrap();
+            let value_for_cache =
+                serde_json::to_value(ret.clone()).expect("Failed serializing cached value");
             cache.insert(hash, value_for_cache).await;
         }
-        Some(cached_value) => ret = serde_json::from_value(cached_value).unwrap(),
+        Some(cached_value) => {
+            ret = serde_json::from_value(cached_value).expect("Failed parsing cached value")
+        }
     }
 
     response!(&ret)
@@ -149,10 +152,13 @@ pub async fn list_collections_simple_handler(
                 list.into_iter().map(CollectionSimple::from_db).collect();
 
             ret = VecWithTotal { count, items };
-            let value_for_cache = serde_json::to_value(ret.clone()).unwrap();
+            let value_for_cache =
+                serde_json::to_value(ret.clone()).expect("Failed serializing cached value");
             cache.insert(hash, value_for_cache).await;
         }
-        Some(cached_value) => ret = serde_json::from_value(cached_value).unwrap(),
+        Some(cached_value) => {
+            ret = serde_json::from_value(cached_value).expect("Failed parsing cached value")
+        }
     }
 
     response!(&ret)
@@ -185,10 +191,13 @@ pub async fn get_collection_handler(
             let col = catch_error!(db.get_collection(&param.collection).await);
             let col = catch_empty!(col, "");
             ret = CollectionDetails::from_db(col);
-            let value_for_cache = serde_json::to_value(ret.clone()).unwrap();
+            let value_for_cache =
+                serde_json::to_value(ret.clone()).expect("Failed serializing cached value");
             cache.insert(hash, value_for_cache).await;
         }
-        Some(cached_value) => ret = serde_json::from_value(cached_value).unwrap(),
+        Some(cached_value) => {
+            ret = serde_json::from_value(cached_value).expect("Failed parsing cached value")
+        }
     }
 
     response!(&ret)

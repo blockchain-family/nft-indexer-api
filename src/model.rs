@@ -1,4 +1,6 @@
-use crate::db::{MetaRoyalty, MetricsSummaryRecord, NftEventType, NftTraitRecord, OwnerFeeRecord, RootRecord};
+use crate::db::{
+    MetaRoyalty, MetricsSummaryRecord, NftEventType, NftTraitRecord, OwnerFeeRecord, RootRecord,
+};
 use crate::{
     db::{Address, AuctionStatus, DirectBuyState, DirectSellState, EventCategory, EventType},
     token::TokenDict,
@@ -342,7 +344,7 @@ impl NFT {
             deal_price_usd: nft.deal_price_usd.map(|it| it.to_string()),
             floor_price,
             nft_id: nft.nft_id,
-            royalty: parsed.royalty
+            royalty: parsed.royalty,
         }
     }
 }

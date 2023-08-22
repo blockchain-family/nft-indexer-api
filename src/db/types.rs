@@ -107,7 +107,7 @@ pub struct NftCollectionDetails {
     pub verified: Option<bool>,
     pub wallpaper: Option<String>,
     pub logo: Option<String>,
-    pub owners_count: Option<i32>,
+    pub owners_count: Option<i64>,
     pub nft_count: Option<i64>,
     pub max_price: Option<BigDecimal>,
     pub total_price: Option<BigDecimal>,
@@ -275,7 +275,7 @@ pub struct MetaParsed {
     pub full_image_mimetype: Option<String>,
     pub attributes: Option<serde_json::Value>,
     pub typ: Option<String>,
-    pub royalty: Option<MetaRoyalty>
+    pub royalty: Option<MetaRoyalty>,
 }
 #[derive(Deserialize, Clone, Debug)]
 struct MetaFile {
@@ -287,7 +287,7 @@ struct MetaFile {
 #[serde(rename_all = "camelCase")]
 pub struct MetaRoyalty {
     pub description: Option<String>,
-    pub royalty_type: Option<String>
+    pub royalty_type: Option<String>,
 }
 
 #[derive(Deserialize, Clone, Debug)]
@@ -297,7 +297,7 @@ struct MetaJson {
     #[serde(rename = "type")]
     pub typ: Option<String>,
     pub attributes: Option<serde_json::Value>,
-    pub royalty: Option<MetaRoyalty>
+    pub royalty: Option<MetaRoyalty>,
 }
 
 impl NftDetails {
@@ -323,7 +323,7 @@ impl NftDetails {
                             full_image_mimetype: full_image.1,
                             attributes: meta_json.attributes,
                             typ,
-                            royalty: meta_json.royalty
+                            royalty: meta_json.royalty,
                         }
                     }
                     Err(e) => {

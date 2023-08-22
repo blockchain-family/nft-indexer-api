@@ -16,6 +16,12 @@
     clippy::unwrap_used
 )]
 
+/* TODO: check
+   NftPriceHistory with AuctionBidPlaced
+   DirectBuy/DirectSell/Auction with collection
+   OwnerCount in collection
+*/
+
 use api::cfg::ApiConfig;
 use api::db::Queries;
 use api::handlers::*;
