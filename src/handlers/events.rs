@@ -103,10 +103,13 @@ pub async fn get_events_handler(
             }
 
             response = r;
-            let value_for_cache = serde_json::to_value(response.clone()).unwrap();
+            let value_for_cache =
+                serde_json::to_value(response.clone()).expect("Failed serializing cached value");
             cache.insert(hash, value_for_cache).await;
         }
-        Some(cached_value) => response = serde_json::from_value(cached_value).unwrap(),
+        Some(cached_value) => {
+            response = serde_json::from_value(cached_value).expect("Failed parsing cached value")
+        }
     }
 
     response!(&response)

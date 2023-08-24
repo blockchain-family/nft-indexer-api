@@ -290,10 +290,13 @@ pub async fn get_nft_list_handler(
                 }
             }
             response = r;
-            let value_for_cache = serde_json::to_value(response.clone()).unwrap();
+            let value_for_cache =
+                serde_json::to_value(response.clone()).expect("Failed serializing cached value");
             cache.insert(hash, value_for_cache).await;
         }
-        Some(cached_value) => response = serde_json::from_value(cached_value).unwrap(),
+        Some(cached_value) => {
+            response = serde_json::from_value(cached_value).expect("Failed parsing cached value")
+        }
     }
 
     response!(&response)
@@ -343,10 +346,13 @@ pub async fn get_nft_random_list_handler(
             r.count = r.items.len() as i64;
 
             response = r;
-            let value_for_cache = serde_json::to_value(response.clone()).unwrap();
+            let value_for_cache =
+                serde_json::to_value(response.clone()).expect("Failed serializing cached value");
             cache.insert(hash, value_for_cache).await;
         }
-        Some(cached_value) => response = serde_json::from_value(cached_value).unwrap(),
+        Some(cached_value) => {
+            response = serde_json::from_value(cached_value).expect("Failed parsing cached value")
+        }
     }
 
     response!(&response)
@@ -394,10 +400,13 @@ pub async fn get_nft_sell_count_handler(
                 count: sell_count,
                 timestamp: chrono::offset::Utc::now().naive_utc().timestamp(),
             };
-            let value_for_cache = serde_json::to_value(response.clone()).unwrap();
+            let value_for_cache =
+                serde_json::to_value(response.clone()).expect("Failed serializing cached value");
             cache.insert(hash, value_for_cache).await;
         }
-        Some(cached_value) => response = serde_json::from_value(cached_value).unwrap(),
+        Some(cached_value) => {
+            response = serde_json::from_value(cached_value).expect("Failed parsing cached value")
+        }
     }
 
     response!(&response)
@@ -421,10 +430,13 @@ pub async fn get_nft_top_list_handler(
             let from = NaiveDateTime::from_timestamp(params.from, 0);
             let list = catch_error!(db.nft_top_search(from, params.limit, params.offset).await);
             response = catch_error!(make_nfts_response(list, db).await);
-            let value_for_cache = serde_json::to_value(response.clone()).unwrap();
+            let value_for_cache =
+                serde_json::to_value(response.clone()).expect("Failed serializing cached value");
             cache.insert(hash, value_for_cache).await;
         }
-        Some(cached_value) => response = serde_json::from_value(cached_value).unwrap(),
+        Some(cached_value) => {
+            response = serde_json::from_value(cached_value).expect("Failed parsing cached value")
+        }
     }
 
     Ok(Box::from(warp::reply::with_status(
