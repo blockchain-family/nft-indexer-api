@@ -1046,56 +1046,6 @@
     },
     "query": "\n            select n.*, count(1) over () as \"total_count!\"\n            from nft_details n\n            join nft_collection nc\n                 on nc.address = n.collection and\n                    nc.verified\n            left join lateral (\n                select count(1) as cnt\n                from nft_auction na\n                join roots r on na.root = r.address\n                where n.address = na.nft and\n                      na.status = 'completed' and\n                      na.finished_at >= $1\n            ) auc on true\n            left join lateral ( \n                select count(1) as cnt\n                from nft_direct_sell na\n                join roots r on na.root = r.address\n                where n.address = na.nft and\n                      na.state = 'filled' and\n                      na.updated >= $1\n            ) ds on true\n            left join lateral (\n                select count(1) as cnt\n                from nft_direct_buy na\n                join roots r on na.root = r.address\n                where n.address = na.nft and\n                      na.state = 'filled' and\n                      na.updated >= $1\n            ) db on true\n            where n.updated >= $1 and\n                  auc.cnt + ds.cnt + db.cnt > 0\n            order by auc.cnt + ds.cnt + db.cnt desc, n.updated desc, n.address desc\n            limit $2 \n            offset $3\n            "
   },
-  "39be9b44ff4b67a4bc58bc8b445030bd60c70596c7e02d94c0f879e8624dd527": {
-    "describe": {
-      "columns": [
-        {
-          "name": "fee_numerator!",
-          "ordinal": 0,
-          "type_info": "Int4"
-        },
-        {
-          "name": "fee_denominator!",
-          "ordinal": 1,
-          "type_info": "Int4"
-        },
-        {
-          "name": "collection",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "nft",
-          "ordinal": 3,
-          "type_info": "Text"
-        }
-      ],
-      "nullable": [
-        null,
-        null,
-        null,
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "Text",
-          {
-            "Custom": {
-              "kind": {
-                "Enum": [
-                  "auction",
-                  "sell",
-                  "buy"
-                ]
-              },
-              "name": "t_root_types"
-            }
-          }
-        ]
-      }
-    },
-    "query": "\n            select\n                case\n                    when \n                        fee.fee_numerator is not null and\n                        fee.fee_denominator is not null\n                    then\n                        fee.fee_numerator\n                    else\n                        (ne.args -> 'fee_numerator')::int\n                end \"fee_numerator!\",\n                case\n                    when \n                        fee.fee_numerator is not null and\n                        fee.fee_denominator is not null\n                    then\n                        fee.fee_denominator\n                    else\n                        (ne.args -> 'fee_denominator')::int\n                end \"fee_denominator!\",\n                fee.collection,\n                fee.nft\n            from nft_events ne\n            join roots r\n                on ne.address = r.address and \n                   r.code = $2::t_root_types\n            left join lateral (\n                select \n                    nc.fee_numerator, \n                    nc.fee_denominator, \n                    max(n.collection) collection, \n                    max(e.args ->> 'id') nft\n                from nft n\n                left join nft_events e\n                    on e.nft = n.address and \n                       e.event_type = 'nft_created'\n                join nft_collection nc \n                    on n.collection = nc.address and \n                       nc.fee_numerator is not null and \n                       nc.fee_denominator is not null\n                where n.owner = $1\n                group by nc.fee_numerator, nc.fee_denominator\n                order by min(nc.fee_numerator / nc.fee_denominator)\n                limit 1\n            ) as fee on true\n            where ne.event_type = 'market_fee_default_changed'\n            order by created_at desc, created_lt desc, id desc\n            limit 1\n            "
-  },
   "3cd741aa6daedeaa448c2b8c086e52693e6e51ab0742cf66d55b0b0921efa6d5": {
     "describe": {
       "columns": [
@@ -2155,6 +2105,56 @@
       }
     },
     "query": "\n            SELECT\n                auction as \"auction!\",\n                buyer as \"buyer!\",\n                price as \"price!\",\n                usd_price as \"usd_price\",\n                created_at as \"created_at!\",\n                next_bid_value as \"next_bid_value!\",\n                next_bid_usd_value as \"next_bid_usd_value\",\n                tx_lt as \"tx_lt!\",\n                active as \"active!\",\n                 count (1) over () as \"cnt!\"\n            FROM nft_auction_bids_view\n            WHERE auction = $1 AND active is true\n            LIMIT 1\n            "
+  },
+  "8720327736590c70c5d3a66d4424b317dd33f1fb92747fd863e24ea717917fd1": {
+    "describe": {
+      "columns": [
+        {
+          "name": "fee_numerator!",
+          "ordinal": 0,
+          "type_info": "Int4"
+        },
+        {
+          "name": "fee_denominator!",
+          "ordinal": 1,
+          "type_info": "Int4"
+        },
+        {
+          "name": "collection",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "nft",
+          "ordinal": 3,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        null,
+        null,
+        null,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "auction",
+                  "sell",
+                  "buy"
+                ]
+              },
+              "name": "t_root_types"
+            }
+          }
+        ]
+      }
+    },
+    "query": "\n            select\n                case\n                    when \n                        fee.fee_numerator is not null and\n                        fee.fee_denominator is not null\n                    then\n                        fee.fee_numerator\n                    else\n                        (ne.args -> 'fee' -> 'numerator')::int\n                end \"fee_numerator!\",\n                case\n                    when \n                        fee.fee_numerator is not null and\n                        fee.fee_denominator is not null\n                    then\n                        fee.fee_denominator\n                    else\n                        (ne.args -> 'fee' -> 'denominator')::int\n                end \"fee_denominator!\",\n                fee.collection,\n                fee.nft\n            from nft_events ne\n            join roots r\n                on ne.address = r.address and \n                   r.code = $2::t_root_types\n            left join lateral (\n                select \n                    nc.fee_numerator, \n                    nc.fee_denominator, \n                    max(n.collection) collection, \n                    max(e.args ->> 'id') nft\n                from nft n\n                left join nft_events e\n                    on e.nft = n.address and \n                       e.event_type = 'nft_created'\n                join nft_collection nc \n                    on n.collection = nc.address and \n                       nc.fee_numerator is not null and \n                       nc.fee_denominator is not null\n                where n.owner = $1\n                group by nc.fee_numerator, nc.fee_denominator\n                order by min(nc.fee_numerator / nc.fee_denominator)\n                limit 1\n            ) as fee on true\n            where ne.event_type = 'market_fee_default_changed'\n            order by created_at desc, created_lt desc, id desc\n            limit 1\n            "
   },
   "8c48e1ce1067f12a09719997e4cd8e1b0203d05bcceeb7937c2831095b4cab94": {
     "describe": {

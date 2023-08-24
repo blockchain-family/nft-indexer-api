@@ -428,7 +428,7 @@ impl Queries {
                     limit 3
                 ) ag2
             ) previews on true
-            where (c.owner = ant($3) or array_length($3::varchar[], 1) is null) and
+            where (c.owner = any($3) or array_length($3::varchar[], 1) is null) and
                   ($4::boolean is false or c.verified is true) and
                   ($5::varchar is null or c.name ilike $5) and
                   (c.address = any($6) or array_length($6::varchar[], 1) is null)
@@ -637,7 +637,7 @@ impl Queries {
                                     from nft_direct_sell nds 
                                     where nds.nft = n.address and 
                                           nds.created <= now() and 
-                                          nds.state = 'active'
+                                          nds.state = 'active' and
                                           (nds.expired_at = to_timestamp(0) or
                                            nds.expired_at > now())
                                 )
@@ -682,9 +682,12 @@ impl Queries {
             let _ = write!(
                 sql,
                 r#" and exists(
-                select 1 from nft_attributes na
-                where
-                    na.nft = n.address and (lower(na.trait_type) = lower('{0}') and lower(trim(na.value #>> '{{}}')) in ({1}))
+                    select 1 from nft_attributes na
+                    where
+                        na.nft = n.address and (
+                            lower(na.trait_type) = lower('{0}') and 
+                            lower(trim(na.value #>> '{{}}')) in ({1})
+                        )
                 )
             "#,
                 attribute.trait_type, values
@@ -696,7 +699,7 @@ impl Queries {
                 let _ = write!(
                     sql,
                     r#"
-                        ORDER BY n.name, n.address
+                        order by n.name, n.address
                     "#
                 );
             }
@@ -723,7 +726,8 @@ impl Queries {
         let _ = write!(
             sql,
             r#"
-                LIMIT $6 OFFSET $7
+                limit $6 
+                offset $7
             "#
         );
 
@@ -751,7 +755,7 @@ impl Queries {
                        nd."auction_status: _" as auction_status,
                        nd."forsale_status: _" as forsale_status,
                        0::int8                   total_count,
-                       n.collection
+                       ag.collection
                 from (
                     select n.*
                     from nft n
@@ -1527,7 +1531,7 @@ impl Queries {
                     then
                         fee.fee_numerator
                     else
-                        (ne.args -> 'fee_numerator')::int
+                        (ne.args -> 'fee' -> 'numerator')::int
                 end "fee_numerator!",
                 case
                     when 
@@ -1536,7 +1540,7 @@ impl Queries {
                     then
                         fee.fee_denominator
                     else
-                        (ne.args -> 'fee_denominator')::int
+                        (ne.args -> 'fee' -> 'denominator')::int
                 end "fee_denominator!",
                 fee.collection,
                 fee.nft
