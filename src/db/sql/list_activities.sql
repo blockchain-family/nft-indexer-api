@@ -63,7 +63,7 @@ with result as (
           and n.created_lt >= ne.created_lt
           and ((ne.args ->> 'from')::int = 2 and (ne.args ->> 'to')::int = 3 and
                ('SellPurchased' = any ($2) and ne.event_cat = 'direct_sell'))
-          and n.args ->> 'old_owner' = ne.args ->> 'creator'
+          and n.args ->> 'old_owner' = ne.args -> 'value2' ->> 'creator'
         order by n.created_lt
         limit 1
     ) direct_sell_chaned_owner on true
@@ -83,14 +83,14 @@ with result as (
           and n.created_lt >= ne.created_lt
           and ((ne.args ->> 'from')::int = 2 and (ne.args ->> 'to')::int = 3 and
                ('OfferFilled' = any ($2) and ne.event_cat = 'direct_buy'))
-          and n.args ->> 'new_owner' = ne.args ->> 'creator'
+          and n.args ->> 'new_owner' = ne.args -> 'value2' ->> 'creator'
         order by n.created_lt
         limit 1
     ) direct_buy_chaned_owner on true
 
     where
-        ($3 in (ne.args ->> 'subject_owner',
-                ne.args ->> 'creator',
+        ($3 in (ne.args -> 'value0' ->> 'subject_owner',
+                ne.args -> 'value2' ->> 'creator',
                 ne.args ->> 'buyer',
                 ne.args ->> 'seller',
                 ne.args ->> 'old_owner',
