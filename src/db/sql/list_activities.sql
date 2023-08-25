@@ -54,7 +54,7 @@ with result as (
         from nft_events n
         inner join nft_events n_deploy
             on n_deploy.event_type = 'direct_sell_deployed' and
-               n.address::text =  n_deploy.args ->> 'direct_sell'
+               n.address::text = n_deploy.args ->> 'direct_sell'
         inner join roots r
             on r.address = n_deploy.address
         where n.event_cat = 'nft'
@@ -292,25 +292,25 @@ select
                 then
                     json_build_object(
                         'creator',
-                        r.args -> 'creator',
+                        r.args -> 'value2' -> 'creator',
 
                         'startTime',
-                        r.args -> 'start',
+                        r.args -> 'value2' -> 'start',
 
                         'endTime',
-                        r.args -> 'end',
+                        r.args -> 'value2' -> 'end',
 
                         'status',
-                        r.args -> 'status',
+                        r.args -> 'value2' -> 'status',
 
                         'price',
-                        r.args -> '_price',
+                        r.args -> 'value2' -> '_price',
 
                         'usdPrice',
-                        ((r.args ->> '_price')::numeric * curr.usd_price)::text,
+                        ((r.args -> 'value2' ->> '_price')::numeric * curr.usd_price)::text,
 
                         'paymentToken',
-                        r.args -> 'token',
+                        r.args -> 'value2' -> 'token',
 
                         'newOwner',
                         r.new_owner
@@ -324,28 +324,28 @@ select
                 then
                     json_build_object(
                         'creator',
-                        r.args -> 'creator',
+                        r.args -> 'value2' -> 'creator',
 
                         'startTime',
-                        r.args -> 'start_time_buy',
+                        r.args -> 'value2' -> 'start_time_buy',
 
                         'endTime',
-                        r.args -> 'end_time_buy',
+                        r.args -> 'value2' -> 'end_time_buy',
 
                         'durationTime',
-                        r.args -> 'duration_time',
+                        r.args -> 'value2' -> 'duration_time',
 
                         'price',
-                        r.args -> '_price',
+                        r.args -> 'value2' -> '_price',
 
                         'usdPrice',
-                        ((r.args ->> '_price')::numeric * curr.usd_price)::text,
+                        ((r.args -> 'value2' ->> '_price')::numeric * curr.usd_price)::text,
 
                         'status',
-                        r.args -> 'status',
+                        r.args -> 'value2' -> 'status',
 
                         'spentToken',
-                        r.args -> 'spent_token',
+                        r.args -> 'value2' -> 'spent_token',
 
                         'oldOwner',
                         r.old_owner
@@ -365,28 +365,28 @@ select
                                 then
                                     json_build_object(
                                         'nftOwner',
-                                        r.args -> 'subject_owner',
+                                        r.args -> 'value0' -> 'subject_owner',
 
                                         'auctionStartTime',
-                                        r.args -> 'start_time',
+                                        r.args -> 'value0' -> 'start_time',
 
                                         'auctionEndTime',
-                                        r.args -> 'finish_time',
+                                        r.args -> 'value0' -> 'finish_time',
 
                                         'auctionDuration',
-                                        r.args -> 'duration',
+                                        r.args -> 'value0' -> 'duration',
 
                                         'state',
-                                        r.args -> 'status',
+                                        r.args -> 'value0' -> 'status',
 
                                         'paymentToken',
-                                        r.args -> '_payment_token',
+                                        r.args -> 'value0' -> '_payment_token',
 
                                         'price',
-                                        r.args -> '_price',
+                                        r.args -> 'value0' -> '_price',
 
                                         'usdPrice',
-                                        ((r.args ->> '_price')::numeric * curr.usd_price)::text
+                                        ((r.args -> 'value0' ->> '_price')::numeric * curr.usd_price)::text
                                     )
                             end,
 
@@ -428,37 +428,37 @@ select
                                     )
                             end,
 
-                            'auctionCanceled',
-                            case
-                                when
-                                    r.event_type = 'auction_cancelled'
-                                then
-                                    json_build_object(
-                                        'nftOwner',
-                                        r.auction_args -> 'subject_owner',
-
-                                        'auctionStartTime',
-                                        r.auction_args -> 'start_time',
-
-                                        'auctionEndTime',
-                                        r.auction_args -> 'finish_time',
-
-                                        'auctionDuration',
-                                        r.auction_args -> 'duration',
-
-                                        'state',
-                                        r.auction_args -> 'status',
-
-                                        'paymentToken',
-                                        r.auction_args -> '_payment_token',
-
-                                        'price',
-                                        r.auction_args -> '_price',
-
-                                        'usdPrice',
-                                        ((r.auction_args ->> '_price')::numeric * curr.usd_price)::text
-                                    )
-                            end,
+--                             'auctionCanceled',
+--                             case
+--                                 when
+--                                     r.event_type = 'auction_cancelled'
+--                                 then
+--                                     json_build_object(
+--                                         'nftOwner',
+--                                         r.auction_args -> 'subject_owner',
+--
+--                                         'auctionStartTime',
+--                                         r.auction_args -> 'start_time',
+--
+--                                         'auctionEndTime',
+--                                         r.auction_args -> 'finish_time',
+--
+--                                         'auctionDuration',
+--                                         r.auction_args -> 'duration',
+--
+--                                         'state',
+--                                         r.auction_args -> 'status',
+--
+--                                         'paymentToken',
+--                                         r.auction_args -> '_payment_token',
+--
+--                                         'price',
+--                                         r.auction_args -> '_price',
+--
+--                                         'usdPrice',
+--                                         ((r.auction_args ->> '_price')::numeric * curr.usd_price)::text
+--                                     )
+--                             end,
 
                             'auctionBidPlaced',
                             case
@@ -488,8 +488,8 @@ left join lateral (
     select
         p.usd_price
     from token_usd_prices p
-    where r.args ->> 'token' = p.token::text or
-          r.args ->> 'spent_token' = p.token::text or
-          r.auction_args ->> '_payment_token' = p.token::text or
-          r.args ->> '_payment_token' = p.token::text
+    where r.args -> 'value2' ->> 'token' = p.token::text or
+          r.args -> 'value2' ->> 'spent_token' = p.token::text or
+          r.auction_args -> 'value0' ->> '_payment_token' = p.token::text or
+          r.args -> 'value0' ->> '_payment_token' = p.token::text
 ) curr on true
