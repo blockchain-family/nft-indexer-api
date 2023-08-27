@@ -300,8 +300,34 @@ select
                         'endTime',
                         r.args -> 'value2' -> 'end',
 
+                        -- TODO: make better
                         'status',
-                        r.args -> 'value2' -> 'status',
+                        case
+                            when
+                                r.args -> 'value2' ->> 'status' = 'create'
+                            then
+                                0
+                            when
+                                r.args -> 'value2' ->> 'status' = 'await_nft'
+                            then
+                                1
+                            when
+                                r.args -> 'value2' ->> 'status' = 'active'
+                            then
+                                2
+                            when
+                                r.args -> 'value2' ->> 'status' = 'filled'
+                            then
+                                3
+                            when
+                                r.args -> 'value2' ->> 'status' = 'cancelled'
+                            then
+                                4
+                            when
+                                r.args -> 'value2' ->> 'status' = 'expired'
+                            then
+                                5
+                        end,
 
                         'price',
                         r.args -> 'value2' ->> '_price',
@@ -341,8 +367,34 @@ select
                         'usdPrice',
                         ((r.args -> 'value2' ->> '_price')::numeric * curr.usd_price)::text,
 
+                        -- TODO: make better
                         'status',
-                        r.args -> 'value2' -> 'status',
+                        case
+                            when
+                                r.args -> 'value2' ->> 'status' = 'create'
+                            then
+                                0
+                            when
+                                r.args -> 'value2' ->> 'status' = 'await_tokens'
+                            then
+                                1
+                            when
+                                r.args -> 'value2' ->> 'status' = 'active'
+                            then
+                                2
+                            when
+                                r.args -> 'value2' ->> 'status' = 'filled'
+                            then
+                                3
+                            when
+                                r.args -> 'value2' ->> 'status' = 'cancelled'
+                            then
+                                4
+                            when
+                                r.args -> 'value2' ->> 'status' = 'expired'
+                            then
+                                5
+                        end,
 
                         'spentToken',
                         r.args -> 'value2' -> 'spent_token',
@@ -376,8 +428,9 @@ select
                                         'auctionDuration',
                                         r.args -> 'value0' -> 'duration',
 
+                                        -- TODO: make better
                                         'state',
-                                        r.args -> 'value0' -> 'status',
+                                        1,
 
                                         'paymentToken',
                                         r.args -> 'value0' -> '_payment_token',
@@ -409,7 +462,7 @@ select
                                         r.auction_args -> 'duration',
 
                                         'state',
-                                        r.auction_args -> 'status',
+                                        3,
 
                                         'paymentToken',
                                         r.auction_args -> '_payment_token',
