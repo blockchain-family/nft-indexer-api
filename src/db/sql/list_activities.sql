@@ -288,7 +288,7 @@ select
             'directSell',
             case
                 when
-                    r.event_cat = 'direct_sell'
+                    r.event_type = 'direct_sell_state_changed'
                 then
                     json_build_object(
                         'creator',
@@ -346,7 +346,7 @@ select
             'directBuy',
             case
                 when
-                    r.event_cat = 'direct_buy'
+                    r.event_type = 'direct_buy_state_changed'
                 then
                     json_build_object(
                         'creator',
@@ -469,7 +469,7 @@ select
 
                                         'paymentToken',
                                         --r.auction_args -> '_payment_token',
-                                        '',
+                                        'none',
 
                                         'maxBidValue',
                                         r.args ->> 'value',
@@ -528,7 +528,7 @@ select
 
                                         'paymentToken',
                                         -- r.auction_args -> '_payment_token',
-                                        '',
+                                        'none',
 
                                         'bidValue',
                                         r.args ->> 'value',
