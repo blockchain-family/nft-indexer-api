@@ -453,19 +453,23 @@ select
                                         r.args -> 'seller',
 
                                         'auctionStartTime',
-                                        r.auction_args -> 'start_time',
+                                        --r.auction_args -> 'start_time',
+                                        0,
 
                                         'auctionEndTime',
-                                        r.auction_args -> 'finish_time',
+                                        --r.auction_args -> 'finish_time',
+                                        0,
 
                                         'auctionDuration',
-                                        r.auction_args -> 'duration',
+                                        --r.auction_args -> 'duration',
+                                        0,
 
                                         'state',
                                         3,
 
                                         'paymentToken',
-                                        r.auction_args -> '_payment_token',
+                                        --r.auction_args -> '_payment_token',
+                                        '',
 
                                         'maxBidValue',
                                         r.args ->> 'value',
@@ -523,7 +527,8 @@ select
                                         r.args -> 'buyer',
 
                                         'paymentToken',
-                                        r.auction_args -> '_payment_token',
+                                        -- r.auction_args -> '_payment_token',
+                                        '',
 
                                         'bidValue',
                                         r.args ->> 'value',
