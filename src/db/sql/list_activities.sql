@@ -300,34 +300,8 @@ select
                         'endTime',
                         r.args -> 'value2' -> 'end',
 
-                        -- TODO: make better
                         'status',
-                        case
-                            when
-                                r.args -> 'value2' ->> 'status' = 'create'
-                            then
-                                0
-                            when
-                                r.args -> 'value2' ->> 'status' = 'await_nft'
-                            then
-                                1
-                            when
-                                r.args -> 'value2' ->> 'status' = 'active'
-                            then
-                                2
-                            when
-                                r.args -> 'value2' ->> 'status' = 'filled'
-                            then
-                                3
-                            when
-                                r.args -> 'value2' ->> 'status' = 'cancelled'
-                            then
-                                4
-                            when
-                                r.args -> 'value2' ->> 'status' = 'expired'
-                            then
-                                5
-                        end,
+                        r.args -> 'value2' -> 'status',
 
                         'price',
                         r.args -> 'value2' ->> '_price',
@@ -367,34 +341,8 @@ select
                         'usdPrice',
                         ((r.args -> 'value2' ->> '_price')::numeric * curr.usd_price)::text,
 
-                        -- TODO: make better
                         'status',
-                        case
-                            when
-                                r.args -> 'value2' ->> 'status' = 'create'
-                            then
-                                0
-                            when
-                                r.args -> 'value2' ->> 'status' = 'await_tokens'
-                            then
-                                1
-                            when
-                                r.args -> 'value2' ->> 'status' = 'active'
-                            then
-                                2
-                            when
-                                r.args -> 'value2' ->> 'status' = 'filled'
-                            then
-                                3
-                            when
-                                r.args -> 'value2' ->> 'status' = 'cancelled'
-                            then
-                                4
-                            when
-                                r.args -> 'value2' ->> 'status' = 'expired'
-                            then
-                                5
-                        end,
+                        r.args -> 'value2' -> 'status',
 
                         'spentToken',
                         r.args -> 'value2' -> 'spent_token',
