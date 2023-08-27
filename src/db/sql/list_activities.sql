@@ -304,7 +304,7 @@ select
                         r.args -> 'value2' -> 'status',
 
                         'price',
-                        r.args -> 'value2' -> '_price',
+                        r.args -> 'value2' ->> '_price',
 
                         'usdPrice',
                         ((r.args -> 'value2' ->> '_price')::numeric * curr.usd_price)::text,
@@ -336,7 +336,7 @@ select
                         r.args -> 'value2' -> 'duration_time',
 
                         'price',
-                        r.args -> 'value2' -> '_price',
+                        r.args -> 'value2' ->> '_price',
 
                         'usdPrice',
                         ((r.args -> 'value2' ->> '_price')::numeric * curr.usd_price)::text,
@@ -383,7 +383,7 @@ select
                                         r.args -> 'value0' -> '_payment_token',
 
                                         'price',
-                                        r.args -> 'value0' -> '_price',
+                                        r.args -> 'value0' ->> '_price',
 
                                         'usdPrice',
                                         ((r.args -> 'value0' ->> '_price')::numeric * curr.usd_price)::text
@@ -415,7 +415,7 @@ select
                                         r.auction_args -> '_payment_token',
 
                                         'maxBidValue',
-                                        r.args -> 'value',
+                                        r.args ->> 'value',
 
                                         'maxBidAddress',
                                         r.args -> 'buyer',
@@ -473,7 +473,7 @@ select
                                         r.auction_args -> '_payment_token',
 
                                         'bidValue',
-                                        r.args -> 'value',
+                                        r.args ->> 'value',
 
                                         'usdPrice',
                                         ((r.args ->> 'value')::numeric * curr.usd_price)::text
