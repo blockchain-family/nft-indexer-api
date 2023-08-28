@@ -1,4 +1,4 @@
-FROM europe-west1-docker.pkg.dev/blockchain-family/docker/rust-builder:v1.71.1 AS builder
+FROM europe-west1-docker.pkg.dev/blockchain-family/docker/rust-builder:v1.71.0 AS builder
 
 WORKDIR /build
 
@@ -6,7 +6,7 @@ WORKDIR /build
 COPY . .
 RUN RUSTFLAGS=-g cargo build --release
 
-FROM europe-west1-docker.pkg.dev/blockchain-family/docker/rust-runtime:v1.62
+FROM europe-west1-docker.pkg.dev/blockchain-family/docker/rust-runtime:v1.71.0
 COPY --from=builder /build/target/release/api /app/application
 COPY --from=builder /build/entrypoint.sh /app/entrypoint.sh
 USER runuser
