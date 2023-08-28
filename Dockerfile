@@ -1,4 +1,4 @@
-FROM europe-west1-docker.pkg.dev/blockchain-family/docker/rust-builder:v1.62 AS builder
+FROM europe-west1-docker.pkg.dev/blockchain-family/docker/rust-builder:v1.71.1 AS builder
 
 WORKDIR /build
 
