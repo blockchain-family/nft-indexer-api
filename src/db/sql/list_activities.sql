@@ -1,6 +1,23 @@
 /* event cat, event type, owner, nft, collection, offset, limit */
 
 with result as (
+    with whitelist_events as (
+        select n.address
+        from nft_events n
+        inner join nft_events n_deploy
+            on n_deploy.event_type::text = any(ARRAY[
+                'auction_deployed',
+                'direct_sell_deployed',
+                'direct_buy_deployed'
+            ]) and
+            n.address::text = coalesce(
+                n_deploy.args ->> 'offer',
+                n_deploy.args ->> 'direct_sell',
+                n_deploy.args ->> 'direct_buy'
+            )
+        inner join roots r
+            on r.address = n_deploy.address
+    )
     select
         ne.*,
         (ne.args ->> 'from')::int             f,
@@ -34,11 +51,8 @@ with result as (
         select
             n.args
         from nft_events n
-        inner join nft_events n_deploy
-            on n_deploy.event_type = 'auction_deployed' and
-               n.address::text = n_deploy.args ->> 'offer'
-        inner join roots r
-            on r.address = n_deploy.address
+        inner join whitelist_events we
+            on we.address = n.address
         where
             n.event_cat = ne.event_cat and
             n.event_type = 'auction_active' and
@@ -52,11 +66,8 @@ with result as (
     left join lateral (
         select n.args ->> 'new_owner' new_owner
         from nft_events n
-        inner join nft_events n_deploy
-            on n_deploy.event_type = 'direct_sell_deployed' and
-               n.address::text = n_deploy.args ->> 'direct_sell'
-        inner join roots r
-            on r.address = n_deploy.address
+        inner join whitelist_events we
+            on we.address = n.address
         where n.event_cat = 'nft'
           and n.event_type = 'nft_owner_changed'
           and n.nft = ne.nft
@@ -71,11 +82,8 @@ with result as (
     left join lateral (
         select n.args ->> 'old_owner' old_owner
         from nft_events n
-        inner join nft_events n_deploy
-            on n_deploy.event_type = 'direct_buy_deployed' and
-               n.address::text = n_deploy.args ->> 'direct_buy'
-        inner join roots r
-            on r.address = n_deploy.address
+        inner join whitelist_events we
+            on we.address = n.address
         where n.event_cat = 'nft'
           and n.event_type = 'nft_owner_changed'
           and nc.verified = true
