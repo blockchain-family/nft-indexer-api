@@ -9,6 +9,7 @@ use crate::{
 };
 use chrono::NaiveDateTime;
 use moka::future::Cache;
+use opg::OpgModel;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
@@ -114,7 +115,7 @@ pub async fn get_nft_handler(
     response!(&ret)
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, OpgModel)]
 pub struct GetNFTResult {
     pub nft: NFT,
     pub collection: HashMap<Address, Collection>,
@@ -126,7 +127,7 @@ pub struct GetNFTResult {
     pub traits: Vec<NftTrait>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, OpgModel)]
 pub struct NFTParam {
     pub nft: Address,
     pub status: Option<Vec<DirectBuyState>>,
@@ -211,7 +212,7 @@ pub fn get_nft_top_list(
         .and(warp::any().map(move || cache.clone()))
         .and_then(get_nft_top_list_handler)
 }
-#[derive(Clone, Deserialize, Serialize, Hash)]
+#[derive(Clone, Deserialize, Serialize, Hash, OpgModel)]
 pub struct NFTTopListQuery {
     pub from: i64,
     pub limit: i64,
@@ -302,7 +303,7 @@ pub async fn get_nft_list_handler(
     response!(&response)
 }
 
-#[derive(Clone, Deserialize, Serialize, Hash)]
+#[derive(Clone, Deserialize, Serialize, Hash, OpgModel)]
 #[serde(rename_all = "camelCase")]
 pub struct NFTListRandomBuyQuery {
     pub max_price: i64,
@@ -358,20 +359,20 @@ pub async fn get_nft_random_list_handler(
     response!(&response)
 }
 
-#[derive(Clone, Deserialize, Serialize, Hash)]
+#[derive(Clone, Deserialize, Serialize, Hash, OpgModel)]
 #[serde(rename_all = "camelCase")]
 pub struct NFTSellCountQuery {
     pub max_price: i64,
 }
 
-#[derive(Clone, Deserialize, Serialize, Hash)]
+#[derive(Clone, Deserialize, Serialize, Hash, OpgModel)]
 #[serde(rename_all = "camelCase")]
 pub struct NFTSellCountResponse {
     pub count: i64,
     pub timestamp: i64,
 }
 
-/// POST /nfts/sell-count
+/// GET /nfts/sell-count
 pub fn get_nft_sell_count(
     db: Queries,
     cache: Cache<u64, Value>,
@@ -473,7 +474,7 @@ async fn make_nfts_response(list: Vec<NftDetails>, db: Queries) -> anyhow::Resul
     })
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, Hash)]
+#[derive(Debug, Clone, Deserialize, Serialize, Hash, OpgModel)]
 pub struct AttributeFilter {
     #[serde(rename = "traitType")]
     pub trait_type: String,
@@ -481,7 +482,7 @@ pub struct AttributeFilter {
     pub trait_values: Vec<String>,
 }
 
-#[derive(Clone, Deserialize, Serialize, Hash)]
+#[derive(Clone, Deserialize, Serialize, Hash, OpgModel)]
 pub struct NFTListQuery {
     pub owners: Option<Vec<String>>,
     pub collections: Option<Vec<String>>,
@@ -502,7 +503,7 @@ pub struct NFTListQuery {
     pub with_count: Option<bool>,
 }
 
-#[derive(Clone, Deserialize, Serialize, Hash)]
+#[derive(Clone, Deserialize, Serialize, Hash, OpgModel)]
 pub enum NFTListOrderField {
     #[serde(rename = "floorPriceUsd")]
     FloorPriceUsd,
@@ -522,13 +523,13 @@ impl Display for NFTListOrderField {
     }
 }
 
-#[derive(Clone, Deserialize, Serialize, Hash)]
+#[derive(Clone, Deserialize, Serialize, Hash, OpgModel)]
 pub struct NFTListOrder {
     pub field: NFTListOrderField,
     pub direction: OrderDirection,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, OpgModel)]
 pub enum PriceHistoryScale {
     #[serde(rename = "h")]
     Hours,
@@ -551,7 +552,7 @@ impl Default for PriceHistoryScale {
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, OpgModel)]
 pub struct NftPriceHistoryQuery {
     pub nft: Address,
     pub scale: Option<PriceHistoryScale>,

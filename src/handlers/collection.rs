@@ -3,6 +3,7 @@ use crate::handlers::{calculate_hash, OrderDirection};
 use crate::model::{Collection, CollectionDetails, CollectionSimple, VecWithTotal};
 use crate::{catch_empty, catch_error, response};
 use moka::future::Cache;
+use opg::OpgModel;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::fmt::Display;
@@ -10,7 +11,7 @@ use std::{collections::HashMap, convert::Infallible};
 use warp::http::StatusCode;
 use warp::Filter;
 
-#[derive(Clone, Deserialize, Serialize, Hash)]
+#[derive(Clone, Deserialize, Serialize, Hash, OpgModel)]
 pub enum CollectionListOrderField {
     #[serde(rename = "firstMint")]
     FirstMint,
@@ -24,13 +25,13 @@ impl Display for CollectionListOrderField {
     }
 }
 
-#[derive(Clone, Deserialize, Serialize, Hash)]
+#[derive(Clone, Deserialize, Serialize, Hash, OpgModel)]
 pub struct CollectionListOrder {
     pub field: CollectionListOrderField,
     pub direction: OrderDirection,
 }
 
-#[derive(Clone, Deserialize, Hash)]
+#[derive(Clone, Deserialize, Hash, OpgModel)]
 pub struct ListCollectionsParams {
     pub name: Option<String>,
     pub owners: Option<Vec<String>>,
@@ -101,12 +102,12 @@ pub async fn list_collections_handler(
     response!(&ret)
 }
 
-#[derive(Debug, Clone, Deserialize, Hash)]
+#[derive(Debug, Clone, Deserialize, Hash, OpgModel)]
 pub struct CollectionParam {
     pub collection: Address,
 }
 
-#[derive(Debug, Clone, Deserialize, Hash)]
+#[derive(Debug, Clone, Deserialize, Hash, OpgModel)]
 pub struct ListCollectionsSimpleParams {
     pub name: Option<String>,
     pub verified: Option<bool>,
@@ -203,7 +204,7 @@ pub async fn get_collection_handler(
     response!(&ret)
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, OpgModel)]
 pub struct OwnerParam {
     pub owner: Address,
     pub limit: Option<usize>,

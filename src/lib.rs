@@ -17,6 +17,7 @@
 )]
 pub mod cfg;
 pub mod db;
+pub mod docs;
 pub mod handlers;
 pub mod model;
 pub mod token;

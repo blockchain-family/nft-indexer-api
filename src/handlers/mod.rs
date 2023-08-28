@@ -1,22 +1,21 @@
-mod nft;
-
-pub use self::nft::*;
 use std::collections::hash_map::DefaultHasher;
 
-mod auction;
+pub mod nft;
+pub use self::nft::*;
+
+pub mod auction;
 pub use self::auction::*;
 
-mod events;
+pub mod events;
 pub use self::events::*;
 
-mod collection;
+pub mod collection;
 pub use self::collection::*;
 
-mod owner;
+pub mod owner;
 pub use self::owner::*;
 
-mod metrics;
-
+pub mod metrics;
 pub use self::metrics::*;
 
 #[macro_export]
@@ -59,39 +58,41 @@ macro_rules! response {
     };
 }
 
+use crate::db::Queries;
+use crate::docs;
+use crate::model::{Root, Roots};
+use opg::OpgModel;
+use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
 use std::fmt::Display;
 use std::hash::{Hash, Hasher};
-use warp::{
-    http::{Response, StatusCode},
-    Filter,
-};
+use warp::filters::BoxedFilter;
+use warp::{http::StatusCode, Filter};
 
-use crate::db::Queries;
-use crate::model::{Root, Roots};
-use serde::{Deserialize, Serialize};
-
-lazy_static::lazy_static! {
-    static ref SWAGGER: Vec<u8> = {
-        std::fs::read("openapi.yml").expect("cannot read 'openapi.yml' from disk")
-    };
+fn json_reply_header() -> warp::filters::reply::WithHeader {
+    warp::reply::with::header("Content-Type", "application/json")
 }
 
-/// GET /swagger
-pub fn get_swagger() -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone
-{
-    warp::path!("swagger")
+fn yaml_reply_header() -> warp::filters::reply::WithHeader {
+    warp::reply::with::header("Content-Type", "application/yaml")
+}
+
+pub fn swagger_yaml(api_url: &str) -> BoxedFilter<(impl warp::Reply,)> {
+    let docs = docs::v1::swagger_yaml(api_url);
+    warp::path!("swagger.yaml")
         .and(warp::get())
-        .and_then(get_swagger_handler)
+        .map(move || docs.clone())
+        .with(yaml_reply_header())
+        .boxed()
 }
 
-async fn get_swagger_handler() -> Result<impl warp::Reply, Infallible> {
-    Ok(Box::from(warp::reply::with_status(
-        Response::builder()
-            .header("Content-Type", "application/yaml")
-            .body::<&[u8]>(SWAGGER.as_ref()),
-        StatusCode::OK,
-    )))
+pub fn swagger_json(api_url: &str) -> BoxedFilter<(impl warp::Reply,)> {
+    let docs = docs::v1::swagger_json(api_url);
+    warp::path("swagger.json")
+        .and(warp::get())
+        .map(move || docs.clone())
+        .with(json_reply_header())
+        .boxed()
 }
 
 /// POST /roots
@@ -111,7 +112,7 @@ pub async fn list_roots_handler(db: Queries) -> Result<Box<dyn warp::Reply>, Inf
     response!(&Roots { roots })
 }
 
-#[derive(Clone, Deserialize, Serialize, Hash)]
+#[derive(Clone, Deserialize, Serialize, Hash, OpgModel)]
 pub enum OrderDirection {
     #[serde(rename = "asc")]
     Asc,

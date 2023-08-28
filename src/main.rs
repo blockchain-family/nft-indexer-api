@@ -83,13 +83,17 @@ async fn main() {
         .time_to_idle(Duration::from_secs(1))
         .build();
 
+    let swagger = swagger_yaml(&cfg.http_address.to_string())
+        .or(swagger_json(&cfg.http_address.to_string()))
+        .boxed();
+
     let api = warp::any()
         .and(
             warp::options()
                 .map(|| StatusCode::NO_CONTENT)
                 .with(warp::reply::with::headers(cors_headers))
                 .or(warp::path!("healthz").map(warp::reply))
-                .or(get_swagger())
+                .or(swagger)
                 .or(get_nft(service.clone()))
                 .or(get_nft_top_list(service.clone(), cache_minute.clone()))
                 .or(get_nft_list(service.clone(), cache_10_sec.clone()))

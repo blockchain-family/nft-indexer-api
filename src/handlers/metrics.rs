@@ -4,13 +4,14 @@ use crate::model::MetricsSummaryBase;
 use crate::{catch_error, response};
 use chrono::NaiveDateTime;
 use moka::future::Cache;
+use opg::OpgModel;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::convert::Infallible;
 use warp::http::StatusCode;
 use warp::Filter;
 
-#[derive(Debug, Clone, Deserialize, Serialize, Hash)]
+#[derive(Debug, Clone, Deserialize, Serialize, Hash, OpgModel)]
 pub struct MetricsSummaryQuery {
     pub from: i64,
     pub to: i64,

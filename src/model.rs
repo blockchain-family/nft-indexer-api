@@ -5,17 +5,18 @@ use crate::{
     db::{Address, AuctionStatus, DirectBuyState, DirectSellState, EventCategory, EventType},
     token::TokenDict,
 };
+use opg::OpgModel;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, OpgModel)]
 pub struct VecWithTotal<T> {
     #[serde(rename = "totalCount")]
     pub count: i64,
     pub items: Vec<T>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, OpgModel)]
 #[serde(rename_all = "camelCase")]
 pub struct VecWith<T> {
     #[serde(rename = "totalCount")]
@@ -28,7 +29,7 @@ pub struct VecWith<T> {
     pub direct_sell: Option<HashMap<Address, DirectSell>>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, OpgModel)]
 pub struct Contract {
     pub address: Address,
     pub name: Option<String>,
@@ -37,7 +38,7 @@ pub struct Contract {
     pub verified: Option<bool>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, OpgModel)]
 pub struct Price {
     #[serde(rename = "priceToken")]
     pub token: Address,
@@ -46,20 +47,20 @@ pub struct Price {
     pub usd_price: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, OpgModel)]
 pub struct Fee {
     pub numerator: i32,
     pub denominator: i32,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, OpgModel)]
 pub struct NFTPrice {
     #[serde(rename = "usdPrice")]
     pub usd_price: String,
     pub ts: i64,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, OpgModel)]
 #[serde(rename_all = "camelCase")]
 pub struct NftTrait {
     pub trait_type: Option<String>,
@@ -77,7 +78,7 @@ impl From<NftTraitRecord> for NftTrait {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, OpgModel)]
 #[serde(rename_all = "camelCase")]
 pub struct NFT {
     #[serde(flatten)]
@@ -99,7 +100,7 @@ pub struct NFT {
     pub royalty: Option<MetaRoyalty>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, OpgModel)]
 #[serde(rename_all = "camelCase")]
 pub struct Collection {
     #[serde(flatten)]
@@ -115,24 +116,25 @@ pub struct Collection {
     pub first_mint: Option<i64>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, OpgModel)]
 pub struct CollectionDetailsPreviewMeta {
     pub source: Option<String>,
     pub mimetype: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, OpgModel)]
 #[serde(rename_all = "camelCase")]
 pub struct CollectionDetails {
     #[serde(flatten)]
     pub collection: Collection,
     pub floor_price_usd: Option<String>,
     pub total_volume_usd: Option<String>,
+    #[opg(optional, string)]
     pub attributes: Option<serde_json::Value>,
     pub previews: Vec<CollectionDetailsPreviewMeta>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, OpgModel)]
 #[serde(rename_all = "camelCase")]
 pub struct CollectionSimple {
     pub address: Address,
@@ -143,7 +145,7 @@ pub struct CollectionSimple {
     pub nft_count: i64,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, OpgModel)]
 pub struct Root {
     pub address: Address,
     pub code: String,
@@ -187,7 +189,7 @@ pub struct Event {
     pub args: Option<serde_json::Value>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, OpgModel)]
 #[serde(rename_all = "camelCase")]
 pub struct Auction {
     pub address: Address,
@@ -211,7 +213,7 @@ pub struct Auction {
     pub fee: Fee,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, OpgModel)]
 #[serde(rename_all = "camelCase")]
 pub struct AuctionBid {
     pub from: Address,
@@ -223,7 +225,7 @@ pub struct AuctionBid {
     pub created_at: i64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, OpgModel)]
 pub struct DirectSell {
     pub address: Address,
     pub nft: Address,
@@ -239,7 +241,7 @@ pub struct DirectSell {
     pub fee: Fee,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, OpgModel)]
 pub struct DirectBuy {
     pub address: Address,
     pub nft: Address,
@@ -261,7 +263,7 @@ pub struct CollectionAttributes {
     pub attributes: HashMap<String, serde_json::Value>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, OpgModel)]
 #[serde(rename_all = "camelCase")]
 pub struct SearchResult {
     pub address: Address,
@@ -552,14 +554,14 @@ impl SearchResult {
     }
 }
 
-#[derive(Deserialize, Serialize, Default, Clone)]
+#[derive(Deserialize, Serialize, Default, Clone, OpgModel)]
 #[serde(rename_all = "camelCase")]
 pub struct NftEvents {
     pub data: Vec<NftEvent>,
     pub total_rows: i64,
 }
 
-#[derive(Deserialize, Serialize, Clone)]
+#[derive(Deserialize, Serialize, Clone, OpgModel)]
 #[serde(rename_all = "camelCase")]
 pub struct NftEvent {
     id: i64,
@@ -576,7 +578,7 @@ pub struct NftEvent {
     transfer: Option<NftEventTransfer>,
 }
 
-#[derive(Deserialize, Serialize, Clone)]
+#[derive(Deserialize, Serialize, Clone, OpgModel)]
 #[serde(rename_all = "camelCase")]
 pub struct NftEventDirectSell {
     creator: String,
@@ -590,7 +592,7 @@ pub struct NftEventDirectSell {
     new_owner: Option<String>,
 }
 
-#[derive(Deserialize, Serialize, Clone)]
+#[derive(Deserialize, Serialize, Clone, OpgModel)]
 #[serde(rename_all = "camelCase")]
 pub struct NftEventDirectBuy {
     creator: String,
@@ -604,7 +606,7 @@ pub struct NftEventDirectBuy {
     old_owner: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, OpgModel)]
 #[serde(rename_all = "camelCase")]
 struct NftEventAuction {
     auction_active: Option<AuctionActive>,
@@ -613,7 +615,7 @@ struct NftEventAuction {
     auction_bid_placed: Option<AuctionBidPlaced>,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, OpgModel)]
 #[serde(rename_all = "camelCase")]
 struct AuctionActive {
     nft_owner: String,
@@ -626,7 +628,7 @@ struct AuctionActive {
     usd_price: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, OpgModel)]
 #[serde(rename_all = "camelCase")]
 struct AuctionComplete {
     nft_owner: String,
@@ -641,7 +643,7 @@ struct AuctionComplete {
     max_bid_address: String,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, OpgModel)]
 #[serde(rename_all = "camelCase")]
 struct AuctionCanceled {
     nft_owner: String,
@@ -654,7 +656,7 @@ struct AuctionCanceled {
     usd_price: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, OpgModel)]
 #[serde(rename_all = "camelCase")]
 struct AuctionBidPlaced {
     bid_sender: String,
@@ -663,28 +665,28 @@ struct AuctionBidPlaced {
     usd_price: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, OpgModel)]
 #[serde(rename_all = "camelCase")]
 struct NftEventMint {
     owner: String,
     creator: String,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, OpgModel)]
 #[serde(rename_all = "camelCase")]
 struct NftEventTransfer {
     from: String,
     to: String,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, OpgModel)]
 #[serde(rename_all = "camelCase")]
 pub struct MetricsSummaryBase {
     total_rows_count: i32,
     data: Vec<MetricsSummary>,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, OpgModel)]
 #[serde(rename_all = "camelCase")]
 struct MetricsSummary {
     pub collection: String,
@@ -726,7 +728,7 @@ impl From<MetricsSummaryRecord> for MetricsSummary {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, OpgModel)]
 #[serde(rename_all = "camelCase")]
 pub struct OwnerFee {
     pub fee: Fee,

@@ -1,6 +1,7 @@
 use super::*;
 use chrono::NaiveDateTime;
 use log::error;
+use opg::OpgModel;
 use serde::{Deserialize, Serialize};
 use sqlx::types::BigDecimal;
 
@@ -283,7 +284,7 @@ struct MetaFile {
     pub mimetype: Option<String>,
 }
 
-#[derive(Deserialize, Serialize, Clone, Debug)]
+#[derive(Deserialize, Serialize, Clone, Debug, OpgModel)]
 #[serde(rename_all = "camelCase")]
 pub struct MetaRoyalty {
     pub description: Option<String>,
