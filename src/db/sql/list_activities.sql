@@ -1,24 +1,14 @@
 /* event cat, event type, owner, nft, collection, offset, limit */
 
 with result as (
-    with offers_whitelist as (
-        select
-            coalesce(
-                ne.args ->> 'offer',
-                ne.args ->> 'direct_sell',
-                ne.args ->> 'direct_buy'
-            ) as address
-        from nft_events ne
+    with events_whitelist as (
+        select of.address
+        from deployed_offers of
         inner join roots r
-            on r.address = ne.address
-        where ne.event_type::text = any(ARRAY[
-            'auction_deployed',
-            'direct_sell_deployed',
-            'direct_buy_deployed'
-            ])
+            on r.address = of.root
         union
-        select r.address
-        from roots r
+        select address
+        from roots
     )
     select
         ne.*,
@@ -53,8 +43,8 @@ with result as (
         select
             n.args
         from nft_events n
-        inner join offers_whitelist ow
-            on n.address = ow.address
+        inner join events_whitelist ew
+            on n.address = ew.address
         where
             n.event_cat = ne.event_cat and
             n.event_type = 'auction_active' and
@@ -68,15 +58,15 @@ with result as (
     left join lateral (
         select n.args ->> 'new_owner' new_owner
         from nft_events n
-        inner join offers_whitelist ow
-            on n.address = ow.address
-        where n.event_cat = 'nft'
-          and n.event_type = 'nft_owner_changed'
-          and n.nft = ne.nft
-          and n.created_lt >= ne.created_lt
-          and ((ne.args ->> 'from')::int = 2 and (ne.args ->> 'to')::int = 3 and
-               ('SellPurchased' = any ($2) and ne.event_cat = 'direct_sell'))
-          and n.args ->> 'old_owner' = ne.args -> 'value2' ->> 'creator'
+        inner join events_whitelist ew
+            on n.address = ew.address
+        where n.event_cat = 'nft' and
+              n.event_type = 'nft_owner_changed' and
+              n.nft = ne.nft and
+              n.created_lt >= ne.created_lt and
+              ((ne.args ->> 'from')::int = 2 and (ne.args ->> 'to')::int = 3 and
+               ('SellPurchased' = any ($2) and ne.event_cat = 'direct_sell')) and
+              n.args ->> 'old_owner' = ne.args -> 'value2' ->> 'creator'
         order by n.created_lt
         limit 1
     ) direct_sell_chaned_owner on true
@@ -84,16 +74,16 @@ with result as (
     left join lateral (
         select n.args ->> 'old_owner' old_owner
         from nft_events n
-        inner join offers_whitelist ow
-            on n.address = ow.address
-        where n.event_cat = 'nft'
-          and n.event_type = 'nft_owner_changed'
-          and nc.verified = true
-          and n.nft = ne.nft
-          and n.created_lt >= ne.created_lt
-          and ((ne.args ->> 'from')::int = 2 and (ne.args ->> 'to')::int = 3 and
-               ('OfferFilled' = any ($2) and ne.event_cat = 'direct_buy'))
-          and n.args ->> 'new_owner' = ne.args -> 'value2' ->> 'creator'
+        inner join events_whitelist ew
+            on n.address = ew.address
+        where n.event_cat = 'nft' and
+              n.event_type = 'nft_owner_changed' and
+              nc.verified = true and
+              n.nft = ne.nft and
+              n.created_lt >= ne.created_lt and
+              ((ne.args ->> 'from')::int = 2 and (ne.args ->> 'to')::int = 3 and
+               ('OfferFilled' = any ($2) and ne.event_cat = 'direct_buy')) and
+              n.args ->> 'new_owner' = ne.args -> 'value2' ->> 'creator'
         order by n.created_lt
         limit 1
     ) direct_buy_chaned_owner on true
@@ -112,7 +102,8 @@ with result as (
           $3 is null) and
         (exists(
             select 1
-            from  offers_whitelist ew where ne.address = ew.address
+            from events_whitelist ew
+            where ew.address = ne.address
          ) or
          (ne.event_type in ('nft_owner_changed', 'nft_created'))) and
         (ne.nft = $4 or
