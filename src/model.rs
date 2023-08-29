@@ -113,7 +113,7 @@ pub struct Collection {
     pub nft_count: usize,
     pub lowest_price: Option<String>,
     pub total_price: Option<String>,
-    pub first_mint: Option<i64>,
+    pub first_mint: i64,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, OpgModel)]
@@ -279,10 +279,7 @@ impl CollectionAttributes {
         let mut collection = None;
         let mut attributes = HashMap::new();
         for attr in defs.iter() {
-            let col = attr
-                .collection
-                .clone()
-                .expect("Collection should be present");
+            let col = attr.collection.clone();
             match collection.as_ref() {
                 None => collection = Some(col),
                 Some(c) if *c == col => {
@@ -369,7 +366,7 @@ impl Collection {
             nft_count: db.nft_count as usize,
             total_price: db.total_price.map(|x| x.to_string()),
             lowest_price: None,
-            first_mint: db.first_mint.map(|i| i.timestamp()),
+            first_mint: db.first_mint.timestamp(),
         }
     }
 }
@@ -393,7 +390,7 @@ impl CollectionDetails {
                 nft_count: db.nft_count.unwrap_or_default() as usize,
                 total_price: db.total_price.map(|x| x.to_string()),
                 lowest_price: None,
-                first_mint: db.first_mint.map(|i| i.timestamp()),
+                first_mint: db.first_mint.expect("NFT without collection").timestamp(),
             },
             floor_price_usd: db.floor_price_usd.map(|x| x.to_string()),
             total_volume_usd: db.total_volume_usd.map(|x| x.to_string()),
