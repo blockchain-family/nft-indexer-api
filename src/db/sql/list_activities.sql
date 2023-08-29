@@ -4,13 +4,13 @@ with result as (
     with offers_whitelist as (
         select
             coalesce(
-                        ne.args ->> 'offer',
-                        ne.args ->> 'direct_sell',
-                        ne.args ->> 'direct_buy'
-                ) as address
+                ne.args ->> 'offer',
+                ne.args ->> 'direct_sell',
+                ne.args ->> 'direct_buy'
+            ) as address
         from nft_events ne
-                 inner join roots r
-                            on r.address = ne.address
+        inner join roots r
+            on r.address = ne.address
         where ne.event_type::text = any(ARRAY[
             'auction_deployed',
             'direct_sell_deployed',
@@ -46,8 +46,8 @@ with result as (
     join nft_metadata nm
         on ne.nft = nm.nft
     join nft_collection nc
-       on nc.address = n.collection
---        and nc.verified = true
+       on nc.address = n.collection and
+          nc.verified = true
 
     left join lateral (
         select
