@@ -767,9 +767,10 @@ impl Queries {
                             (now() <= nds.expired_at or nds.expired_at = to_timestamp(0)) and
                             nds.state = 'active'
                             and nds.price <= $1
-                    join roots r on nds.root = r.address
-                    where n.burned = false and
-                          c.verified = true
+                    inner join roots r 
+                        on nds.root = r.address
+                    where n.burned is false and
+                          c.verified is true
                     order by random()
                     limit $2
                 ) ag
