@@ -30,8 +30,8 @@ impl Queries {
             where s.address = $1"#,
             address
         )
-            .fetch_optional(self.db.as_ref())
-            .await
+        .fetch_optional(self.db.as_ref())
+        .await
     }
 
     pub async fn collect_direct_buy(&self, ids: &[String]) -> sqlx::Result<Vec<NftDirectBuy>> {
@@ -106,10 +106,9 @@ impl Queries {
             limit as i64,
             offset as i64
         )
-            .fetch_all(self.db.as_ref())
-            .await
+        .fetch_all(self.db.as_ref())
+        .await
     }
-
 
     pub async fn list_owner_direct_buy(
         &self,
@@ -156,11 +155,9 @@ impl Queries {
             limit as i64,
             offset as i64
         )
-            .fetch_all(self.db.as_ref())
-            .await
+        .fetch_all(self.db.as_ref())
+        .await
     }
-
-
 
     pub async fn list_owner_direct_buy_in(
         &self,
@@ -209,8 +206,7 @@ impl Queries {
             limit as i64,
             offset as i64
         )
-            .fetch_all(self.db.as_ref())
-            .await
+        .fetch_all(self.db.as_ref())
+        .await
     }
-
 }

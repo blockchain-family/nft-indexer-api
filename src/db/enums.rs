@@ -51,9 +51,9 @@ pub enum EventCategory {
 #[serde(rename_all = "snake_case")]
 pub enum AuctionStatus {
     Active = 0,
-    Cancelled,
-    Completed,
-    Expired,
+    Cancelled = 1,
+    Completed = 2,
+    Expired = 3,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type, ToSchema)]
@@ -61,11 +61,11 @@ pub enum AuctionStatus {
 #[serde(rename_all = "snake_case")]
 pub enum DirectSellState {
     Create = 0,
-    AwaitNft,
-    Active,
-    Filled,
-    Cancelled,
-    Expired,
+    AwaitNft = 1,
+    Active = 2,
+    Filled = 3,
+    Cancelled = 4,
+    Expired = 5,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type, ToSchema)]
@@ -73,11 +73,11 @@ pub enum DirectSellState {
 #[serde(rename_all = "snake_case")]
 pub enum DirectBuyState {
     Create = 0,
-    AwaitTokens,
-    Active,
-    Filled,
-    Cancelled,
-    Expired,
+    AwaitTokens = 1,
+    Active = 2,
+    Filled = 3,
+    Cancelled = 4,
+    Expired = 5,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type)]

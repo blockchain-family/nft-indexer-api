@@ -37,8 +37,8 @@ impl Queries {
             offset as i64,
             with_count,
         )
-            .fetch_one(self.db.as_ref())
-            .await
+        .fetch_one(self.db.as_ref())
+        .await
     }
 
     pub async fn list_events_count(
@@ -62,9 +62,8 @@ impl Queries {
             collection,
             &typ_str
         )
-            .fetch_one(self.db.as_ref())
-            .await
-            .map(|r| r.count.unwrap_or_default())
+        .fetch_one(self.db.as_ref())
+        .await
+        .map(|r| r.count.unwrap_or_default())
     }
-
 }

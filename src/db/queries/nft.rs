@@ -4,10 +4,10 @@ use chrono::NaiveDateTime;
 
 use super::*;
 
+use crate::handlers::nft::{AttributeFilter, NFTListOrder, NFTListOrderField};
 use crate::model::OrderDirection;
 use sqlx::{self};
 use std::fmt::Write;
-use crate::handlers::nft::{AttributeFilter, NFTListOrder, NFTListOrderField};
 
 impl Queries {
     pub async fn search_all(&self, search_str: &String) -> sqlx::Result<Vec<SearchResult>> {
@@ -153,11 +153,9 @@ impl Queries {
             limit,
             offset
         )
-            .fetch_all(self.db.as_ref())
-            .await
+        .fetch_all(self.db.as_ref())
+        .await
     }
-
-
 
     #[allow(clippy::too_many_arguments)]
     pub async fn nft_search(
@@ -271,7 +269,7 @@ impl Queries {
                     c.verified is true
                 )
         "#
-            .to_string();
+        .to_string();
 
         for attribute in attributes {
             let values = attribute
@@ -347,7 +345,6 @@ impl Queries {
             .await
     }
 
-
     pub async fn get_traits(&self, nft: &Address) -> sqlx::Result<Vec<NftTraitRecord>> {
         sqlx::query_as!(
             NftTraitRecord,
@@ -387,7 +384,6 @@ impl Queries {
             .fetch_all(self.db.as_ref())
             .await
     }
-
 
     pub async fn list_nft_price_history(
         &self,
@@ -444,11 +440,9 @@ impl Queries {
             from,
             to,
         )
-            .fetch_all(self.db.as_ref())
-            .await
+        .fetch_all(self.db.as_ref())
+        .await
     }
-
-
 
     pub async fn nft_random_buy(
         &self,
@@ -485,10 +479,10 @@ impl Queries {
 
             "#,
         )
-            .bind(max_price)
-            .bind(limit)
-            .fetch_all(self.db.as_ref())
-            .await
+        .bind(max_price)
+        .bind(limit)
+        .fetch_all(self.db.as_ref())
+        .await
     }
 
     pub async fn nft_sell_count(&self, max_price: i64) -> sqlx::Result<Option<i64>> {
@@ -512,8 +506,8 @@ impl Queries {
            "#,
             max_price
         )
-            .fetch_one(self.db.as_ref())
-            .await
+        .fetch_one(self.db.as_ref())
+        .await
     }
 
     pub async fn nft_attributes_dictionary(&self) -> sqlx::Result<Vec<TraitDef>> {
@@ -530,8 +524,8 @@ impl Queries {
         group by a.collection, a.trait_type
         "
         )
-            .fetch_all(self.db.as_ref())
-            .await
+        .fetch_all(self.db.as_ref())
+        .await
     }
 
     pub async fn nft_attributes_search(
@@ -552,11 +546,8 @@ impl Queries {
             trait_type,
             values
         )
-            .fetch_all(self.db.as_ref())
-            .await
-            .map(|x| x.iter().map(|y| y.nft.clone()).collect())
+        .fetch_all(self.db.as_ref())
+        .await
+        .map(|x| x.iter().map(|y| y.nft.clone()).collect())
     }
-
-
-
 }

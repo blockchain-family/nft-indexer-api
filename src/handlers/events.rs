@@ -1,6 +1,6 @@
+use crate::db::queries::Queries;
 use crate::db::{NftEventCategory, NftEventType};
 use crate::handlers::calculate_hash;
-use moka::future::Cache;
 use crate::model::AuctionActive;
 use crate::model::AuctionBidPlaced;
 use crate::model::AuctionCanceled;
@@ -13,6 +13,7 @@ use crate::model::NftEventMint;
 use crate::model::NftEventTransfer;
 use crate::model::NftEvents;
 use crate::{api_doc_addon, catch_error_500, model::SearchResult, response};
+use moka::future::Cache;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::convert::Infallible;
@@ -21,7 +22,6 @@ use utoipa::ToSchema;
 use warp::http::StatusCode;
 use warp::hyper::body::Bytes;
 use warp::Filter;
-use crate::db::queries::Queries;
 
 #[derive(OpenApi)]
 #[openapi(
@@ -158,12 +158,14 @@ pub async fn get_events_handler(
                 }
             }
 
-            response = r.clone();
-
-            let value_for_cache = serde_json::to_value(r).unwrap();
+            response = r;
+            let value_for_cache =
+                serde_json::to_value(response.clone()).expect("Failed serializing cached value");
             cache.insert(hash, value_for_cache).await;
         }
-        Some(cached_value) => response = serde_json::from_value(cached_value).unwrap(),
+        Some(cached_value) => {
+            response = serde_json::from_value(cached_value).expect("Failed parsing cached value")
+        }
     }
 
     response!(&response)

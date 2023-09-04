@@ -1,5 +1,6 @@
 use crate::db::{
-    MetricsSummaryRecord, NftEventType, NftTraitRecord, OwnerFeeRecord, RootRecord, UserRecord,
+    MetaRoyalty, MetricsSummaryRecord, NftEventType, NftTraitRecord, OwnerFeeRecord, RootRecord,
+    UserRecord,
 };
 use crate::{
     db::{Address, AuctionStatus, DirectBuyState, DirectSellState, EventCategory, EventType},
@@ -99,6 +100,7 @@ pub struct NFT {
     pub deal_price_usd: Option<String>,
     pub floor_price: Option<Price>,
     pub nft_id: Option<Address>,
+    pub royalty: Option<MetaRoyalty>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
@@ -114,7 +116,7 @@ pub struct Collection {
     pub nft_count: usize,
     pub lowest_price: Option<String>,
     pub total_price: Option<String>,
-    pub first_mint: Option<i64>,
+    pub first_mint: i64,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
@@ -141,7 +143,7 @@ pub struct Attribute {
     pub trait_values: Vec<String>,
 }
 
-#[derive(Debug, Clone, Serialize, ToSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct CollectionSimple {
     pub address: Address,
@@ -286,10 +288,7 @@ impl CollectionAttributes {
         let mut collection = None;
         let mut attributes = HashMap::new();
         for attr in defs.iter() {
-            let col = attr
-                .collection
-                .clone()
-                .expect("Collection should be present");
+            let col = attr.collection.clone();
             match collection.as_ref() {
                 None => collection = Some(col),
                 Some(c) if *c == col => {
@@ -353,6 +352,7 @@ impl NFT {
             deal_price_usd: nft.deal_price_usd.map(|it| it.to_string()),
             floor_price,
             nft_id: nft.nft_id,
+            royalty: parsed.royalty,
         }
     }
 }
@@ -375,7 +375,7 @@ impl Collection {
             nft_count: db.nft_count as usize,
             total_price: db.total_price.map(|x| x.to_string()),
             lowest_price: None,
-            first_mint: db.first_mint.map(|i| i.timestamp()),
+            first_mint: db.first_mint.timestamp(),
         }
     }
 }
@@ -404,7 +404,7 @@ impl CollectionDetails {
                 nft_count: db.nft_count.unwrap_or_default() as usize,
                 total_price: db.total_price.map(|x| x.to_string()),
                 lowest_price: None,
-                first_mint: db.first_mint.map(|i| i.timestamp()),
+                first_mint: db.first_mint.expect("NFT without collection").timestamp(),
             },
             floor_price_usd: db.floor_price_usd.map(|x| x.to_string()),
             total_volume_usd: db.total_volume_usd.map(|x| x.to_string()),
@@ -617,7 +617,7 @@ pub struct NftEventDirectBuy {
     old_owner: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct NftEventAuction {
     auction_active: Option<AuctionActive>,
@@ -807,7 +807,7 @@ impl From<UserRecord> for UserDto {
     }
 }
 
-#[derive(Clone, Deserialize, Serialize, ToSchema)]
+#[derive(Clone, Deserialize, Serialize, ToSchema, Hash)]
 pub enum OrderDirection {
     #[serde(rename = "asc")]
     Asc,

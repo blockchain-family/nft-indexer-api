@@ -23,6 +23,22 @@ use api::db::enums::{
 };
 use api::db::queries::Queries;
 use api::handlers;
+use api::handlers::auction::{get_auction, get_auction_bids, get_auctions};
+use api::handlers::auth::sign_in;
+use api::handlers::collection::{
+    get_collection, get_collections_by_owner, list_collections, list_collections_simple,
+};
+use api::handlers::events::{get_events, search_all};
+use api::handlers::metrics::get_metrics_summary;
+use api::handlers::nft::{
+    get_nft, get_nft_direct_buy, get_nft_list, get_nft_price_history, get_nft_random_list,
+    get_nft_sell_count, get_nft_top_list,
+};
+use api::handlers::owner::{
+    get_fee, get_owner_bids_in, get_owner_bids_out, get_owner_direct_buy, get_owner_direct_buy_in,
+    get_owner_direct_sell,
+};
+use api::handlers::user::{get_user_by_address, upsert_user};
 use api::handlers::*;
 use api::model::OrderDirection;
 use api::model::*;
@@ -30,10 +46,6 @@ use api::schema::Address;
 use api::services::auth::AuthService;
 use api::token::TokenDict;
 use api::usd_price::CurrencyClient;
-use moka::future::Cache;
-use std::sync::Arc;
-use std::time::Duration;
-use warp::{http::StatusCode, Filter};
 use handlers::auction::ApiDocAddon as AuctionApiDocAddon;
 use handlers::auth::ApiDocAddon as AuthApiDocAddon;
 use handlers::collection::ApiDocAddon as CollectionApiDocAddon;
@@ -43,15 +55,11 @@ use handlers::nft::ApiDocAddon as NftApiDocAddon;
 use handlers::owner::ApiDocAddon as OwnerApiDocAddon;
 use handlers::user::ApiDocAddon as UserApiDocAddon;
 use handlers::ApiDocAddon as ModuleApiDocAddon;
+use moka::future::Cache;
+use std::sync::Arc;
+use std::time::Duration;
 use utoipa::OpenApi;
-use api::handlers::auction::{get_auction, get_auction_bids, get_auctions};
-use api::handlers::auth::sign_in;
-use api::handlers::collection::{get_collection, get_collections_by_owner, list_collections, list_collections_simple};
-use api::handlers::events::{get_events, search_all};
-use api::handlers::metrics::get_metrics_summary;
-use api::handlers::nft::{get_nft, get_nft_direct_buy, get_nft_list, get_nft_price_history, get_nft_random_list, get_nft_sell_count, get_nft_top_list};
-use api::handlers::owner::{get_fee, get_owner_bids_in, get_owner_bids_out, get_owner_direct_buy, get_owner_direct_buy_in, get_owner_direct_sell};
-use api::handlers::user::{get_user_by_address, upsert_user};
+use warp::{http::StatusCode, Filter};
 
 #[derive(OpenApi)]
 #[openapi(
@@ -150,6 +158,7 @@ async fn main() {
         .time_to_live(Duration::from_secs(1))
         .time_to_idle(Duration::from_secs(1))
         .build();
+
     let api_doc = warp::path("swagger.json")
         .and(warp::get())
         .map(|| warp::reply::json(&ApiDoc::openapi()));
@@ -157,21 +166,29 @@ async fn main() {
     let api = warp::any()
         .and(
             warp::options()
-            .map(|| StatusCode::NO_CONTENT)
+                .map(|| StatusCode::NO_CONTENT)
                 .with(warp::reply::with::headers(cors_headers))
                 .or(api_doc)
                 .or(warp::path!("healthz").map(warp::reply))
-                .or(get_swagger())
                 .or(get_nft_list(db_service.clone(), cache_10_sec.clone()))
                 .or(get_nft_random_list(db_service.clone(), cache_1_sec.clone()))
-                .or(get_nft_sell_count(db_service.clone(), cache_5_minutes.clone()))
+                .or(get_nft_sell_count(
+                    db_service.clone(),
+                    cache_5_minutes.clone(),
+                ))
                 .or(get_nft(db_service.clone()))
                 .or(get_nft_top_list(db_service.clone(), cache_minute.clone()))
                 .or(get_nft_direct_buy(db_service.clone()))
                 .or(get_nft_price_history(db_service.clone()))
-                .or(list_collections(db_service.clone(), cache_5_minutes.clone()))
-                .or(list_collections_simple(db_service.clone(), cache_minute.clone()))
-                .or(get_collection(db_service.clone(),cache_5_minutes.clone()))
+                .or(list_collections(
+                    db_service.clone(),
+                    cache_5_minutes.clone(),
+                ))
+                .or(list_collections_simple(
+                    db_service.clone(),
+                    cache_minute.clone(),
+                ))
+                .or(get_collection(db_service.clone(), cache_5_minutes.clone()))
                 .or(get_collections_by_owner(db_service.clone()))
                 .or(get_owner_bids_out(db_service.clone()))
                 .or(get_owner_bids_in(db_service.clone()))
@@ -182,7 +199,10 @@ async fn main() {
                 .or(get_auction(db_service.clone()))
                 .or(get_auction_bids(db_service.clone()))
                 .or(get_events(db_service.clone(), cache_minute.clone()))
-                .or(get_metrics_summary(db_service.clone(), cache_5_minutes.clone()))
+                .or(get_metrics_summary(
+                    db_service.clone(),
+                    cache_5_minutes.clone(),
+                ))
                 .or(list_roots(db_service.clone()))
                 .or(search_all(db_service.clone()))
                 .or(get_fee(db_service.clone()))

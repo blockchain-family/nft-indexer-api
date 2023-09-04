@@ -1,11 +1,11 @@
+use crate::db::queries::Queries;
 use crate::db::Address;
 use crate::handlers::{calculate_hash, OrderDirection};
 use crate::model::{Collection, CollectionDetails, CollectionSimple, VecWithTotal};
-use moka::future::Cache;
-use crate::db::queries::Queries;
 use crate::schema::VecCollectionSimpleWithTotal;
 use crate::schema::VecCollectionsWithTotal;
 use crate::{api_doc_addon, catch_empty, catch_error_500, response};
+use moka::future::Cache;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::fmt::Display;
@@ -31,7 +31,8 @@ use warp::Filter;
         VecCollectionSimpleWithTotal,
         CollectionParam,
         CollectionSimple,
-        OwnerParam
+        OwnerParam,
+        CollectionParam
     )),
     tags(
         (name = "collection", description = "Collection handlers"),
@@ -101,7 +102,7 @@ pub async fn list_collections_handler(
     let hash = calculate_hash(&params);
     let cached_value = cache.get(&hash);
 
-    let ret;
+    let ret: VecWithTotal<CollectionDetails>;
     match cached_value {
         None => {
             let owners = params.owners.as_deref().unwrap_or(&[]);
@@ -110,9 +111,8 @@ pub async fn list_collections_handler(
             let collections = params.collections.as_deref().unwrap_or(&[]);
             let limit = params.limit.unwrap_or(100);
             let offset = params.offset.unwrap_or_default();
-
-            let list = catch_error_500!(
-                db.list_collections(
+            let list = db
+                .list_collections(
                     name,
                     owners,
                     verified.as_ref(),
@@ -121,25 +121,30 @@ pub async fn list_collections_handler(
                     offset,
                     params.order,
                 )
-                .await
-            );
+                .await;
+
+            let list = catch_error_500!(list);
 
             let count = list.first().map(|it| it.cnt).unwrap_or_default();
-            let mut items: Vec<CollectionDetails> = vec![];
+            let mut items = vec![];
             for collection_detail in list {
                 let detail = catch_error_500!(CollectionDetails::from_db(collection_detail));
                 items.push(detail);
             }
-            let ret = VecWithTotal { count, items };
-            let value_for_cache = serde_json::to_value(ret.clone()).unwrap();
+            ret = VecWithTotal { count, items };
+            let value_for_cache =
+                serde_json::to_value(ret.clone()).expect("Failed serializing cached value");
             cache.insert(hash, value_for_cache).await;
         }
-        Some(cached_value) => ret = serde_json::from_value(cached_value).unwrap(),
+        Some(cached_value) => {
+            ret = serde_json::from_value(cached_value).expect("Failed parsing cached value")
+        }
     }
 
     response!(&ret)
 }
 
+#[derive(Debug, Clone, Deserialize, Hash, ToSchema)]
 pub struct CollectionParam {
     pub collection: Address,
 }
@@ -181,7 +186,7 @@ pub async fn list_collections_simple_handler(
 ) -> Result<Box<dyn warp::Reply>, Infallible> {
     let hash = calculate_hash(&params);
     let cached_value = cache.get(&hash);
-    let ret;
+    let ret: VecWithTotal<CollectionSimple>;
 
     match cached_value {
         None => {
@@ -194,14 +199,16 @@ pub async fn list_collections_simple_handler(
                     .await
             );
             let count = list.first().map(|it| it.cnt).unwrap_or_default();
-            let items: Vec<CollectionSimple> =
-                list.into_iter().map(CollectionSimple::from_db).collect();
+            let items = list.into_iter().map(CollectionSimple::from_db).collect();
 
             ret = VecWithTotal { count, items };
-            let value_for_cache = serde_json::to_value(ret.clone()).unwrap();
+            let value_for_cache =
+                serde_json::to_value(ret.clone()).expect("Failed serializing cached value");
             cache.insert(hash, value_for_cache).await;
         }
-        Some(cached_value) => ret = serde_json::from_value(cached_value).unwrap(),
+        Some(cached_value) => {
+            ret = serde_json::from_value(cached_value).expect("Failed parsing cached value")
+        }
     }
 
     response!(&ret)
@@ -242,10 +249,13 @@ pub async fn get_collection_handler(
             let col = catch_error_500!(db.get_collection(&param.collection).await);
             let col = catch_empty!(col, "");
             ret = catch_error_500!(CollectionDetails::from_db(col));
-            let value_for_cache = serde_json::to_value(ret.clone()).unwrap();
+            let value_for_cache =
+                serde_json::to_value(ret.clone()).expect("Failed serializing cached value");
             cache.insert(hash, value_for_cache).await;
         }
-        Some(cached_value) => ret = serde_json::from_value(cached_value).unwrap(),
+        Some(cached_value) => {
+            ret = serde_json::from_value(cached_value).expect("Failed parsing cached value")
+        }
     }
     response!(&ret)
 }

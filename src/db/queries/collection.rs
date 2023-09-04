@@ -2,8 +2,8 @@ use crate::db::queries::Queries;
 
 use super::*;
 
-use sqlx::{self};
 use crate::handlers::collection::CollectionListOrder;
+use sqlx::{self};
 
 impl Queries {
     pub async fn get_collection(
@@ -58,8 +58,8 @@ impl Queries {
             "#,
             ids
         )
-            .fetch_all(self.db.as_ref())
-            .await
+        .fetch_all(self.db.as_ref())
+        .await
     }
 
     pub async fn list_collections_by_owner(
@@ -103,8 +103,8 @@ impl Queries {
             limit as i64,
             offset as i64
         )
-            .fetch_all(self.db.as_ref())
-            .await
+        .fetch_all(self.db.as_ref())
+        .await
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -170,8 +170,6 @@ impl Queries {
             .await
     }
 
-
-
     pub async fn list_roots(&self) -> sqlx::Result<Vec<RootRecord>> {
         sqlx::query_as!(
             RootRecord,
@@ -182,10 +180,9 @@ impl Queries {
             from roots r
             "#
         )
-            .fetch_all(self.db.as_ref())
-            .await
+        .fetch_all(self.db.as_ref())
+        .await
     }
-
 
     pub async fn list_collections_simple(
         &self,
@@ -224,8 +221,7 @@ impl Queries {
             verified,
             name,
         )
-            .fetch_all(self.db.as_ref())
-            .await
+        .fetch_all(self.db.as_ref())
+        .await
     }
-
 }

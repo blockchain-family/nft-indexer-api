@@ -1,5 +1,5 @@
-use crate::handlers::calculate_hash;
 use crate::db::queries::Queries;
+use crate::handlers::calculate_hash;
 use crate::model::MetricsSummary;
 use crate::model::MetricsSummaryBase;
 use crate::{api_doc_addon, catch_error_500, response};
@@ -71,17 +71,22 @@ pub async fn metrics_summary_handler(
     let response;
     match cached_value {
         None => {
-            let from = NaiveDateTime::from_timestamp_opt(query.from, 0).expect("Failed to get datetime");
-            let to = NaiveDateTime::from_timestamp_opt(query.to, 0).expect("Failed to get datetime");
+            let from =
+                NaiveDateTime::from_timestamp_opt(query.from, 0).expect("Failed to get datetime");
+            let to =
+                NaiveDateTime::from_timestamp_opt(query.to, 0).expect("Failed to get datetime");
             let values = catch_error_500!(
                 db.get_metrics_summary(from, to, query.limit, query.offset)
                     .await
             );
             response = MetricsSummaryBase::from(values);
-            let value_for_cache = serde_json::to_value(response.clone()).unwrap();
+            let value_for_cache =
+                serde_json::to_value(response.clone()).expect("Failed serializing cached value");
             cache.insert(hash, value_for_cache).await;
         }
-        Some(cached_value) => response = serde_json::from_value(cached_value).unwrap(),
+        Some(cached_value) => {
+            response = serde_json::from_value(cached_value).expect("Failed parsing cached value")
+        }
     }
     response!(response)
 }

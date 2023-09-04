@@ -64,10 +64,9 @@ impl Queries {
             "#,
             nft
         )
-            .fetch_optional(self.db.as_ref())
-            .await
+        .fetch_optional(self.db.as_ref())
+        .await
     }
-
 
     pub async fn collect_direct_sell(&self, ids: &[String]) -> sqlx::Result<Vec<NftDirectSell>> {
         sqlx::query_as!(
@@ -142,8 +141,7 @@ impl Queries {
             limit as i64,
             offset as i64
         )
-            .fetch_all(self.db.as_ref())
-            .await
+        .fetch_all(self.db.as_ref())
+        .await
     }
-
 }

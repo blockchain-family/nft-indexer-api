@@ -1,14 +1,13 @@
 pub mod nft;
 use std::collections::hash_map::DefaultHasher;
 pub mod auction;
-pub mod events;
-pub mod collection;
-pub mod owner;
-pub mod metrics;
 pub mod auth;
+pub mod collection;
+pub mod events;
+pub mod metrics;
+pub mod owner;
 pub mod user;
-use warp::http::StatusCode;
-
+use utoipa::ToSchema;
 #[macro_export]
 macro_rules! catch_error_500 {
     ($expr:expr) => {
@@ -66,8 +65,6 @@ macro_rules! response {
 
 use std::fmt::Display;
 use std::hash::{Hash, Hasher};
-use warp::http::Response
-;
 
 use serde::{Deserialize, Serialize};
 
@@ -108,10 +105,10 @@ macro_rules! api_doc_addon {
     };
 }
 
-use std::convert::Infallible;
-
 use crate::db::queries::Queries;
 use crate::model::{Root, Roots};
+use reqwest::StatusCode;
+use std::convert::Infallible;
 
 use utoipa::OpenApi;
 use warp::Filter;
@@ -151,7 +148,7 @@ pub async fn list_roots_handler(db: Queries) -> Result<Box<dyn warp::Reply>, Inf
     response!(&Roots { roots })
 }
 
-#[derive(Clone, Deserialize, Serialize, Hash)]
+#[derive(Clone, Deserialize, Serialize, Hash, ToSchema)]
 pub enum OrderDirection {
     #[serde(rename = "asc")]
     Asc,

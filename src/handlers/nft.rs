@@ -1,7 +1,7 @@
 use crate::db::queries::Queries;
-use crate::db::NftDetails;
+use crate::db::{MetaRoyalty, NftDetails};
 use crate::handlers::calculate_hash;
-use crate::model::{DirectBuy, NFTPrice, NftTrait, VecWith, NFT, OrderDirection};
+use crate::model::{DirectBuy, NFTPrice, NftTrait, OrderDirection, VecWith, NFT};
 use crate::{
     api_doc_addon, catch_empty, catch_error_500,
     db::{Address, DirectBuyState},
@@ -19,12 +19,12 @@ use std::hash::Hash;
 use warp::http::StatusCode;
 use warp::Filter;
 
+use crate::handlers::auction::collect_auctions;
+use crate::handlers::collection::collect_collections;
 use crate::schema::VecWithDirectBuy;
 use crate::schema::VecWithNFT;
 use utoipa::OpenApi;
 use utoipa::ToSchema;
-use crate::handlers::auction::collect_auctions;
-use crate::handlers::collection::collect_collections;
 
 #[derive(OpenApi)]
 #[openapi(
@@ -42,7 +42,8 @@ use crate::handlers::collection::collect_collections;
         PriceHistoryScale,
         VecWithDirectBuy,
         NFTListOrderField,
-        NFTTopListQuery
+        NFTTopListQuery,
+        MetaRoyalty
     )),
     tags(
         (name = "nft", description = "NFT handlers"),
@@ -77,7 +78,6 @@ pub async fn get_nft_handler(
 ) -> Result<Box<dyn warp::Reply>, Infallible> {
     let nft = catch_error_500!(db.get_nft_details(&param.nft).await);
     let mut nft = catch_empty!(nft, "not found");
-
     let collections_ids = match &nft.collection {
         Some(c) => vec![c.clone()],
         None => vec![],
@@ -366,16 +366,19 @@ pub async fn get_nft_list_handler(
                 }
             }
             response = r;
-            let value_for_cache = serde_json::to_value(response.clone()).unwrap();
+            let value_for_cache =
+                serde_json::to_value(response.clone()).expect("Failed serializing cached value");
             cache.insert(hash, value_for_cache).await;
         }
-        Some(cached_value) => response = serde_json::from_value(cached_value).unwrap(),
+        Some(cached_value) => {
+            response = serde_json::from_value(cached_value).expect("Failed parsing cached value")
+        }
     }
 
     response!(&response)
 }
 
-#[derive(Clone, Deserialize, Serialize, Hash)]
+#[derive(Clone, Deserialize, Serialize, Hash, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct NFTListRandomBuyQuery {
     pub max_price: i64,
@@ -419,29 +422,32 @@ pub async fn get_nft_random_list_handler(
             r.count = r.items.len() as i64;
 
             response = r;
-            let value_for_cache = serde_json::to_value(response.clone()).unwrap();
+            let value_for_cache =
+                serde_json::to_value(response.clone()).expect("Failed serializing cached value");
             cache.insert(hash, value_for_cache).await;
         }
-        Some(cached_value) => response = serde_json::from_value(cached_value).unwrap(),
+        Some(cached_value) => {
+            response = serde_json::from_value(cached_value).expect("Failed parsing cached value")
+        }
     }
 
     response!(&response)
 }
 
-#[derive(Clone, Deserialize, Serialize, Hash)]
+#[derive(Clone, Deserialize, Serialize, Hash, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct NFTSellCountQuery {
     pub max_price: i64,
 }
 
-#[derive(Clone, Deserialize, Serialize, Hash)]
+#[derive(Clone, Deserialize, Serialize, Hash, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct NFTSellCountResponse {
     pub count: i64,
     pub timestamp: i64,
 }
 
-/// POST /nfts/sell-count
+/// GET /nfts/sell-count
 pub fn get_nft_sell_count(
     db: Queries,
     cache: Cache<u64, Value>,
@@ -465,15 +471,19 @@ pub async fn get_nft_sell_count_handler(
     match cached_value {
         None => {
             let max_price = params.max_price;
-            let sell_count = catch_error_500!(db.nft_sell_count(max_price).await).unwrap_or_default();
+            let sell_count =
+                catch_error_500!(db.nft_sell_count(max_price).await).unwrap_or_default();
             response = NFTSellCountResponse {
                 count: sell_count,
                 timestamp: chrono::offset::Utc::now().naive_utc().timestamp(),
             };
-            let value_for_cache = serde_json::to_value(response.clone()).unwrap();
+            let value_for_cache =
+                serde_json::to_value(response.clone()).expect("Failed serializing cached value");
             cache.insert(hash, value_for_cache).await;
         }
-        Some(cached_value) => response = serde_json::from_value(cached_value).unwrap(),
+        Some(cached_value) => {
+            response = serde_json::from_value(cached_value).expect("Failed parsing cached value")
+        }
     }
 
     response!(&response)
@@ -494,13 +504,17 @@ pub async fn get_nft_top_list_handler(
     let response;
     match cached_value {
         None => {
-            let from = NaiveDateTime::from_timestamp_opt(params.from, 0).expect("Failed to get datetime");
+            let from =
+                NaiveDateTime::from_timestamp_opt(params.from, 0).expect("Failed to get datetime");
             let list = catch_error_500!(db.nft_top_search(from, params.limit, params.offset).await);
             response = catch_error_500!(make_nfts_response(list, db).await);
-            let value_for_cache = serde_json::to_value(response.clone()).unwrap();
+            let value_for_cache =
+                serde_json::to_value(response.clone()).expect("Failed serializing cached value");
             cache.insert(hash, value_for_cache).await;
         }
-        Some(cached_value) => response = serde_json::from_value(cached_value).unwrap(),
+        Some(cached_value) => {
+            response = serde_json::from_value(cached_value).expect("Failed parsing cached value")
+        }
     }
 
     Ok(Box::from(warp::reply::with_status(

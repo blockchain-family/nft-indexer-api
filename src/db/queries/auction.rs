@@ -2,14 +2,14 @@ use crate::db::queries::Queries;
 
 use super::*;
 
-use sqlx::{self};
 use crate::handlers::auction::AuctionsSortOrder;
+use sqlx::{self};
 
 impl Queries {
     pub async fn collect_auctions(&self, ids: &[String]) -> sqlx::Result<Vec<NftAuction>> {
         sqlx::query_as!(
             NftAuction,
-            r#"SELECT a.*, count(1) over() as "cnt!" FROM nft_auction_search a WHERE a.address = ANY($1)"#,
+                r#"SELECT a.*, count(1) over() as "cnt!" FROM nft_auction_search a WHERE a.address = ANY($1)"#,
             ids
         )
             .fetch_all(self.db.as_ref())
@@ -20,13 +20,12 @@ impl Queries {
         sqlx::query_as!(
             NftAuction,
             r#"
-        SELECT a.*, count(1) over () as "cnt!" FROM nft_auction_search a WHERE a.address = $1"#,
+                SELECT a.*, count(1) over () as "cnt!" FROM nft_auction_search a WHERE a.address = $1"#,
             address
         )
             .fetch_optional(self.db.as_ref())
             .await
     }
-
 
     pub async fn get_nft_auction_by_nft(&self, nft: &String) -> sqlx::Result<Option<NftAuction>> {
         sqlx::query_as!(
@@ -37,11 +36,9 @@ impl Queries {
                 order by a.created_at DESC limit 1"#,
             nft
         )
-            .fetch_optional(self.db.as_ref())
-            .await
+        .fetch_optional(self.db.as_ref())
+        .await
     }
-
-
 
     pub async fn get_nft_auction_last_bid(
         &self,
@@ -67,10 +64,9 @@ impl Queries {
             "#,
             auction
         )
-            .fetch_optional(self.db.as_ref())
-            .await
+        .fetch_optional(self.db.as_ref())
+        .await
     }
-
 
     pub async fn list_nft_auction_bids(
         &self,
@@ -99,10 +95,9 @@ impl Queries {
             limit as i64,
             offset as i64
         )
-            .fetch_all(self.db.as_ref())
-            .await
+        .fetch_all(self.db.as_ref())
+        .await
     }
-
 
     pub async fn list_nft_auctions(
         &self,
@@ -133,8 +128,8 @@ impl Queries {
                     limit as i64,
                     offset as i64
                 )
-                    .fetch_all(self.db.as_ref())
-                    .await
+                .fetch_all(self.db.as_ref())
+                .await
             }
             AuctionsSortOrder::StartDate => {
                 sqlx::query_as!(
@@ -155,8 +150,8 @@ impl Queries {
                     limit as i64,
                     offset as i64
                 )
-                    .fetch_all(self.db.as_ref())
-                    .await
+                .fetch_all(self.db.as_ref())
+                .await
             }
             _ => {
                 sqlx::query_as!(
@@ -177,13 +172,11 @@ impl Queries {
                     limit as i64,
                     offset as i64
                 )
-                    .fetch_all(self.db.as_ref())
-                    .await
+                .fetch_all(self.db.as_ref())
+                .await
             }
         }
     }
-
-
 
     pub async fn list_owner_auction_bids_out(
         &self,
@@ -222,8 +215,8 @@ impl Queries {
             limit as i64,
             offset as i64
         )
-            .fetch_all(self.db.as_ref())
-            .await
+        .fetch_all(self.db.as_ref())
+        .await
     }
 
     pub async fn list_owner_auction_bids_in(
@@ -264,8 +257,7 @@ impl Queries {
             limit as i64,
             offset as i64
         )
-            .fetch_all(self.db.as_ref())
-            .await
+        .fetch_all(self.db.as_ref())
+        .await
     }
-
 }

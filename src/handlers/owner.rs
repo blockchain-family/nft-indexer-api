@@ -1,5 +1,7 @@
 use crate::db::queries::Queries;
 use crate::db::RootType;
+use crate::handlers::auction::collect_auctions_nfts_collections;
+use crate::handlers::nft::collect_nft_and_collection;
 use crate::model::OwnerFee;
 use crate::schema::VecWithAuctionBids;
 use crate::schema::VecWithDirectBuy;
@@ -17,8 +19,6 @@ use utoipa::OpenApi;
 use utoipa::ToSchema;
 use warp::http::StatusCode;
 use warp::Filter;
-use crate::handlers::auction::collect_auctions_nfts_collections;
-use crate::handlers::nft::collect_nft_and_collection;
 
 #[derive(OpenApi)]
 #[openapi(
@@ -344,8 +344,7 @@ pub async fn get_owner_direct_sell_handler(
         .map(|x| DirectSell::from_db(x, &db.tokens))
         .collect();
     let nft_ids = ret.iter().map(|x| x.nft.clone()).collect();
-    let (nft, collection) =
-        catch_error_500!(collect_nft_and_collection(&db, &nft_ids).await);
+    let (nft, collection) = catch_error_500!(collect_nft_and_collection(&db, &nft_ids).await);
 
     let ret = VecWith {
         count,

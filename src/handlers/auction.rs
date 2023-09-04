@@ -1,5 +1,6 @@
 use crate::db::queries::Queries;
 use crate::db::Address;
+use crate::handlers::nft::collect_nft_and_collection;
 use crate::model::{Auction, AuctionBid, Collection, VecWith, NFT};
 use crate::{api_doc_addon, catch_empty, catch_error_500, response, schema};
 use schema::*;
@@ -8,8 +9,6 @@ use std::{collections::HashMap, convert::Infallible};
 use utoipa::OpenApi;
 use utoipa::ToSchema;
 use warp::{http::StatusCode, Filter};
-use crate::handlers::nft::collect_nft_and_collection;
-
 #[derive(OpenApi)]
 #[openapi(
     paths(get_auctions, get_auction, get_auction_bids),
@@ -17,7 +16,7 @@ use crate::handlers::nft::collect_nft_and_collection;
         AuctionsQuery,
         AuctionsSortOrder,
         VecWithAuction,
-        AuctionQuery,
+        AuctionBidsQuery,
         GetAuctionResult,
         VecWithAuctionBids
     )),
@@ -74,8 +73,7 @@ pub async fn get_auctions_handler(
         .map(|col| Auction::from_db(col, &db.tokens))
         .collect();
     let nft_ids = ret.iter().map(|x| x.nft.clone()).collect();
-    let (nft, collection) =
-        catch_error_500!(collect_nft_and_collection(&db, &nft_ids).await);
+    let (nft, collection) = catch_error_500!(collect_nft_and_collection(&db, &nft_ids).await);
     let ret = VecWith {
         count,
         items: ret,
@@ -100,7 +98,7 @@ pub struct AuctionsQuery {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, ToSchema)]
-pub struct AuctionQuery {
+pub struct AuctionBidsQuery {
     pub auction: Address,
     pub limit: Option<usize>,
     pub offset: Option<usize>,
@@ -132,7 +130,7 @@ pub struct GetAuctionResult {
     post,
     tag = "auction",
     path = "/auction",
-    request_body(content = AuctionQuery, description = "Show auction"),
+    request_body(content = AuctionBidsQuery, description = "Show auction"),
     responses(
         (status = 200, body = GetAuctionResult),
         (status = 500),
@@ -144,21 +142,20 @@ pub fn get_auction(
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path!("auction")
         .and(warp::post())
-        .and(warp::body::json::<AuctionQuery>())
+        .and(warp::body::json::<AuctionBidsQuery>())
         .and(warp::any().map(move || db.clone()))
         .and_then(get_auction_handler)
 }
 
 pub async fn get_auction_handler(
-    params: AuctionQuery,
+    params: AuctionBidsQuery,
     db: Queries,
 ) -> Result<Box<dyn warp::Reply>, Infallible> {
     let auction = catch_error_500!(db.get_nft_auction(&params.auction).await);
     let auction = catch_empty!(auction, "auction not found");
 
     let nft_ids = vec![auction.nft.clone().unwrap_or_default()];
-    let (nft, collection) =
-        catch_error_500!(collect_nft_and_collection(&db, &nft_ids).await);
+    let (nft, collection) = catch_error_500!(collect_nft_and_collection(&db, &nft_ids).await);
 
     let bid = catch_error_500!(db.get_nft_auction_last_bid(&params.auction).await);
     let bid = bid.map(|b| AuctionBid::from_db(&b, &auction, &db.tokens));
@@ -178,7 +175,7 @@ pub async fn get_auction_handler(
     post,
     tag = "auction",
     path = "/auction/bids",
-    request_body(content = AuctionQuery, description = "Auction bids"),
+    request_body(content = AuctionBidsQuery, description = "Auction bids"),
     responses(
         (status = 200, body = VecWithAuctionBids),
         (status = 500),
@@ -189,13 +186,13 @@ pub fn get_auction_bids(
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path!("auction" / "bids")
         .and(warp::post())
-        .and(warp::body::json::<AuctionQuery>())
+        .and(warp::body::json::<AuctionBidsQuery>())
         .and(warp::any().map(move || db.clone()))
         .and_then(get_auction_bids_handler)
 }
 
 pub async fn get_auction_bids_handler(
-    params: AuctionQuery,
+    params: AuctionBidsQuery,
     db: Queries,
 ) -> Result<Box<dyn warp::Reply>, Infallible> {
     let auc = catch_error_500!(db.get_nft_auction(&params.auction).await);

@@ -3,7 +3,7 @@ use chrono::NaiveDateTime;
 use log::error;
 use serde::{Deserialize, Serialize};
 use sqlx::types::BigDecimal;
-
+use utoipa::ToSchema;
 pub type Address = String;
 
 #[derive(Debug, Clone, sqlx::FromRow)]
@@ -79,7 +79,6 @@ pub struct NftCollection {
     pub first_mint: NaiveDateTime,
 }
 
-
 #[derive(Clone, Debug)]
 pub struct NftCollectionSimple {
     pub address: Address,
@@ -119,7 +118,6 @@ pub struct NftCollectionDetails {
     pub previews: serde_json::Value,
     pub first_mint: Option<NaiveDateTime>,
 }
-
 
 #[derive(Clone, Debug)]
 pub struct NftAuction {
@@ -232,7 +230,6 @@ pub struct NftPriceHistory {
     pub ts: NaiveDateTime,
     pub price: BigDecimal,
     pub price_token: Option<Address>,
-
     pub nft: Option<Address>,
     pub collection: Option<Address>,
     pub is_deal: bool,
@@ -278,12 +275,21 @@ pub struct MetaParsed {
     pub full_image_mimetype: Option<String>,
     pub attributes: Option<serde_json::Value>,
     pub typ: Option<String>,
+    pub royalty: Option<MetaRoyalty>,
 }
 #[derive(Deserialize, Clone, Debug)]
 struct MetaFile {
     pub source: Option<String>,
     pub mimetype: Option<String>,
 }
+
+#[derive(Deserialize, Serialize, Clone, Debug, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct MetaRoyalty {
+    pub description: Option<String>,
+    pub royalty_type: Option<String>,
+}
+
 #[derive(Deserialize, Clone, Debug)]
 struct MetaJson {
     pub files: Vec<MetaFile>,
@@ -291,6 +297,7 @@ struct MetaJson {
     #[serde(rename = "type")]
     pub typ: Option<String>,
     pub attributes: Option<serde_json::Value>,
+    pub royalty: Option<MetaRoyalty>,
 }
 
 impl NftDetails {
@@ -316,6 +323,7 @@ impl NftDetails {
                             full_image_mimetype: full_image.1,
                             attributes: meta_json.attributes,
                             typ,
+                            royalty: meta_json.royalty,
                         }
                     }
                     Err(e) => {

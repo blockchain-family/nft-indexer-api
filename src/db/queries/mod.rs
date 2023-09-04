@@ -50,8 +50,8 @@ impl Queries {
                 price.usd_price,
                 price.ts
             )
-                .execute(self.db.as_ref())
-                .await?;
+            .execute(self.db.as_ref())
+            .await?;
         }
         Ok(())
     }
@@ -71,11 +71,9 @@ impl Queries {
             limit,
             offset
         )
-            .fetch_all(self.db.as_ref())
-            .await
+        .fetch_all(self.db.as_ref())
+        .await
     }
-
-
 
     pub async fn get_owner_fee(
         &self,
@@ -136,8 +134,7 @@ impl Queries {
             owner as &Address,
             root_code as &RootType
         )
-            .fetch_one(self.db.as_ref())
-            .await
+        .fetch_one(self.db.as_ref())
+        .await
     }
-
 }
