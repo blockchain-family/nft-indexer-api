@@ -1,10 +1,9 @@
 use super::*;
 use chrono::NaiveDateTime;
 use log::error;
-use opg::OpgModel;
 use serde::{Deserialize, Serialize};
 use sqlx::types::BigDecimal;
-
+use utoipa::ToSchema;
 pub type Address = String;
 
 #[derive(Debug, Clone, sqlx::FromRow)]
@@ -284,7 +283,7 @@ struct MetaFile {
     pub mimetype: Option<String>,
 }
 
-#[derive(Deserialize, Serialize, Clone, Debug, OpgModel)]
+#[derive(Deserialize, Serialize, Clone, Debug, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct MetaRoyalty {
     pub description: Option<String>,
@@ -362,4 +361,18 @@ pub struct OwnerFeeRecord {
     pub fee_denominator: i32,
     pub collection: Option<String>,
     pub nft: Option<String>,
+}
+
+#[derive(Debug, Clone, sqlx::FromRow, Default)]
+pub struct UserRecord {
+    pub address: String,
+    pub logo_nft: Option<String>,
+    pub username: Option<String>,
+    pub bio: Option<String>,
+    pub twitter: Option<String>,
+    pub instagram: Option<String>,
+    pub facebook: Option<String>,
+    pub link: Option<String>,
+    pub email: Option<String>,
+    pub avatar_url: Option<String>,
 }

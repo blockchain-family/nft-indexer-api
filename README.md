@@ -6,6 +6,5 @@
 
 ```
 # Open API
-/swagger.yaml
 /swagger.json
 ```

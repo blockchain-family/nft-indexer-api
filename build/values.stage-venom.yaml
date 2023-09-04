@@ -2,9 +2,12 @@ env:
   RUST_LOG: info
   RUST_BACKTRACE: 1
   DATABASE_URL: postgresql://$(BACKEND_API_USER):$(BACKEND_API_PASSWORD)@cloudsqlproxy.default:5432/indexator-venom
-  INDEXER_API_DATABASE_URL: postgresql://$(BACKEND_API_USER):$(BACKEND_API_PASSWORD)@cloudsqlproxy.default:5432/indexator-venom
-  indexer_api_http_address: 0.0.0.0:8080
-  indexer_api_database_max_connections: 20
+  INDEXER_API__DATABASE__URL: postgresql://$(BACKEND_API_USER):$(BACKEND_API_PASSWORD)@cloudsqlproxy.default:5432/indexator-venom
+  indexer_api__http_address: 0.0.0.0:8080
+  indexer_api__database__max_connections: 20
+  indexer_api__jwt_secret: $(VENOM_API_JWT_SECRET)
+  indexer_api__auth_token_lifetime: "31536000"
+  indexer_api__base_url: oasis.gallery
 
 controller: statefulset
 

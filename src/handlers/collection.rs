@@ -1,17 +1,47 @@
-use crate::db::{Address, Queries};
+use crate::db::queries::Queries;
+use crate::db::Address;
 use crate::handlers::{calculate_hash, OrderDirection};
 use crate::model::{Collection, CollectionDetails, CollectionSimple, VecWithTotal};
-use crate::{catch_empty, catch_error, response};
+use crate::schema::VecCollectionSimpleWithTotal;
+use crate::schema::VecCollectionsWithTotal;
+use crate::{api_doc_addon, catch_empty, catch_error_500, response};
 use moka::future::Cache;
-use opg::OpgModel;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::fmt::Display;
 use std::{collections::HashMap, convert::Infallible};
+use utoipa::OpenApi;
+use utoipa::ToSchema;
 use warp::http::StatusCode;
 use warp::Filter;
+#[derive(OpenApi)]
+#[openapi(
+    paths(
+        list_collections,
+        list_collections_simple,
+        get_collection,
+        get_collections_by_owner
+    ),
+    components(schemas(
+        CollectionListOrderField,
+        CollectionListOrder,
+        VecCollectionsWithTotal,
+        ListCollectionsParams,
+        ListCollectionsSimpleParams,
+        VecCollectionSimpleWithTotal,
+        CollectionParam,
+        CollectionSimple,
+        OwnerParam,
+        CollectionParam
+    )),
+    tags(
+        (name = "collection", description = "Collection handlers"),
+    ),
+)]
+struct ApiDoc;
+api_doc_addon!(ApiDoc);
 
-#[derive(Clone, Deserialize, Serialize, Hash, OpgModel)]
+#[derive(Clone, Deserialize, Serialize, Hash, ToSchema)]
 pub enum CollectionListOrderField {
     #[serde(rename = "firstMint")]
     FirstMint,
@@ -25,13 +55,13 @@ impl Display for CollectionListOrderField {
     }
 }
 
-#[derive(Clone, Deserialize, Serialize, Hash, OpgModel)]
+#[derive(Clone, Deserialize, Serialize, Hash, ToSchema)]
 pub struct CollectionListOrder {
     pub field: CollectionListOrderField,
     pub direction: OrderDirection,
 }
 
-#[derive(Clone, Deserialize, Hash, OpgModel)]
+#[derive(Clone, Deserialize, Hash, ToSchema)]
 pub struct ListCollectionsParams {
     pub name: Option<String>,
     pub owners: Option<Vec<String>>,
@@ -42,7 +72,16 @@ pub struct ListCollectionsParams {
     pub order: Option<CollectionListOrder>,
 }
 
-/// POST /collections
+#[utoipa::path(
+    post,
+    tag = "collection",
+    path = "/collections",
+    request_body(content = ListCollectionsParams, description = "List collections"),
+    responses(
+        (status = 200, body = VecCollectionsWithTotal),
+        (status = 500),
+    ),
+)]
 pub fn list_collections(
     db: Queries,
     cache: Cache<u64, Value>,
@@ -63,7 +102,7 @@ pub async fn list_collections_handler(
     let hash = calculate_hash(&params);
     let cached_value = cache.get(&hash);
 
-    let ret;
+    let ret: VecWithTotal<CollectionDetails>;
     match cached_value {
         None => {
             let owners = params.owners.as_deref().unwrap_or(&[]);
@@ -72,9 +111,8 @@ pub async fn list_collections_handler(
             let collections = params.collections.as_deref().unwrap_or(&[]);
             let limit = params.limit.unwrap_or(100);
             let offset = params.offset.unwrap_or_default();
-
-            let list = catch_error!(
-                db.list_collections(
+            let list = db
+                .list_collections(
                     name,
                     owners,
                     verified.as_ref(),
@@ -83,12 +121,16 @@ pub async fn list_collections_handler(
                     offset,
                     params.order,
                 )
-                .await
-            );
+                .await;
+
+            let list = catch_error_500!(list);
 
             let count = list.first().map(|it| it.cnt).unwrap_or_default();
-            let items: Vec<CollectionDetails> =
-                list.into_iter().map(CollectionDetails::from_db).collect();
+            let mut items = vec![];
+            for collection_detail in list {
+                let detail = catch_error_500!(CollectionDetails::from_db(collection_detail));
+                items.push(detail);
+            }
             ret = VecWithTotal { count, items };
             let value_for_cache =
                 serde_json::to_value(ret.clone()).expect("Failed serializing cached value");
@@ -102,12 +144,12 @@ pub async fn list_collections_handler(
     response!(&ret)
 }
 
-#[derive(Debug, Clone, Deserialize, Hash, OpgModel)]
+#[derive(Debug, Clone, Deserialize, Hash, ToSchema)]
 pub struct CollectionParam {
     pub collection: Address,
 }
 
-#[derive(Debug, Clone, Deserialize, Hash, OpgModel)]
+#[derive(Debug, Clone, Deserialize, Hash, ToSchema)]
 pub struct ListCollectionsSimpleParams {
     pub name: Option<String>,
     pub verified: Option<bool>,
@@ -115,7 +157,16 @@ pub struct ListCollectionsSimpleParams {
     pub offset: Option<usize>,
 }
 
-/// POST /collections/simple
+#[utoipa::path(
+    post,
+    tag = "collection",
+    path = "/collections/simple",
+    request_body(content = ListCollectionsSimpleParams, description = "List collections simple"),
+    responses(
+        (status = 200, body = VecCollectionSimpleWithTotal),
+        (status = 500),
+    ),
+)]
 pub fn list_collections_simple(
     db: Queries,
     cache: Cache<u64, Value>,
@@ -135,22 +186,20 @@ pub async fn list_collections_simple_handler(
 ) -> Result<Box<dyn warp::Reply>, Infallible> {
     let hash = calculate_hash(&params);
     let cached_value = cache.get(&hash);
+    let ret: VecWithTotal<CollectionSimple>;
 
-    let ret;
     match cached_value {
         None => {
             let verified = Some(params.verified.unwrap_or(true));
             let name = params.name.as_ref();
             let limit = params.limit.unwrap_or(100);
             let offset = params.offset.unwrap_or_default();
-            let list = catch_error!(
+            let list = catch_error_500!(
                 db.list_collections_simple(name, verified.as_ref(), limit, offset)
                     .await
             );
-
             let count = list.first().map(|it| it.cnt).unwrap_or_default();
-            let items: Vec<CollectionSimple> =
-                list.into_iter().map(CollectionSimple::from_db).collect();
+            let items = list.into_iter().map(CollectionSimple::from_db).collect();
 
             ret = VecWithTotal { count, items };
             let value_for_cache =
@@ -165,7 +214,16 @@ pub async fn list_collections_simple_handler(
     response!(&ret)
 }
 
-/// POST /collection/details
+#[utoipa::path(
+    post,
+    tag = "collection",
+    path = "/collection/details",
+    request_body(content = CollectionParam, description = "Collection details"),
+    responses(
+        (status = 200, body = CollectionDetails),
+        (status = 500),
+    ),
+)]
 pub fn get_collection(
     db: Queries,
     cache: Cache<u64, Value>,
@@ -185,13 +243,12 @@ pub async fn get_collection_handler(
 ) -> Result<Box<dyn warp::Reply>, Infallible> {
     let hash = calculate_hash(&param);
     let cached_value = cache.get(&hash);
-
     let ret;
     match cached_value {
         None => {
-            let col = catch_error!(db.get_collection(&param.collection).await);
+            let col = catch_error_500!(db.get_collection(&param.collection).await);
             let col = catch_empty!(col, "");
-            ret = CollectionDetails::from_db(col);
+            ret = catch_error_500!(CollectionDetails::from_db(col));
             let value_for_cache =
                 serde_json::to_value(ret.clone()).expect("Failed serializing cached value");
             cache.insert(hash, value_for_cache).await;
@@ -200,18 +257,26 @@ pub async fn get_collection_handler(
             ret = serde_json::from_value(cached_value).expect("Failed parsing cached value")
         }
     }
-
     response!(&ret)
 }
 
-#[derive(Debug, Clone, Deserialize, OpgModel)]
+#[derive(Debug, Clone, Deserialize, ToSchema)]
 pub struct OwnerParam {
     pub owner: Address,
     pub limit: Option<usize>,
     pub offset: Option<usize>,
 }
 
-/// POST /collections/by-owner
+#[utoipa::path(
+    post,
+    tag = "collection",
+    path = "/collections/by-owner",
+    request_body(content = OwnerParam, description = "Collections by owner"),
+    responses(
+        (status = 200, body = VecCollectionsWithTotal),
+        (status = 500),
+    ),
+)]
 pub fn get_collections_by_owner(
     db: Queries,
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
@@ -230,7 +295,7 @@ pub async fn get_collections_by_owner_handler(
     let limit = params.limit.unwrap_or(100);
     let offset = params.offset.unwrap_or_default();
 
-    let list = catch_error!(db.list_collections_by_owner(&owner, limit, offset).await);
+    let list = catch_error_500!(db.list_collections_by_owner(&owner, limit, offset).await);
 
     let count = list.first().map(|it| it.cnt).unwrap_or_default();
     let ret: Vec<Collection> = list.into_iter().map(Collection::from_db).collect();
