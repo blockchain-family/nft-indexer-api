@@ -1,16 +1,65 @@
 use crate::db::{NftEventCategory, NftEventType};
 use crate::handlers::calculate_hash;
-use crate::model::NftEvents;
-use crate::{catch_error, db::Queries, model::SearchResult, response};
 use moka::future::Cache;
+use crate::model::AuctionActive;
+use crate::model::AuctionBidPlaced;
+use crate::model::AuctionCanceled;
+use crate::model::AuctionComplete;
+use crate::model::NftEvent;
+use crate::model::NftEventAuction;
+use crate::model::NftEventDirectBuy;
+use crate::model::NftEventDirectSell;
+use crate::model::NftEventMint;
+use crate::model::NftEventTransfer;
+use crate::model::NftEvents;
+use crate::{api_doc_addon, catch_error_500, model::SearchResult, response};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::convert::Infallible;
+use utoipa::OpenApi;
+use utoipa::ToSchema;
 use warp::http::StatusCode;
 use warp::hyper::body::Bytes;
 use warp::Filter;
+use crate::db::queries::Queries;
 
-/// POST /search
+#[derive(OpenApi)]
+#[openapi(
+    paths(search_all, get_events),
+    components(schemas(
+        SearchResult,
+        SearchRes,
+        EventsQuery,
+        NftEvents,
+        NftEvent,
+        NftEventDirectSell,
+        NftEventDirectBuy,
+        NftEventAuction,
+        NftEventMint,
+        NftEventTransfer,
+        AuctionActive,
+        AuctionComplete,
+        AuctionCanceled,
+        AuctionBidPlaced
+    )),
+    tags(
+        (name = "event", description = "Event handlers"),
+    ),
+)]
+
+struct ApiDoc;
+api_doc_addon!(ApiDoc);
+
+#[utoipa::path(
+    post,
+    tag = "event",
+    path = "/search",
+    request_body(content = String, description = "Search events"),
+    responses(
+        (status = 200, body = SearchRes),
+        (status = 500),
+    ),
+)]
 pub fn search_all(
     db: Queries,
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
@@ -26,14 +75,22 @@ pub async fn search_all_handler(
     db: Queries,
 ) -> Result<Box<dyn warp::Reply>, Infallible> {
     let query = String::from_utf8(query.into()).expect("err converting to String");
-
-    let items = catch_error!(db.search_all(&query).await);
+    let items = catch_error_500!(db.search_all(&query).await);
     let items: Vec<SearchResult> = items.into_iter().map(SearchResult::from_db).collect();
     let count = items.len();
     response!(&SearchRes { items, count })
 }
 
-/// POST /events
+#[utoipa::path(
+    post,
+    tag = "event",
+    path = "/events",
+    request_body(content = EventsQuery, description = "List events"),
+    responses(
+        (status = 200, body = NftEvents),
+        (status = 500),
+    ),
+)]
 pub fn get_events(
     db: Queries,
     cache: Cache<u64, Value>,
@@ -71,7 +128,7 @@ pub async fn get_events_handler(
                 true => limit,
                 false => limit + 1,
             };
-            let record = catch_error!(
+            let record = catch_error_500!(
                 db.list_events(
                     nft,
                     collection,
@@ -90,8 +147,7 @@ pub async fn get_events_handler(
                 None => Ok(NftEvents::default()),
                 Some(value) => serde_json::from_value(value),
             };
-
-            let mut r = catch_error!(r);
+            let mut r = catch_error_500!(r);
 
             if !with_count {
                 if r.data.len() < final_limit {
@@ -102,8 +158,9 @@ pub async fn get_events_handler(
                 }
             }
 
-            response = r;
-            let value_for_cache = serde_json::to_value(response.clone()).unwrap();
+            response = r.clone();
+
+            let value_for_cache = serde_json::to_value(r).unwrap();
             cache.insert(hash, value_for_cache).await;
         }
         Some(cached_value) => response = serde_json::from_value(cached_value).unwrap(),
@@ -112,7 +169,7 @@ pub async fn get_events_handler(
     response!(&response)
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, Hash)]
+#[derive(Debug, Clone, Deserialize, Serialize, Hash, ToSchema)]
 pub struct EventsQuery {
     pub owner: Option<String>,
     pub collections: Option<Vec<String>>,
@@ -127,7 +184,7 @@ pub struct EventsQuery {
     pub verified: Option<bool>,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, ToSchema)]
 pub struct SearchRes {
     pub items: Vec<SearchResult>,
     pub count: usize,

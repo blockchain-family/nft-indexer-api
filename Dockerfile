@@ -7,7 +7,6 @@ COPY . .
 RUN RUSTFLAGS=-g cargo build --release
 
 FROM europe-west1-docker.pkg.dev/blockchain-family/docker/rust-runtime:v1.62
-COPY --from=builder /build/openapi.yml /app/openapi.yml
 COPY --from=builder /build/target/release/api /app/application
 COPY --from=builder /build/entrypoint.sh /app/entrypoint.sh
 USER runuser

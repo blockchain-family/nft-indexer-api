@@ -1,26 +1,16 @@
-mod nft;
-
-pub use self::nft::*;
+pub mod nft;
 use std::collections::hash_map::DefaultHasher;
-
-mod auction;
-pub use self::auction::*;
-
-mod events;
-pub use self::events::*;
-
-mod collection;
-pub use self::collection::*;
-
-mod owner;
-pub use self::owner::*;
-
-mod metrics;
-
-pub use self::metrics::*;
+pub mod auction;
+pub mod events;
+pub mod collection;
+pub mod owner;
+pub mod metrics;
+pub mod auth;
+pub mod user;
+use warp::http::StatusCode;
 
 #[macro_export]
-macro_rules! catch_error {
+macro_rules! catch_error_500 {
     ($expr:expr) => {
         match $expr {
             Ok(val) => val,
@@ -28,6 +18,21 @@ macro_rules! catch_error {
                 return Ok(Box::from(warp::reply::with_status(
                     e.to_string(),
                     StatusCode::INTERNAL_SERVER_ERROR,
+                )));
+            }
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! catch_error_400 {
+    ($expr:expr) => {
+        match $expr {
+            Ok(val) => val,
+            Err(e) => {
+                return Ok(Box::from(warp::reply::with_status(
+                    e.to_string(),
+                    StatusCode::BAD_REQUEST,
                 )));
             }
         }
@@ -59,16 +64,11 @@ macro_rules! response {
     };
 }
 
-use std::convert::Infallible;
 use std::fmt::Display;
 use std::hash::{Hash, Hasher};
-use warp::{
-    http::{Response, StatusCode},
-    Filter,
-};
+use warp::http::Response
+;
 
-use crate::db::Queries;
-use crate::model::{Root, Roots};
 use serde::{Deserialize, Serialize};
 
 lazy_static::lazy_static! {
@@ -77,24 +77,65 @@ lazy_static::lazy_static! {
     };
 }
 
-/// GET /swagger
-pub fn get_swagger() -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone
-{
-    warp::path!("swagger")
-        .and(warp::get())
-        .and_then(get_swagger_handler)
+#[macro_export]
+macro_rules! api_doc_addon {
+    ($addon:ty) => {
+        use utoipa::openapi::Components;
+        use utoipa::Modify;
+        pub struct ApiDocAddon;
+        impl Modify for ApiDocAddon {
+            fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
+                let mut addon = <$addon>::openapi();
+                openapi.paths.paths.append(&mut addon.paths.paths);
+                if openapi.tags.is_none() {
+                    openapi.tags = Some(vec![]);
+                }
+                if let Some(tags) = openapi.tags.as_mut() {
+                    if let Some(addon_tags) = addon.tags.as_mut() {
+                        tags.append(addon_tags);
+                    }
+                }
+                if openapi.components.is_none() {
+                    openapi.components = Some(Components::new());
+                }
+                if let Some(components) = openapi.components.as_mut() {
+                    if let Some(addon_components) = addon.components.as_mut() {
+                        components.schemas.append(&mut addon_components.schemas);
+                    }
+                }
+            }
+        }
+    };
 }
 
-async fn get_swagger_handler() -> Result<impl warp::Reply, Infallible> {
-    Ok(Box::from(warp::reply::with_status(
-        Response::builder()
-            .header("Content-Type", "application/yaml")
-            .body::<&[u8]>(SWAGGER.as_ref()),
-        StatusCode::OK,
-    )))
-}
+use std::convert::Infallible;
 
-/// POST /roots
+use crate::db::queries::Queries;
+use crate::model::{Root, Roots};
+
+use utoipa::OpenApi;
+use warp::Filter;
+
+#[derive(OpenApi)]
+#[openapi(
+    paths(list_roots),
+    components(schemas(Roots, Root)),
+    tags(
+        (name = "service", description = "Service handlers"),
+    )
+)]
+struct ApiDoc;
+api_doc_addon!(ApiDoc);
+
+#[utoipa::path(
+    get,
+    tag = "service",
+    path = "/roots",
+    responses(
+        (status = 200, body = Roots),
+        (status = 500),
+    ),
+)]
 pub fn list_roots(
     db: Queries,
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
@@ -105,8 +146,7 @@ pub fn list_roots(
 }
 
 pub async fn list_roots_handler(db: Queries) -> Result<Box<dyn warp::Reply>, Infallible> {
-    let list = catch_error!(db.list_roots().await);
-
+    let list = catch_error_500!(db.list_roots().await);
     let roots: Vec<Root> = list.into_iter().map(Root::from).collect();
     response!(&Roots { roots })
 }

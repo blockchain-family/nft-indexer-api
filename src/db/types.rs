@@ -76,8 +76,9 @@ pub struct NftCollection {
     pub max_price: Option<BigDecimal>,
     pub total_price: Option<BigDecimal>,
     pub cnt: i64,
-    pub first_mint: Option<NaiveDateTime>,
+    pub first_mint: NaiveDateTime,
 }
+
 
 #[derive(Clone, Debug)]
 pub struct NftCollectionSimple {
@@ -107,7 +108,7 @@ pub struct NftCollectionDetails {
     pub verified: Option<bool>,
     pub wallpaper: Option<String>,
     pub logo: Option<String>,
-    pub owners_count: Option<i32>,
+    pub owners_count: Option<i64>,
     pub nft_count: Option<i64>,
     pub max_price: Option<BigDecimal>,
     pub total_price: Option<BigDecimal>,
@@ -118,6 +119,7 @@ pub struct NftCollectionDetails {
     pub previews: serde_json::Value,
     pub first_mint: Option<NaiveDateTime>,
 }
+
 
 #[derive(Clone, Debug)]
 pub struct NftAuction {
@@ -256,7 +258,7 @@ pub struct Profile {
 
 #[derive(Clone, Debug)]
 pub struct TraitDef {
-    pub collection: Option<Address>,
+    pub collection: Address,
     pub trait_type: String,
     pub values: Option<serde_json::Value>,
 }
@@ -351,4 +353,18 @@ pub struct OwnerFeeRecord {
     pub fee_denominator: i32,
     pub collection: Option<String>,
     pub nft: Option<String>,
+}
+
+#[derive(Debug, Clone, sqlx::FromRow, Default)]
+pub struct UserRecord {
+    pub address: String,
+    pub logo_nft: Option<String>,
+    pub username: Option<String>,
+    pub bio: Option<String>,
+    pub twitter: Option<String>,
+    pub instagram: Option<String>,
+    pub facebook: Option<String>,
+    pub link: Option<String>,
+    pub email: Option<String>,
+    pub avatar_url: Option<String>,
 }
