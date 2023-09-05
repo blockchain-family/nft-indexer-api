@@ -15,6 +15,8 @@ impl Queries {
             r#"
                 select
                 c.*,
+                null::numeric as max_price,
+                null::numeric as total_price,
                 1::bigint as "cnt!",
                 '[]'::json as "previews!"
                 from nft_collection_details c
@@ -38,8 +40,8 @@ impl Queries {
                c.updated as "updated!",
                c.wallpaper,
                c.logo,
-               c.total_price,
-               c.max_price,
+               null::numeric as total_price,
+               null::numeric max_price,
                nft.owners_count,
                c.verified as "verified!",
                c.created as "created!",
@@ -79,8 +81,8 @@ impl Queries {
               c.updated as "updated!",
               c.wallpaper,
               c.logo,
-              c.total_price,
-              c.max_price,
+              null::numeric as total_price,
+              null::numeric as max_price,
               nft.owners_count,
               c.verified as "verified!",
               c.created as "created!",
