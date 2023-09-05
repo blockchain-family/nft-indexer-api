@@ -394,47 +394,13 @@ impl Queries {
         sqlx::query_as!(
             NftPrice,
             r#"
-                 select
-                    ag.dt as "ts!",
-                    (price * tup.usd_price) as "usd_price!"
-                 from (
-                    select
-                        t.finished_at dt,
-                        t.price_token,
-                        t.price
-                    from nft_direct_sell t
-                    join roots r
-                        on t.root = r.address
-                    where t.nft = $1 and
-                          t.finished_at between $2 and $3 and
-                          t.state = 'filled'
-                    union all
-                    select
-                        t.finished_at,
-                        t.price_token,
-                        t.price
-                    from nft_direct_buy t
-                    join roots r
-                        on t.root = r.address
-                    where t.nft = $1 and
-                          t.finished_at between $2 and $3 and
-                          t.state = 'filled'
-                    union all
-                    select
-                        t.finished_at,
-                        t.price_token,
-                        t.max_bid
-                    from nft_auction t
-                    join roots r
-                        on t.root = r.address
-                    where t.nft = $1 and
-                          t.finished_at between $2 and $3 and
-                          t.status = 'completed'
-                 ) as ag
-                 join token_usd_prices tup
-                      on tup.token = ag.price_token
-                 where (price * tup.usd_price) is not null
-                 order by 1
+                select ts, usd_price as "usd_price!"
+                from nft_price_history nph
+                         inner join offers_whitelist ow on ow.address = nph.source
+                where nft = $1
+                  and ts between $2 and $3
+                  and usd_price is not null
+                order by ts
             "#,
             nft,
             from,
