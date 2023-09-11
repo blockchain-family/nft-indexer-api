@@ -116,38 +116,16 @@ impl Queries {
             r#"
             select n.*, count(1) over () as "total_count!"
             from nft_details n
-            join nft_collection nc
-                 on nc.address = n.collection and
-                    nc.verified
-            left join lateral (
-                select count(1) as cnt
-                from nft_auction na
-                join roots r on na.root = r.address
-                where n.address = na.nft and
-                      na.status = 'completed' and
-                      na.finished_at >= $1
-            ) auc on true
-            left join lateral (
-                select count(1) as cnt
-                from nft_direct_sell na
-                join roots r on na.root = r.address
-                where n.address = na.nft and
-                      na.state = 'filled' and
-                      na.updated >= $1
-            ) ds on true
-            left join lateral (
-                select count(1) as cnt
-                from nft_direct_buy na
-                join roots r on na.root = r.address
-                where n.address = na.nft and
-                      na.state = 'filled' and
-                      na.updated >= $1
-            ) db on true
-            where n.updated >= $1 and
-                  auc.cnt + ds.cnt + db.cnt > 0
-            order by auc.cnt + ds.cnt + db.cnt desc, n.updated desc, n.address desc
-            limit $2
-            offset $3
+                     join nft_collection nc on nc.address = n.collection and nc.verified
+                     left join lateral ( select count(1) as cnt
+                                         from nft_price_history nph
+                                                  join offers_whitelist ow on ow.address = nph.source
+                                         where n.address = nph.nft
+                                           and nph.ts >= $1 ) offers on true
+            where n.updated >= $1
+              and offers.cnt > 0
+            order by offers.cnt desc, n.updated desc, n.address desc
+            limit $2 offset $3
             "#,
             from,
             limit,
@@ -186,7 +164,7 @@ impl Queries {
                         0
                 end total_count
             from nft_details n
-            inner join nft_collection c
+            join nft_collection c
                 on n.collection = c.address
             where
                 (n.owner = any($1) or array_length($1::varchar[], 1) is null) and
@@ -205,6 +183,7 @@ impl Queries {
                                 exists (
                                     select 1
                                     from nft_direct_sell nds
+                                    join offers_whitelist ow on ow.address = nds.address
                                     where nds.nft = n.address and
                                           nds.created <= now() and
                                           nds.state = 'active' and
@@ -236,6 +215,7 @@ impl Queries {
                                 exists (
                                     select 1
                                     from nft_direct_sell nds
+                                    join offers_whitelist ow on ow.address =
                                     where nds.nft = n.address and
                                           nds.created <= now() and
                                           nds.state = 'active' and
@@ -433,8 +413,7 @@ impl Queries {
                             (now() <= nds.expired_at or nds.expired_at = to_timestamp(0)) and
                             nds.state = 'active'
                             and nds.price <= $1
-                    inner join roots r
-                        on nds.root = r.address
+                    join offers_whitelist ow on ow.address = nds.address
                     where n.burned is false and
                           c.verified is true
                     order by random()
