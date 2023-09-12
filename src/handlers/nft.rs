@@ -78,7 +78,7 @@ pub async fn get_nft_handler(
     db: Queries,
 ) -> Result<Box<dyn warp::Reply>, Infallible> {
     let nft = catch_error_500!(db.get_nft_details(&param.nft).await);
-    let mut nft = catch_empty!(nft, "not found");
+    let nft = catch_empty!(nft, "not found");
     let collections_ids = match &nft.collection {
         Some(c) => vec![c.clone()],
         None => vec![],
@@ -87,16 +87,16 @@ pub async fn get_nft_handler(
     let collection = catch_error_500!(collect_collections(&db, &collections_ids).await);
 
     let mut auction = HashMap::default();
-    if nft.auction.is_none() {
-        let auc = catch_error_500!(
-            db.get_nft_auction_by_nft(&nft.address.clone().unwrap_or_default())
-                .await
-        );
-
-        if let Some(a) = auc {
-            nft.auction = a.address
-        }
-    };
+    // if nft.auction.is_none() {
+    //     let auc = catch_error_500!(
+    //         db.get_nft_auction_by_nft(&nft.address.clone().unwrap_or_default())
+    //             .await
+    //     );
+    //
+    //     if let Some(a) = auc {
+    //         nft.auction = a.address
+    //     }
+    // };
     if let Some(ref auction_id) = nft.auction {
         let a = catch_error_500!(db.get_nft_auction(auction_id).await);
         if let Some(a) = a {
@@ -105,16 +105,16 @@ pub async fn get_nft_handler(
     };
 
     let mut direct_sell = HashMap::default();
-    if nft.forsale.is_none() {
-        let a = catch_error_500!(
-            db.get_nft_direct_sell(&nft.address.clone().unwrap_or_default())
-                .await
-        );
-
-        if let Some(a) = a {
-            nft.forsale = Some(a.address)
-        }
-    }
+    // if nft.forsale.is_none() {
+    //     let a = catch_error_500!(
+    //         db.get_nft_direct_sell(&nft.address.clone().unwrap_or_default())
+    //             .await
+    //     );
+    //
+    //     if let Some(a) = a {
+    //         nft.forsale = Some(a.address)
+    //     }
+    // }
     if let Some(ref direct_sell_id) = nft.forsale {
         let a = catch_error_500!(db.get_direct_sell(direct_sell_id).await);
         if let Some(a) = a {

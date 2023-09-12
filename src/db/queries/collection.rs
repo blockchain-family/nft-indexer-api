@@ -96,6 +96,7 @@ impl Queries {
                     count(distinct owner)::int as owners_count
                 from nft n
                 where n.collection = c.address
+                    and not n.burned
             ) nft on true
             where c.owner = $1
             limit $2
@@ -145,6 +146,7 @@ impl Queries {
                         join nft_metadata nm on n.address = nm.nft and
                              nm.meta is not null
                         where n.collection = c.address
+                            and not n.burned
                         limit 50
                     ) ag
                     order by random()
@@ -211,6 +213,7 @@ impl Queries {
                     count(distinct owner) as owners_count
                 from nft n
                 where n.collection = c.address
+                    and not n.burned
             ) nft on true
             where ($3::boolean is false or c.verified is true) and
                   ($4::varchar is null or c.name ilike $4)
