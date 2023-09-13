@@ -2121,6 +2121,88 @@
     },
     "query": "\n                WITH nft_attributes AS (\n                    SELECT jsonb_array_elements(nm.meta -> 'attributes') -> 'trait_type' AS trait_type,\n                           jsonb_array_elements(nm.meta -> 'attributes') -> 'value'      AS trait_value,\n                           nm.meta,\n                           n.collection                                                  AS nft_collection,\n                           nm.nft\n                    FROM nft_metadata nm\n                             JOIN nft n ON n.address = nm.nft\n                    WHERE nm.meta -> 'attributes' IS NOT NULL\n                      AND nm.nft = $1\n                ),\n                     nft_attributes_col AS (\n                         SELECT jsonb_array_elements(nm.meta -> 'attributes') -> 'trait_type' AS trait_type,\n                                jsonb_array_elements(nm.meta -> 'attributes') -> 'value'      AS trait_value,\n                                nm.nft\n                         FROM nft_metadata nm\n                         where nm.nft in (\n                             select n2.address\n                             from nft n2\n                                      join nft n3 on n3.address = $1\n                                 and n2.collection = n3.collection\n                         )\n                     )\n                SELECT (na.trait_type #>> '{}')::text as trait_type, (na.trait_value #>> '{}')::text as trait_value, COUNT(*) as \"cnt!\"\n                FROM nft_attributes na\n                         LEFT JOIN nft_attributes_col na2\n                                   ON na.trait_type = na2.trait_type\n                                       AND na.trait_value = na2.trait_value\n                GROUP BY na.trait_type, na.trait_value\n            "
   },
+  "8308a299216ebd454b8d8ace78ce1f79bd86ceb4102fba09b828d73e7ea8c435": {
+    "describe": {
+      "columns": [
+        {
+          "name": "content",
+          "ordinal": 0,
+          "type_info": "Json"
+        }
+      ],
+      "nullable": [
+        null
+      ],
+      "parameters": {
+        "Left": [
+          {
+            "Custom": {
+              "kind": {
+                "Array": {
+                  "Custom": {
+                    "kind": {
+                      "Enum": [
+                        "mint",
+                        "transfer",
+                        "auction_active",
+                        "auction_bid_placed",
+                        "auction_canceled",
+                        "auction_complete",
+                        "offer_active",
+                        "sell_active",
+                        "offer_filled",
+                        "sell_purchased",
+                        "sell_canceled",
+                        "offer_canceled"
+                      ]
+                    },
+                    "name": "event_kind"
+                  }
+                }
+              },
+              "name": "_event_kind"
+            }
+          },
+          {
+            "Custom": {
+              "kind": {
+                "Domain": "Varchar"
+              },
+              "name": "t_address"
+            }
+          },
+          {
+            "Custom": {
+              "kind": {
+                "Domain": "Varchar"
+              },
+              "name": "t_address"
+            }
+          },
+          {
+            "Custom": {
+              "kind": {
+                "Array": {
+                  "Custom": {
+                    "kind": {
+                      "Domain": "Varchar"
+                    },
+                    "name": "t_address"
+                  }
+                }
+              },
+              "name": "_t_address"
+            }
+          },
+          "Int4",
+          "Int4",
+          "Bool",
+          "Bool"
+        ]
+      }
+    },
+    "query": "with events_whitelist as (\n    select of.address\n    from deployed_offers of\n--         inner join roots r\n--             on r.address = of.root\n    union\n    select address\n    from roots\n)\nselect json_build_object(\n               'totalRows',\n               coalesce(max(r.total_rows), 0),\n               'data',\n               coalesce(json_agg(json_build_object(\n                       'eventType', r.computed_event_kind,\n                       'id', r.id,\n                       'name', nft.name,\n                       'description', nft.description,\n                       'datetime', r.created_at,\n                       'address', r.nft,\n                       'previewUrl', nm.meta -> 'preview' ->> 'source',\n                       'mint', case\n                                   when r.event_type = 'nft_created' then\n                                       json_build_object(\n                                               'owner',\n                                               r.args -> 'owner',\n                                               'creator',\n                                               r.args -> 'creator'\n                                           )\n                           end,\n                       'transfer',\n                       case\n                           when r.event_type = 'nft_owner_changed'\n                               then json_build_object(\n                                   'from', r.args -> 'old_owner',\n                                   'to', r.args -> 'new_owner')\n                           end,\n                       'directSell',\n                       case\n                           when\n                               r.event_type = 'direct_sell_state_changed'\n                               then\n                               json_build_object(\n                                       'creator', r.args -> 'value2' -> 'creator',\n                                       'startTime', r.args -> 'value2' -> 'start',\n                                       'endTime', r.args -> 'value2' -> 'end',\n                                       'status', r.args -> 'value2' -> 'status',\n                                       'price', r.args -> 'value2' ->> '_price',\n                                       'usdPrice', ((r.args -> 'value2' ->> '_price')::numeric * curr.usd_price)::text,\n                                       'paymentToken', r.args -> 'value2' -> 'token',\n                                       'newOwner', r.new_owner\n                                   )\n                           end,\n                       'directBuy',\n                       case\n                           when\n                               r.event_type = 'direct_buy_state_changed'\n                               then\n                               json_build_object(\n                                       'creator', r.args -> 'value2' -> 'creator',\n                                       'startTime', r.args -> 'value2' -> 'start_time_buy',\n                                       'endTime', r.args -> 'value2' -> 'end_time_buy',\n                                       'durationTime', r.args -> 'value2' -> 'duration_time',\n                                       'price', r.args -> 'value2' ->> '_price',\n                                       'usdPrice', ((r.args -> 'value2' ->> '_price')::numeric * curr.usd_price)::text,\n                                       'status', r.args -> 'value2' -> 'status',\n                                       'spentToken', r.args -> 'value2' -> 'spent_token',\n                                       'oldOwner', r.old_owner\n                                   )\n                           end,\n                       'auction',\n                       case\n                           when\n                               event_cat = 'auction'\n                               then\n                               json_build_object(\n                                       'auctionActive',\n                                       case\n                                           when\n                                               r.event_type = 'auction_active'\n                                               then\n                                               json_build_object(\n                                                       'nftOwner', r.args -> 'value0' -> 'subject_owner',\n                                                       'auctionStartTime', r.args -> 'value0' -> 'start_time',\n                                                       'auctionEndTime', r.args -> 'value0' -> 'finish_time',\n                                                       'auctionDuration', r.args -> 'value0' -> 'duration',\n                                                       'state', 1,\n                                                       'paymentToken', r.args -> 'value0' -> '_payment_token',\n                                                       'price', r.args -> 'value0' ->> '_price',\n                                                       'usdPrice',\n                                                       ((r.args -> 'value0' ->> '_price')::numeric * curr.usd_price)::text\n                                                   )\n                                           end,\n                                       'auctionComplete',\n                                       case\n                                           when\n                                               r.event_type = 'auction_complete'\n                                               then\n                                               json_build_object(\n                                                       'nftOwner', r.args -> 'seller',\n                                                       'auctionStartTime', 0,\n                                                       'auctionEndTime', 0,\n                                                       'auctionDuration', 0,\n                                                       'state', 3,\n                                                       'paymentToken', auction.args -> '_payment_token',\n                                                       'maxBidValue', r.args ->> 'value',\n                                                       'maxBidAddress', r.args -> 'buyer',\n                                                       'price', (r.args ->> 'value'),\n                                                       'usdPrice', ((r.args ->> 'value')::numeric * curr.usd_price)::text\n                                                   )\n                                           end,\n                                   --                             'auctionCanceled',\n--                             case\n--                                 when\n--                                     r.event_type = 'auction_cancelled'\n--                                 then\n--                                     json_build_object(\n--                                         'nftOwner', auction.args -> 'subject_owner',\n--                                         'auctionStartTime', auction.args -> 'start_time',\n--                                         'auctionEndTime', auction.args -> 'finish_time',\n--                                         'auctionDuration', auction.args -> 'duration',\n--                                         'state', auction.args -> 'status',\n--                                         'paymentToken', auction.args -> '_payment_token',\n--                                         'price', auction.args -> '_price',\n--                                         'usdPrice', ((auction.args ->> '_price')::numeric * curr.usd_price)::text\n--                                     )\n--                             end,\n\n                                       'auctionBidPlaced',\n                                       case\n                                           when\n                                               r.event_type = 'auction_bid_placed'\n                                               then\n                                               json_build_object(\n                                                       'bidSender', r.args -> 'buyer',\n                                                       'paymentToken', 'none',\n                                                       'bidValue', r.args ->> 'value',\n                                                       'usdPrice', ((r.args ->> 'value')::numeric * curr.usd_price)::text\n                                                   )\n                                           end\n                                   )\n                           end\n                   )), '[]'::json)\n           ) content\nfrom  get_events(\n            p_owner => $2::t_address,\n            p_event_kind => $1::event_kind[],\n            p_nft => $3::t_address,\n            p_collections => $4::t_address[],\n            p_limit=> $5::integer,\n            p_offset => $6::integer,\n            p_with_count => $7::boolean,\n            p_verified => $8::boolean) as r\n         join nft on nft.address = r.nft\n         left join nft_metadata nm on nm.nft = r.nft\n         left join lateral (\n    select n.args\n    from nft_events n\n             inner join events_whitelist ew\n                        on n.address = ew.address\n    where false\n      and n.event_cat = r.event_cat\n      and n.computed_event_kind = 'auction_active'::event_kind\n      and n.address = r.event_address\n      and n.created_lt < r.created_lt\n      and r.computed_event_kind in ('auction_complete'::event_kind, 'auction_canceled'::event_kind, 'auction_bid_placed'::event_kind)\n    order by n.created_lt\n    limit 1\n    ) auction on true\n         left join lateral (\n    select p.usd_price\n    from token_usd_prices p\n    where r.args -> 'value2' ->> 'token' = p.token::text\n       or r.args -> 'value2' ->> 'spent_token' = p.token::text\n       or auction.args -> 'value0' ->> '_payment_token' = p.token::text\n       or r.args -> 'value0' ->> '_payment_token' = p.token::text\n    ) curr on true"
+  },
   "84b562603d131046e1ed4a2c7f4a848fb1c061e089291101da5a5f1a0029cc6d": {
     "describe": {
       "columns": [
@@ -2411,87 +2493,6 @@
       }
     },
     "query": "\n                    SELECT \n                        a.address,\n                        a.nft,\n                        a.wallet_for_bids,\n                        a.price_token,\n                        a.start_price,\n                        a.max_bid,\n                        a.min_bid,\n                        a.start_usd_price,\n                        a.max_usd_bid,\n                        a.min_usd_bid,\n                        \"status: _\",\n                        a.created_at,\n                        a.finished_at,\n                        a.tx_lt,\n                        a.bids_count,\n                        a.last_bid_from,\n                        a.last_bid_ts,\n                        a.last_bid_value,\n                        a.last_bid_usd_value,\n                        a.fee_numerator,\n                        a.fee_denominator,\n                        count (1) over () as \"cnt!\"\n                    FROM nft_auction_search a\n                    INNER JOIN nft n ON a.nft = n.address\n                    WHERE\n                    (n.owner = ANY($1) OR array_length($1::varchar[], 1) is null)\n                    AND (n.collection = ANY($2) OR array_length($2::varchar[], 1) is null)\n                    AND (a.nft = ANY($3) OR array_length($3::varchar[], 1) is null)\n                    ORDER BY a.created_at DESC\n                    LIMIT $4 OFFSET $5"
-  },
-  "8b674625a6d85ac062adba87dbec7ab717072aaf281c6312400256ed69a4aead": {
-    "describe": {
-      "columns": [
-        {
-          "name": "content",
-          "ordinal": 0,
-          "type_info": "Json"
-        }
-      ],
-      "nullable": [
-        null
-      ],
-      "parameters": {
-        "Left": [
-          {
-            "Custom": {
-              "kind": {
-                "Array": {
-                  "Custom": {
-                    "kind": {
-                      "Enum": [
-                        "mint",
-                        "transfer",
-                        "auction_active",
-                        "auction_bid_placed",
-                        "auction_canceled",
-                        "auction_complete",
-                        "offer_active",
-                        "sell_active",
-                        "offer_filled",
-                        "sell_purchased",
-                        "sell_canceled",
-                        "offer_canceled"
-                      ]
-                    },
-                    "name": "event_kind"
-                  }
-                }
-              },
-              "name": "_event_kind"
-            }
-          },
-          {
-            "Custom": {
-              "kind": {
-                "Domain": "Varchar"
-              },
-              "name": "t_address"
-            }
-          },
-          {
-            "Custom": {
-              "kind": {
-                "Domain": "Varchar"
-              },
-              "name": "t_address"
-            }
-          },
-          {
-            "Custom": {
-              "kind": {
-                "Array": {
-                  "Custom": {
-                    "kind": {
-                      "Domain": "Varchar"
-                    },
-                    "name": "t_address"
-                  }
-                }
-              },
-              "name": "_t_address"
-            }
-          },
-          "Int4",
-          "Int4",
-          "Bool"
-        ]
-      }
-    },
-    "query": "with events_whitelist as (\n    select of.address\n    from deployed_offers of\n--         inner join roots r\n--             on r.address = of.root\n    union\n    select address\n    from roots\n)\nselect json_build_object(\n               'totalRows',\n               coalesce(max(r.total_rows), 0),\n               'data',\n               coalesce(json_agg(json_build_object(\n                       'eventType', r.computed_event_kind,\n                       'id', r.id,\n                       'name', nft.name,\n                       'description', nft.description,\n                       'datetime', r.created_at,\n                       'address', r.nft,\n                       'previewUrl', nm.meta -> 'preview' ->> 'source',\n                       'mint', case\n                                   when r.event_type = 'nft_created' then\n                                       json_build_object(\n                                               'owner',\n                                               r.args -> 'owner',\n                                               'creator',\n                                               r.args -> 'creator'\n                                           )\n                           end,\n                       'transfer',\n                       case\n                           when r.event_type = 'nft_owner_changed'\n                               then json_build_object(\n                                   'from', r.args -> 'old_owner',\n                                   'to', r.args -> 'new_owner')\n                           end,\n                       'directSell',\n                       case\n                           when\n                               r.event_type = 'direct_sell_state_changed'\n                               then\n                               json_build_object(\n                                       'creator', r.args -> 'value2' -> 'creator',\n                                       'startTime', r.args -> 'value2' -> 'start',\n                                       'endTime', r.args -> 'value2' -> 'end',\n                                       'status', r.args -> 'value2' -> 'status',\n                                       'price', r.args -> 'value2' ->> '_price',\n                                       'usdPrice', ((r.args -> 'value2' ->> '_price')::numeric * curr.usd_price)::text,\n                                       'paymentToken', r.args -> 'value2' -> 'token',\n                                       'newOwner', r.new_owner\n                                   )\n                           end,\n                       'directBuy',\n                       case\n                           when\n                               r.event_type = 'direct_buy_state_changed'\n                               then\n                               json_build_object(\n                                       'creator', r.args -> 'value2' -> 'creator',\n                                       'startTime', r.args -> 'value2' -> 'start_time_buy',\n                                       'endTime', r.args -> 'value2' -> 'end_time_buy',\n                                       'durationTime', r.args -> 'value2' -> 'duration_time',\n                                       'price', r.args -> 'value2' ->> '_price',\n                                       'usdPrice', ((r.args -> 'value2' ->> '_price')::numeric * curr.usd_price)::text,\n                                       'status', r.args -> 'value2' -> 'status',\n                                       'spentToken', r.args -> 'value2' -> 'spent_token',\n                                       'oldOwner', r.old_owner\n                                   )\n                           end,\n                       'auction',\n                       case\n                           when\n                               event_cat = 'auction'\n                               then\n                               json_build_object(\n                                       'auctionActive',\n                                       case\n                                           when\n                                               r.event_type = 'auction_active'\n                                               then\n                                               json_build_object(\n                                                       'nftOwner', r.args -> 'value0' -> 'subject_owner',\n                                                       'auctionStartTime', r.args -> 'value0' -> 'start_time',\n                                                       'auctionEndTime', r.args -> 'value0' -> 'finish_time',\n                                                       'auctionDuration', r.args -> 'value0' -> 'duration',\n                                                       'state', 1,\n                                                       'paymentToken', r.args -> 'value0' -> '_payment_token',\n                                                       'price', r.args -> 'value0' ->> '_price',\n                                                       'usdPrice',\n                                                       ((r.args -> 'value0' ->> '_price')::numeric * curr.usd_price)::text\n                                                   )\n                                           end,\n                                       'auctionComplete',\n                                       case\n                                           when\n                                               r.event_type = 'auction_complete'\n                                               then\n                                               json_build_object(\n                                                       'nftOwner', r.args -> 'seller',\n                                                       'auctionStartTime', 0,\n                                                       'auctionEndTime', 0,\n                                                       'auctionDuration', 0,\n                                                       'state', 3,\n                                                       'paymentToken', auction.args -> '_payment_token',\n                                                       'maxBidValue', r.args ->> 'value',\n                                                       'maxBidAddress', r.args -> 'buyer',\n                                                       'price', (r.args ->> 'value'),\n                                                       'usdPrice', ((r.args ->> 'value')::numeric * curr.usd_price)::text\n                                                   )\n                                           end,\n                                   --                             'auctionCanceled',\n--                             case\n--                                 when\n--                                     r.event_type = 'auction_cancelled'\n--                                 then\n--                                     json_build_object(\n--                                         'nftOwner', auction.args -> 'subject_owner',\n--                                         'auctionStartTime', auction.args -> 'start_time',\n--                                         'auctionEndTime', auction.args -> 'finish_time',\n--                                         'auctionDuration', auction.args -> 'duration',\n--                                         'state', auction.args -> 'status',\n--                                         'paymentToken', auction.args -> '_payment_token',\n--                                         'price', auction.args -> '_price',\n--                                         'usdPrice', ((auction.args ->> '_price')::numeric * curr.usd_price)::text\n--                                     )\n--                             end,\n\n                                       'auctionBidPlaced',\n                                       case\n                                           when\n                                               r.event_type = 'auction_bid_placed'\n                                               then\n                                               json_build_object(\n                                                       'bidSender', r.args -> 'buyer',\n                                                       'paymentToken', 'none',\n                                                       'bidValue', r.args ->> 'value',\n                                                       'usdPrice', ((r.args ->> 'value')::numeric * curr.usd_price)::text\n                                                   )\n                                           end\n                                   )\n                           end\n                   )), '[]'::json)\n           ) content\nfrom  get_events(\n            p_owner => $2::t_address,\n            p_event_kind => $1::event_kind[],\n            p_nft => $3::t_address,\n            p_collections => $4::t_address[],\n            p_limit=>$5::integer,\n            p_offset => $6::integer,\n            p_with_count => $7::boolean) as r\n         join nft\n              on nft.address = r.event_address\n         left join nft_metadata nm\n                   on nm.nft = r.nft\n         left join lateral (\n    select n.args\n    from nft_events n\n             inner join events_whitelist ew\n                        on n.address = ew.address\n    where false\n      and n.event_cat = r.event_cat\n      and n.computed_event_kind = 'auction_active'::event_kind\n      and n.address = r.event_address\n      and n.created_lt < r.created_lt\n      and r.computed_event_kind in ('auction_complete'::event_kind, 'auction_canceled'::event_kind, 'auction_bid_placed'::event_kind)\n    order by n.created_lt\n    limit 1\n    ) auction on true\n         left join lateral (\n    select p.usd_price\n    from token_usd_prices p\n    where r.args -> 'value2' ->> 'token' = p.token::text\n       or r.args -> 'value2' ->> 'spent_token' = p.token::text\n       or auction.args -> 'value0' ->> '_payment_token' = p.token::text\n       or r.args -> 'value0' ->> '_payment_token' = p.token::text\n    ) curr on true"
   },
   "98d1d4f85a2899aa04d38f720c0feafe6537f97c298cf5fd99014ac9a15145c3": {
     "describe": {
@@ -3702,28 +3703,6 @@
       }
     },
     "query": "\n                select ts, usd_price as \"usd_price!\"\n                from nft_price_history nph\n                         inner join offers_whitelist ow on ow.address = nph.source\n                where nft = $1\n                  and ts between $2 and $3\n                  and usd_price is not null\n                order by ts\n            "
-  },
-  "f26e2fa080a9a5a0a3947e3df39c4b0ad52fffe11d1b597e87d784713e5d6cb4": {
-    "describe": {
-      "columns": [
-        {
-          "name": "count",
-          "ordinal": 0,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "Varchar",
-          "Varchar",
-          "VarcharArray"
-        ]
-      }
-    },
-    "query": "\n            SELECT count(*)\n            FROM nft_events e\n            WHERE\n                ($1::varchar is null OR e.nft = $1)\n                AND ($2::varchar is null OR e.collection = $2)\n                AND (array_length($3::varchar[], 1) is null OR e.event_type::varchar = ANY($3))\n            "
   },
   "f2e3b4928313463fe9184a1e0ad167d84729d9dffe27fedd684229fd51e78104": {
     "describe": {

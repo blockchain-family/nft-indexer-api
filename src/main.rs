@@ -18,9 +18,7 @@
 #![recursion_limit = "256"]
 
 use api::cfg::ApiConfig;
-use api::db::enums::{
-    AuctionStatus, DirectBuyState, DirectSellState, NftEventCategory, NftEventType,
-};
+use api::db::enums::{AuctionStatus, DirectBuyState, DirectSellState, NftEventType};
 use api::db::queries::Queries;
 use api::handlers;
 use api::handlers::auction::{get_auction, get_auction_bids, get_auctions};
@@ -79,7 +77,7 @@ use warp::{http::StatusCode, Filter};
         AuctionStatus,
         OrderDirection,
         CollectionDetails,
-        CollectionDetailsPreviewMeta, NftEventType, NftEventCategory, Attribute
+        CollectionDetailsPreviewMeta, NftEventType, Attribute
     )),
     info(title="Marketplace API"),
     modifiers(
