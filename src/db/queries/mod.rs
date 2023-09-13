@@ -1,5 +1,6 @@
 mod auction;
 mod collection;
+mod collection_custom;
 mod direct_buy;
 mod direct_sell;
 mod event;
