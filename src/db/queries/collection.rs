@@ -34,7 +34,7 @@ impl Queries {
             r#"
             select
                coalesce(ncc.address, c.address) as "address!",
-               coalesce(ncc.owner, c.owner) as "owner!",
+               c.owner as "owner!",
                coalesce(ncc.name, c.name) as "name",
                coalesce(ncc.description, c.description) as "description",
                coalesce(ncc.updated, c.updated) as "updated!",
