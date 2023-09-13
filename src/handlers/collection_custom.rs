@@ -1,7 +1,8 @@
 use crate::db::queries::Queries;
 use crate::db::Address;
-use crate::{api_doc_addon, catch_error_500, catch_error_401};
 use crate::services::auth::AuthService;
+use crate::{api_doc_addon, catch_error_401, catch_error_500};
+use http::{HeaderMap, HeaderValue};
 use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
 use std::sync::Arc;
@@ -9,7 +10,6 @@ use utoipa::OpenApi;
 use utoipa::ToSchema;
 use warp::http::StatusCode;
 use warp::Filter;
-use http::{HeaderMap, HeaderValue};
 
 #[derive(OpenApi)]
 #[openapi(
@@ -86,7 +86,7 @@ pub async fn upsert_collection_custom_handler(
             payload.description,
             payload.wallpaper,
             payload.logo,
-            serde_json::to_value(payload.social).unwrap(),
+            serde_json::to_value(payload.social).expect("Failed parsing social medias"),
         )
         .await
     );

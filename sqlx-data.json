@@ -1073,6 +1073,39 @@
     },
     "query": "\n            with nft_attributes as ( select jsonb_array_elements(nm.meta -> 'attributes') -> 'trait_type' as trait_type,\n                                            jsonb_array_elements(nm.meta -> 'attributes') -> 'value'      as trait_value,\n                                            nm.meta,\n                                            n.collection                                                  as nft_collection,\n                                            nm.nft\n                                     from nft_metadata nm\n                                              join nft n on n.address = nm.nft\n                                     where nm.meta -> 'attributes' is not null\n                                       and nm.nft = $1 ),\n                 nft_attributes_col as ( select jsonb_array_elements(nm.meta -> 'attributes') -> 'trait_type' as trait_type,\n                                                jsonb_array_elements(nm.meta -> 'attributes') -> 'value'      as trait_value,\n                                                nm.nft\n                                         from nft_metadata nm\n                                         where nm.nft in ( select n2.address\n                                                           from nft n2\n                                                                    join nft n3 on n3.address = $1 and n2.collection = n3.collection ) )\n            select (na.trait_type #>> '{}')::text  as trait_type,\n                   (na.trait_value #>> '{}')::text as trait_value,\n                   count(*)                        as \"cnt!\"\n            from nft_attributes na\n                     left join nft_attributes_col na2 on na.trait_type = na2.trait_type and na.trait_value = na2.trait_value\n            group by na.trait_type, na.trait_value\n            "
   },
+  "61fdd4406009440146a4e5c62d954e5a56e118741094850186368c25286ca49a": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Timestamp",
+          "Text",
+          "Text",
+          {
+            "Custom": {
+              "kind": {
+                "Domain": "Varchar"
+              },
+              "name": "t_uri"
+            }
+          },
+          {
+            "Custom": {
+              "kind": {
+                "Domain": "Varchar"
+              },
+              "name": "t_uri"
+            }
+          },
+          "Jsonb",
+          "Text"
+        ]
+      }
+    },
+    "query": "\n                insert into nft_collection_custom(address, updated, name, description, wallpaper, logo, social)\n                select address, $2, $3, $4, $5, $6, $7 from nft_collection\n                where address = $1 and owner = $8\n                on conflict (address)\n                do update set updated     = $2,\n                              name        = $3,\n                              description = $4,\n                              wallpaper   = $5,\n                              logo        = $6,\n                              social      = $7\n                where nft_collection_custom.address =\n                (select nc.address from nft_collection nc where nc.address = $1 and nc.owner = $8)\n            "
+  },
   "623f516b6b170830e04bb017514b0c646fb7a6f72db91a51d152bc6e993575a0": {
     "describe": {
       "columns": [
