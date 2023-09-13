@@ -116,7 +116,11 @@ impl Queries {
 
         let query = format!(
             r#"
-            select c.*, count(1) over () as "cnt", previews.previews as "previews"
+            select c.*,
+                   count(1) over ()  as "cnt",
+                   previews.previews as "previews",
+                   null::numeric     as max_price,
+                   null::numeric     as total_price
             from nft_collection_details c
                      left join lateral ( select json_agg(ag2.preview_url) as previews
                                          from ( select ag.preview_url
