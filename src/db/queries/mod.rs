@@ -38,14 +38,12 @@ impl Queries {
     ) -> sqlx::Result<()> {
         for price in prices.drain(..) {
             sqlx::query!(
-                "
-            INSERT INTO token_usd_prices (token, usd_price, ts)
-            VALUES ($1::varchar, $2, $3)
-            ON CONFLICT (token) DO UPDATE
-            SET
-                usd_price = EXCLUDED.usd_price,
-                ts = EXCLUDED.ts;
-            ",
+                r#"
+                insert into token_usd_prices (token, usd_price, ts)
+                values ($1::varchar, $2, $3)
+                on conflict (token) do update set usd_price = EXCLUDED.usd_price,
+                                                  ts        = EXCLUDED.ts;
+                "#,
                 price.token,
                 price.usd_price,
                 price.ts
@@ -83,50 +81,26 @@ impl Queries {
         sqlx::query_as!(
             OwnerFeeRecord,
             r#"
-            select
-                case
-                    when
-                        fee.fee_numerator is not null and
-                        fee.fee_denominator is not null
-                    then
-                        fee.fee_numerator
-                    else
-                        (ne.args -> 'fee' -> 'numerator')::int
-                end "fee_numerator!",
-                case
-                    when
-                        fee.fee_numerator is not null and
-                        fee.fee_denominator is not null
-                    then
-                        fee.fee_denominator
-                    else
-                        (ne.args -> 'fee' -> 'denominator')::int
-                end "fee_denominator!",
-                fee.collection,
-                fee.nft
+            select case when fee.fee_numerator is not null and fee.fee_denominator is not null then fee.fee_numerator
+                        else (ne.args -> 'fee' -> 'numerator')::int end   "fee_numerator!",
+                   case when fee.fee_numerator is not null and fee.fee_denominator is not null then fee.fee_denominator
+                        else (ne.args -> 'fee' -> 'denominator')::int end "fee_denominator!",
+                   fee.collection,
+                   fee.nft
             from nft_events ne
-            join roots r
-                on ne.address = r.address and
-                   r.code = $2::t_root_types
-            left join lateral (
-                select
-                    nc.fee_numerator,
-                    nc.fee_denominator,
-                    max(n.collection) collection,
-                    max(e.args ->> 'id') nft
-                from nft n
-                left join nft_events e
-                    on e.nft = n.address and
-                       e.event_type = 'nft_created'
-                join nft_collection nc
-                    on n.collection = nc.address and
-                       nc.fee_numerator is not null and
-                       nc.fee_denominator is not null
-                where n.owner = $1
-                group by nc.fee_numerator, nc.fee_denominator
-                order by min(nc.fee_numerator / nc.fee_denominator)
-                limit 1
-            ) as fee on true
+                     join roots r on ne.address = r.address and r.code = $2::t_root_types
+                     left join lateral ( select nc.fee_numerator,
+                                                nc.fee_denominator,
+                                                max(n.collection) collection,
+                                                max(n.id)::text   nft
+                                         from nft n
+                                                  join nft_collection nc
+                                                       on n.collection = nc.address and nc.fee_numerator is not null and
+                                                          nc.fee_denominator is not null
+                                         where n.owner = $1
+                                         group by nc.fee_numerator, nc.fee_denominator
+                                         order by min(nc.fee_numerator / nc.fee_denominator)
+                                         limit 1 ) as fee on true
             where ne.event_type = 'market_fee_default_changed'
             order by created_at desc, created_lt desc, id desc
             limit 1

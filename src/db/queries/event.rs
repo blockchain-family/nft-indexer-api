@@ -45,14 +45,13 @@ impl Queries {
     ) -> sqlx::Result<i64> {
         let typ_str: Vec<String> = typ.iter().map(|x| x.to_string()).collect();
         sqlx::query!(
-            "
-            SELECT count(*)
-            FROM nft_events e
-            WHERE
-                ($1::varchar is null OR e.nft = $1)
-                AND ($2::varchar is null OR e.collection = $2)
-                AND (array_length($3::varchar[], 1) is null OR e.event_type::varchar = ANY($3))
-            ",
+            r#"
+            select count(*)
+            from nft_events e
+            where ($1::varchar is null or e.nft = $1)
+              and ($2::varchar is null or e.collection = $2)
+              and (array_length($3::varchar[], 1) is null or e.event_type::varchar = any ($3))
+            "#,
             nft,
             collection,
             &typ_str
