@@ -18,25 +18,27 @@ impl Queries {
     ) -> sqlx::Result<()> {
          sqlx::query!(
             r#"
-                insert into nft_collection_custom(address, owner, updated, name, description, wallpaper, logo, social)
-                values ($1, $2, $3, $4, $5, $6, $7, $8)
+                insert into nft_collection_custom(address, updated, name, description, wallpaper, logo, social)
+                select address, $2, $3, $4, $5, $6, $7 from nft_collection
+                where address = $1 and owner = $8
                 on conflict (address)
-                do update set updated     = $3,
-                              name        = $4,
-                              description = $5,
-                              wallpaper   = $6,
-                              logo        = $7,
-                              social      = $8
-                where nft_collection_custom.owner = $2
+                do update set updated     = $2,
+                              name        = $3,
+                              description = $4,
+                              wallpaper   = $5,
+                              logo        = $6,
+                              social      = $7
+                where nft_collection_custom.address =
+                (select nc.address from nft_collection nc where nc.address = $1 and nc.owner = $8)
             "#,
             address as _,
-            owner as _,
             updated as _,
             name,
             description,
             wallpaper as _,
             logo as _,
-            social as serde_json::Value
+            social as serde_json::Value,
+            owner as _
         )
         .execute(self.db.as_ref())
         .await?;
