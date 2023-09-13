@@ -49,7 +49,7 @@ impl Queries {
                nft.count as "nft_count!",
                count(1) over () as "cnt!"
             from nft_collection c
-            full outer join nft_collection_custom ncc on c.address = ncc.address
+            left join nft_collection_custom ncc on c.address = ncc.address
             left join lateral (
                 select
                     count(1) as count,
