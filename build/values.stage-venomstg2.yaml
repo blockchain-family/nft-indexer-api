@@ -1,10 +1,10 @@
 env:
   RUST_LOG: info
   RUST_BACKTRACE: 1
-  DATABASE_URL: postgresql://$(BACKEND_DEV_USER):$(BACKEND_DEV_PASSWORD)@$(BACKEND_DEV_HOST):5432/indexator
-  INDEXER_API__DATABASE__URL: postgresql://$(BACKEND_DEV_USER):$(BACKEND_DEV_PASSWORD)@$(BACKEND_DEV_HOST):5432/indexator
+  DATABASE_URL: postgresql://$(BACKEND_DEV_USER):$(BACKEND_DEV_PASSWORD)@$(BACKEND_DEV_HOST):5432/indexator-2
+  INDEXER_API__DATABASE__URL: postgresql://$(BACKEND_DEV_USER):$(BACKEND_DEV_PASSWORD)@$(BACKEND_DEV_HOST):5432/indexator-2
   indexer_api__http_address: 0.0.0.0:8080
-  indexer_api__database__max_connections: 20
+  indexer_api__database__max_connections: 50
   indexer_api__jwt_secret: $(VENOM_API_JWT_SECRET)
   indexer_api__auth_token_lifetime: "31536000"
   indexer_api__base_url: testnet.oasis.gallery

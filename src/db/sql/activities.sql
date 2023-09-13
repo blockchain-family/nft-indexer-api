@@ -142,34 +142,29 @@ select json_build_object(
                            end
                    )), '[]'::json)
            ) content
-from generate_result_content(
-             p_owner => $2,
-             p_event_kind => $1,
-             p_nft => $3,
-             p_collections => $4,
-             p_limit=>$5,
-             p_offset => $6,
-             p_with_count => $7) as r
+from   get_events(
+                                    p_owner => $2,
+                                    p_event_kind => $1::event_kind[],
+                                    p_nft => $3,
+                                    p_collections => $4,
+                                    p_limit=>$5,
+                                    p_offset => $6,
+                                    p_with_count => $7) as r
          join nft
               on nft.address = r.event_address
          left join nft_metadata nm
                    on nm.nft = r.nft
          left join lateral (
     select n.args
-    from nft_events_deb n
+    from nft_events n
              inner join events_whitelist ew
                         on n.address = ew.address
     where false
       and n.event_cat = r.event_cat
-      and
---         n.computed_event_kind = 'auction_active'::event_kind and
-        n.computed_event_kind2 = 'AuctionActive'::event_kind2
+      and n.computed_event_kind = 'auction_active'::event_kind
       and n.address = r.event_address
       and n.created_lt < r.created_lt
-      and
---         r.computed_event_kind in ('auction_complete'::event_kind, 'auction_cancelled'::event_kind, 'auction_bid_placed'::event_kind)
-            r.computed_event_kind in
-            ('AuctionComplete'::event_kind2, 'AuctionCanceled'::event_kind2, 'AuctionBidPlaced'::event_kind2)
+      and r.computed_event_kind in ('auction_complete'::event_kind, 'auction_canceled'::event_kind, 'auction_bid_placed'::event_kind)
     order by n.created_lt
     limit 1
     ) auction on true

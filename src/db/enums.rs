@@ -116,7 +116,7 @@ pub enum NftEventCategory {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type, Hash, ToSchema)]
-#[sqlx(type_name = "event_category")]
+#[sqlx(type_name = "event_kind")]
 #[serde(rename_all = "snake_case")]
 pub enum NftEventType {
     SellActive,

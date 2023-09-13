@@ -10,7 +10,7 @@ impl Queries {
         collections: &[String],
         owner: Option<&String>,
         event_type: &[NftEventType],
-        category: &[NftEventCategory],
+        _category: &[NftEventCategory],
         offset: usize,
         limit: usize,
         with_count: bool,
@@ -20,18 +20,14 @@ impl Queries {
             .iter()
             .map(|x| x.to_string())
             .collect::<Vec<String>>()[..];
-        let categories_slice = &category
-            .iter()
-            .map(|x| x.to_string())
-            .collect::<Vec<String>>()[..];
 
         sqlx::query_file_as!(
             NftEventsRecord,
             "src/db/sql/activities.sql",
-            event_types_slice,
-            owner,
-            nft,
-            collections,
+            event_types_slice as _,
+            owner as _,
+            nft as _,
+            collections as _,
             limit as i64,
             offset as i64,
             with_count,
