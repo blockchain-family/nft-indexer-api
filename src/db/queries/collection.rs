@@ -33,13 +33,13 @@ impl Queries {
             NftCollection,
             r#"
             select
-               c.address as "address!",
-               c.owner as "owner!",
-               c.name,
-               c.description,
-               c.updated as "updated!",
-               c.wallpaper,
-               c.logo,
+               coalesce(ncc.address, c.address) as "address!",
+               coalesce(ncc.owner, c.owner) as "owner!",
+               coalesce(ncc.name, c.name) as "name",
+               coalesce(ncc.description, c.description) as "description",
+               coalesce(ncc.updated, c.updated) as "updated!",
+               coalesce(ncc.wallpaper, c.wallpaper) as "wallpaper",
+               coalesce(ncc.logo, c.logo) as "logo",
                null::numeric as total_price,
                null::numeric max_price,
                nft.owners_count,
@@ -49,12 +49,13 @@ impl Queries {
                nft.count as "nft_count!",
                count(1) over () as "cnt!"
             from nft_collection c
+            full outer join nft_collection_custom ncc on c.address = ncc.address
             left join lateral (
                 select
                     count(1) as count,
                     count(distinct owner)::int as owners_count
                 from nft n
-                where n.collection = c.address
+                where n.collection = c.address or n.collection = ncc.address
              ) nft on true
             where c.address = any($1) and owner is not null
             "#,
