@@ -27,8 +27,7 @@ impl Queries {
 
         sqlx::query_file_as!(
             NftEventsRecord,
-            "src/db/sql/list_activities.sql",
-            categories_slice,
+            "src/db/sql/activities.sql",
             event_types_slice,
             owner,
             nft,
