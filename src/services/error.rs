@@ -51,7 +51,7 @@ pub async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> 
         (
             StatusCode::BAD_REQUEST,
             err.find::<warp::filters::body::BodyDeserializeError>()
-                .unwrap()
+                .unwrap_or_default()
                 .to_string(),
         )
     } else if err.find::<warp::reject::MethodNotAllowed>().is_some() {
