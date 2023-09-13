@@ -1,15 +1,15 @@
-use crate::model::{JwtClaims, LoginData};
 use super::error::Error;
+use crate::model::{JwtClaims, LoginData};
 use base64::engine::general_purpose;
 use base64::Engine;
 use ed25519_dalek::{PublicKey, Verifier};
+use http::{HeaderMap, HeaderValue};
 use nekoton::core::ton_wallet::compute_address;
 use nekoton::core::ton_wallet::WalletType;
 use sha2::Digest;
 use std::str::FromStr;
 use std::time::SystemTime;
 use ton_block::MsgAddressInt;
-use http::{HeaderMap, HeaderValue};
 
 pub struct AuthService {
     access_token_lifetime: u32,
@@ -180,14 +180,14 @@ impl AuthService {
 
         let header = match headers.get(http::header::AUTHORIZATION) {
             Some(v) => v,
-            None => return anyhow::bail!(Error::NoAuthHeader),
+            None => anyhow::bail!(Error::NoAuthHeader),
         };
         let auth_header = match std::str::from_utf8(header.as_bytes()) {
             Ok(v) => v,
-            Err(_) => return anyhow::bail!(Error::NoAuthHeader),
+            Err(_) => anyhow::bail!(Error::NoAuthHeader),
         };
         if !auth_header.starts_with(BEARER) {
-            return anyhow::bail!(Error::InvalidAuthHeader);
+            anyhow::bail!(Error::InvalidAuthHeader);
         }
         Ok(auth_header.trim_start_matches(BEARER).to_owned())
     }
