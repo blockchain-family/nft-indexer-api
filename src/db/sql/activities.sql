@@ -142,14 +142,14 @@ select json_build_object(
                            end
                    )), '[]'::json)
            ) content
-from   get_events(
-                                    p_owner => $2,
-                                    p_event_kind => $1::event_kind[],
-                                    p_nft => $3,
-                                    p_collections => $4,
-                                    p_limit=>$5,
-                                    p_offset => $6,
-                                    p_with_count => $7) as r
+from  get_events(
+            p_owner => $2::t_address,
+            p_event_kind => $1::event_kind[],
+            p_nft => $3::t_address,
+            p_collections => $4::t_address[],
+            p_limit=>$5::integer,
+            p_offset => $6::integer,
+            p_with_count => $7::boolean) as r
          join nft
               on nft.address = r.event_address
          left join nft_metadata nm
