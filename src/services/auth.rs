@@ -1,7 +1,9 @@
+use super::error::Error;
 use crate::model::{JwtClaims, LoginData};
 use base64::engine::general_purpose;
 use base64::Engine;
 use ed25519_dalek::{PublicKey, Verifier};
+use http::{HeaderMap, HeaderValue};
 use nekoton::core::ton_wallet::compute_address;
 use nekoton::core::ton_wallet::WalletType;
 use sha2::Digest;
@@ -21,6 +23,27 @@ impl AuthService {
             access_token_lifetime,
             jwt_secret,
             base_url,
+        }
+    }
+
+    pub fn authenticate(&self, headers: HeaderMap<HeaderValue>) -> anyhow::Result<String> {
+        use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
+
+        match self.jwt_from_header(&headers) {
+            Ok(jwt) => {
+                let mut validation = Validation::new(Algorithm::default());
+                validation.leeway = 2;
+
+                let decoded = decode::<JwtClaims>(
+                    &jwt,
+                    &DecodingKey::from_secret(self.jwt_secret.as_bytes()),
+                    &validation,
+                )
+                .map_err(|_| Error::JwtToken)?;
+
+                Ok(decoded.claims.sub)
+            }
+            Err(e) => anyhow::bail!(e),
         }
     }
 
@@ -150,5 +173,22 @@ impl AuthService {
             Ok(n) => n.as_secs(),
             Err(e) => panic!("Get sys time error {e}!"),
         }
+    }
+
+    fn jwt_from_header(&self, headers: &HeaderMap<HeaderValue>) -> anyhow::Result<String> {
+        const BEARER: &str = "Bearer ";
+
+        let header = match headers.get(http::header::AUTHORIZATION) {
+            Some(v) => v,
+            None => anyhow::bail!(Error::NoAuthHeader),
+        };
+        let auth_header = match std::str::from_utf8(header.as_bytes()) {
+            Ok(v) => v,
+            Err(_) => anyhow::bail!(Error::NoAuthHeader),
+        };
+        if !auth_header.starts_with(BEARER) {
+            anyhow::bail!(Error::InvalidAuthHeader);
+        }
+        Ok(auth_header.trim_start_matches(BEARER).to_owned())
     }
 }

@@ -9,23 +9,22 @@ impl Queries {
         sqlx::query_as!(
             NftDirectSell,
             r#"
-                select
-                s.address as "address!",
-                s.created as "created!",
-                s.updated as "updated!",
-                s.tx_lt as "tx_lt!",
-                s.nft as "nft!",
-                s.collection,
-                s.seller,
-                s.price_token as "price_token!",
-                s.price as "price!",
-                s.usd_price,
-                s.finished_at,
-                s.expired_at,
-                s.state as "state!: _",
-                count (1) over () as "cnt!",
-                s.fee_numerator,
-                s.fee_denominator
+            select s.address        as "address!",
+                   s.created        as "created!",
+                   s.updated        as "updated!",
+                   s.tx_lt          as "tx_lt!",
+                   s.nft            as "nft!",
+                   s.collection,
+                   s.seller,
+                   s.price_token    as "price_token!",
+                   s.price          as "price!",
+                   s.usd_price,
+                   s.finished_at,
+                   s.expired_at,
+                   s.state          as "state!: _",
+                   count(1) over () as "cnt!",
+                   s.fee_numerator,
+                   s.fee_denominator
             from nft_direct_sell_usd s
             where s.address = $1
             "#,
@@ -39,26 +38,25 @@ impl Queries {
         sqlx::query_as!(
             NftDirectSell,
             r#"
-            select
-                s.address as "address!",
-                s.created as "created!",
-                s.updated as "updated!",
-                s.tx_lt as "tx_lt!",
-                s.nft as "nft!",
-                s.collection,
-                s.seller,
-                s.price_token as "price_token!",
-                s.price as "price!",
-                s.usd_price,
-                s.finished_at,
-                s.expired_at,
-                s.state as "state!: _",
-                count (1) over () as "cnt!",
-                s.fee_numerator,
-                s.fee_denominator
+            select s.address        as "address!",
+                   s.created        as "created!",
+                   s.updated        as "updated!",
+                   s.tx_lt          as "tx_lt!",
+                   s.nft            as "nft!",
+                   s.collection,
+                   s.seller,
+                   s.price_token    as "price_token!",
+                   s.price          as "price!",
+                   s.usd_price,
+                   s.finished_at,
+                   s.expired_at,
+                   s.state          as "state!: _",
+                   count(1) over () as "cnt!",
+                   s.fee_numerator,
+                   s.fee_denominator
             from nft_direct_sell_usd s
-            where s.nft = $1 and
-                  s.state in ('active', 'expired')
+            where s.nft = $1
+              and s.state in ('active', 'expired')
             order by s.created desc
             limit 1
             "#,
@@ -71,25 +69,26 @@ impl Queries {
     pub async fn collect_direct_sell(&self, ids: &[String]) -> sqlx::Result<Vec<NftDirectSell>> {
         sqlx::query_as!(
             NftDirectSell,
-            r#"SELECT
-            s.address as "address!",
-            s.created as "created!",
-            s.updated as "updated!",
-            s.tx_lt as "tx_lt!",
-            s.nft as "nft!",
-            s.collection,
-            s.seller,
-            s.price_token as "price_token!",
-            s.price as "price!",
-            s.usd_price,
-            s.finished_at,
-            s.expired_at,
-            s.state as "state!: _",
-             count (1) over () as "cnt!",
-            s.fee_numerator,
-            s.fee_denominator
-            FROM nft_direct_sell_usd s
-            WHERE s.address = ANY($1)"#,
+            r#"
+            select s.address        as "address!",
+                   s.created        as "created!",
+                   s.updated        as "updated!",
+                   s.tx_lt          as "tx_lt!",
+                   s.nft            as "nft!",
+                   s.collection,
+                   s.seller,
+                   s.price_token    as "price_token!",
+                   s.price          as "price!",
+                   s.usd_price,
+                   s.finished_at,
+                   s.expired_at,
+                   s.state          as "state!: _",
+                   count(1) over () as "cnt!",
+                   s.fee_numerator,
+                   s.fee_denominator
+            from nft_direct_sell_usd s
+            where s.address = any ($1)
+            "#,
             ids
         )
         .fetch_all(self.db.as_ref())
@@ -108,32 +107,28 @@ impl Queries {
         sqlx::query_as!(
             NftDirectSell,
             r#"
-            select
-                s.address as "address!",
-                s.created as "created!",
-                s.updated as "updated!",
-                s.tx_lt as "tx_lt!",
-                s.nft as "nft!",
-                s.collection,
-                s.seller,
-                s.price_token as "price_token!",
-                s.price as "price!",
-                s.usd_price,
-                s.finished_at,
-                s.expired_at,
-                s.state as "state!: _",
-                count (1) over () as "cnt!",
-                s.fee_numerator,
-                s.fee_denominator
+            select s.address        as "address!",
+                   s.created        as "created!",
+                   s.updated        as "updated!",
+                   s.tx_lt          as "tx_lt!",
+                   s.nft            as "nft!",
+                   s.collection,
+                   s.seller,
+                   s.price_token    as "price_token!",
+                   s.price          as "price!",
+                   s.usd_price,
+                   s.finished_at,
+                   s.expired_at,
+                   s.state          as "state!: _",
+                   count(1) over () as "cnt!",
+                   s.fee_numerator,
+                   s.fee_denominator
             from nft_direct_sell_usd s
-            where s.seller = $1 and
-                  (s.collection = any($2) or
-                   array_length($2::varchar[], 1) is null) and
-                  (array_length($3::varchar[], 1) is null or
-                   s.state::varchar = any($3))
+            where s.seller = $1
+              and (s.collection = any ($2) or array_length($2::varchar[], 1) is null)
+              and (array_length($3::varchar[], 1) is null or s.state::varchar = any ($3))
             order by s.updated desc
-            limit $4
-            offset $5
+            limit $4 offset $5
             "#,
             owner,
             collections,

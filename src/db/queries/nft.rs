@@ -14,62 +14,50 @@ impl Queries {
         sqlx::query_as!(
             SearchResult,
             r#"
-                select ag.address as "address!", nft_name, collection_name, object_type as "object_type!", image
-                from (
-                     select n.address,
-                            n.name     nft_name,
-                            nc.name    collection_name,
-                            'nft'   as object_type,
-                            CASE
-                                WHEN m.meta is not null THEN m.meta::jsonb -> 'preview' ->> 'source'
-                                END as "image",
-                            case
-                                when lower(n.address) = lower($1) then 10
-                                when lower(n.name) = lower($1) then 9
-                                when n.name like '' || $1 || ' %' then 7.9
-                                when n.name like '% ' || $1 || '' then 7.86
-                                when n.name like '%' || $1 || '' then 7.855
-                                when n.name like '' || $1 || '%' then 7.85
-                                when n.name like '% ' || $1 || ' %' then 7.7
-                                when n.name like '%' || $1 || '%' then 7
-                                when n.address ilike '%' || $1 || '%' then 5
-                                else 1
-                                end    priority
-                     from nft n
-                              left join nft_metadata m on n.address = m.nft
-                              join nft_collection nc on n.collection = nc.address and nc.verified
-                     where (n.name ilike '%' || $1 || '%'
-                         or n.description ilike '%' || $1 || '%'
-                         or n.address ilike '%' || $1 || '%')
-                       and not n.burned
-
-                     union all
-
-                     select c.address,
-                            null            nft_name,
-                            c.name          collection_name,
-                            'collection' as object_type,
-                            c.logo          "image",
-                            case
-                                when lower(c.address) = lower($1) then 20
-                                when lower(c.name) = lower($1) then 19
-                                when c.name like '' || $1 || ' %' then 8.9
-                                when c.name like '% ' || $1 || '' then 8.86
-                                when c.name like '%' || $1 || '' then 8.855
-                                when c.name like '' || $1 || '%' then 8.85
-
-                                when c.name like '% ' || $1 || ' %' then 8.7
-                                when c.address ilike '%' || $1 || '%' then 6
-                                else 2
-                                end         priority
-                     from nft_collection c
-                     where (c.name ilike '%' || $1 || '%'
-                         or c.description ilike '%' || $1 || '%'
-                         or c.address ilike '%' || $1 || '%')
-                       and c.verified
-                     ) ag
-                order by ag.priority desc
-                limit 20
+            select ag.address as "address!", nft_name, collection_name, object_type as "object_type!", image
+            from ( select n.address,
+                          n.name                                                                           nft_name,
+                          nc.name                                                                          collection_name,
+                          'nft'                                                                         as object_type,
+                          case when m.meta is not null then m.meta::jsonb -> 'preview' ->> 'source' end as "image",
+                          case when lower(n.address) = lower($1) then 10
+                               when lower(n.name) = lower($1) then 9
+                               when n.name like '' || $1 || ' %' then 7.9
+                               when n.name like '% ' || $1 || '' then 7.86
+                               when n.name like '%' || $1 || '' then 7.855
+                               when n.name like '' || $1 || '%' then 7.85
+                               when n.name like '% ' || $1 || ' %' then 7.7
+                               when n.name like '%' || $1 || '%' then 7
+                               when n.address ilike '%' || $1 || '%' then 5
+                               else 1 end                                                                  priority
+                   from nft n
+                            left join nft_metadata m on n.address = m.nft
+                            join nft_collection nc on n.collection = nc.address and nc.verified
+                   where (n.name ilike '%' || $1 || '%' or n.description ilike '%' || $1 || '%' or n.address ilike '%' || $1 || '%')
+                     and not n.burned
+            
+                   union all
+            
+                   select c.address,
+                          null            nft_name,
+                          c.name          collection_name,
+                          'collection' as object_type,
+                          c.logo          "image",
+                          case when lower(c.address) = lower($1) then 20
+                               when lower(c.name) = lower($1) then 19
+                               when c.name like '' || $1 || ' %' then 8.9
+                               when c.name like '% ' || $1 || '' then 8.86
+                               when c.name like '%' || $1 || '' then 8.855
+                               when c.name like '' || $1 || '%' then 8.85
+            
+                               when c.name like '% ' || $1 || ' %' then 8.7
+                               when c.address ilike '%' || $1 || '%' then 6
+                               else 2 end priority
+                   from nft_collection c
+                   where (c.name ilike '%' || $1 || '%' or c.description ilike '%' || $1 || '%' or c.address ilike '%' || $1 || '%')
+                     and c.verified ) ag
+            order by ag.priority desc
+            limit 20
             "#,
             search_str
         )
@@ -81,9 +69,9 @@ impl Queries {
         sqlx::query_as!(
             NftDetails,
             r#"
-                SELECT n.*, 1::bigint as "total_count!"
-                FROM nft_details n
-                WHERE n.address = $1
+            select n.*, 1::bigint as "total_count!"
+            from nft_details n
+            where n.address = $1
             "#,
             address
         )
@@ -95,9 +83,9 @@ impl Queries {
         sqlx::query_as!(
             NftDetails,
             r#"
-                SELECT n.*, 1::bigint as "total_count!"
-                FROM nft_details n
-                WHERE n.address = ANY($1)
+            select n.*, 1::bigint as "total_count!"
+            from nft_details n
+            where n.address = any ($1)
             "#,
             ids
         )
@@ -153,101 +141,42 @@ impl Queries {
         with_count: bool,
     ) -> sqlx::Result<Vec<NftDetails>> {
         let mut sql = r#"
-            select
-                n.*,
-                n."auction_status: _" as auction_status,
-                n."forsale_status: _" as forsale_status,
-                case
-                    when $8 then
-                        count(1) over ()
-                    else
-                        0
-                end total_count
+            select n.*,
+                   n."auction_status: _" as                      auction_status,
+                   n."forsale_status: _" as                      forsale_status,
+                   case when $8 then count(1) over () else 0 end total_count
             from nft_details n
-            join nft_collection c
-                on n.collection = c.address
-            where
-                (n.owner = any($1) or array_length($1::varchar[], 1) is null) and
-                (n.collection = ANY($2) or array_length($2::varchar[], 1) is null) and
-                n.burned = false and
-                (
-                    ($3::bool is null and $4::bool is null) or
-                    (
-                        $3::bool is not null and
-                        $4::bool is not null and
-                        (
-                            (
-                                $4::bool and
-                                n.forsale is not null and
-                                n."forsale_status: _" = 'active' and
-                                exists (
-                                    select 1
-                                    from nft_direct_sell nds
-                                    join offers_whitelist ow on ow.address = nds.address
-                                    where nds.nft = n.address and
-                                          nds.created <= now() and
-                                          nds.state = 'active' and
-                                          (nds.expired_at = to_timestamp(0) or
-                                           nds.expired_at > now())
-                                )
-                            ) or
-                            (
-                                not $4::bool and
-                                n.forsale is null
-                            ) or
-                            (
-                                $3::bool and
-                                n.auction is not null and
-                                n."auction_status: _" = 'active'
-                            ) or
-                            (
-                                not $3::bool and
-                                n.auction is null
-                            )
-                        )
-                    ) or
-                    (
-                        $3::bool is null and
-                        (
-                            (
-                                $4::bool and n.forsale is not null and
-                                n."forsale_status: _" = 'active' and
-                                exists (
-                                    select 1
-                                    from nft_direct_sell nds
-                                    join offers_whitelist ow on ow.address =
-                                    where nds.nft = n.address and
-                                          nds.created <= now() and
-                                          nds.state = 'active' and
-                                          (nds.expired_at = to_timestamp(0) or
-                                           nds.expired_at > now())
-                                )
-                            ) or
-                            (
-                                not $4::bool and
-                                n.forsale is null
-                            )
-                        )
-                    ) or
-                    (
-                        $4::bool is null and
-                        (
-                            (
-                                $3::bool and
-                                n.auction is not null and
-                                n."auction_status: _" = 'active'
-                            ) or
-                            (
-                                not $3::bool and
-                                n.auction is null
-                            )
-                        )
-                    )
-                ) and
-                (
-                    $5::boolean is false or
-                    c.verified is true
-                )
+                     join nft_collection c on n.collection = c.address
+            where (n.owner = any ($1) or array_length($1::varchar[], 1) is null)
+              and (n.collection = any ($2) or array_length($2::varchar[], 1) is null)
+              and n.burned = false
+              and (($3::bool is null and $4::bool is null) or ($3::bool is not null and $4::bool is not null and
+                                                               (($4::bool and n.forsale is not null and
+                                                                 n."forsale_status: _" = 'active' and exists ( select 1
+                                                                                                               from nft_direct_sell nds
+                                                                                                                        join offers_whitelist ow on ow.address = nds.address
+                                                                                                               where nds.nft = n.address
+                                                                                                                 and nds.created <= now()
+                                                                                                                 and nds.state = 'active'
+                                                                                                                 and (nds.expired_at = to_timestamp(0) or nds.expired_at > now()) )) or
+                                                                (not $4::bool and n.forsale is null) or
+                                                                ($3::bool and n.auction is not null and n."auction_status: _" = 'active') or
+                                                                (not $3::bool and n.auction is null))) or ($3::bool is null and
+                                                                                                           (($4::bool and
+                                                                                                             n.forsale is not null and
+                                                                                                             n."forsale_status: _" =
+                                                                                                             'active' and
+                                                                                                             exists ( select 1
+                                                                                                                      from nft_direct_sell nds
+                                                                                                                               join offers_whitelist ow on ow.address = nds.address
+                                                                                                                      where nds.nft = n.address
+                                                                                                                        and nds.created <= now()
+                                                                                                                        and nds.state = 'active'
+                                                                                                                        and (nds.expired_at = to_timestamp(0) or nds.expired_at > now()) )) or
+                                                                                                            (not $4::bool and n.forsale is null))) or
+                   ($4::bool is null and (($3::bool and n.auction is not null and n."auction_status: _" = 'active') or
+                                          (not $3::bool and n.auction is null))))
+              and ($5::boolean is false or c.verified is true)      
         "#
         .to_string();
 
@@ -329,35 +258,28 @@ impl Queries {
         sqlx::query_as!(
             NftTraitRecord,
             r#"
-                WITH nft_attributes AS (
-                    SELECT jsonb_array_elements(nm.meta -> 'attributes') -> 'trait_type' AS trait_type,
-                           jsonb_array_elements(nm.meta -> 'attributes') -> 'value'      AS trait_value,
-                           nm.meta,
-                           n.collection                                                  AS nft_collection,
-                           nm.nft
-                    FROM nft_metadata nm
-                             JOIN nft n ON n.address = nm.nft
-                    WHERE nm.meta -> 'attributes' IS NOT NULL
-                      AND nm.nft = $1
-                ),
-                     nft_attributes_col AS (
-                         SELECT jsonb_array_elements(nm.meta -> 'attributes') -> 'trait_type' AS trait_type,
-                                jsonb_array_elements(nm.meta -> 'attributes') -> 'value'      AS trait_value,
-                                nm.nft
-                         FROM nft_metadata nm
-                         where nm.nft in (
-                             select n2.address
-                             from nft n2
-                                      join nft n3 on n3.address = $1
-                                 and n2.collection = n3.collection
-                         )
-                     )
-                SELECT (na.trait_type #>> '{}')::text as trait_type, (na.trait_value #>> '{}')::text as trait_value, COUNT(*) as "cnt!"
-                FROM nft_attributes na
-                         LEFT JOIN nft_attributes_col na2
-                                   ON na.trait_type = na2.trait_type
-                                       AND na.trait_value = na2.trait_value
-                GROUP BY na.trait_type, na.trait_value
+            with nft_attributes as ( select jsonb_array_elements(nm.meta -> 'attributes') -> 'trait_type' as trait_type,
+                                            jsonb_array_elements(nm.meta -> 'attributes') -> 'value'      as trait_value,
+                                            nm.meta,
+                                            n.collection                                                  as nft_collection,
+                                            nm.nft
+                                     from nft_metadata nm
+                                              join nft n on n.address = nm.nft
+                                     where nm.meta -> 'attributes' is not null
+                                       and nm.nft = $1 ),
+                 nft_attributes_col as ( select jsonb_array_elements(nm.meta -> 'attributes') -> 'trait_type' as trait_type,
+                                                jsonb_array_elements(nm.meta -> 'attributes') -> 'value'      as trait_value,
+                                                nm.nft
+                                         from nft_metadata nm
+                                         where nm.nft in ( select n2.address
+                                                           from nft n2
+                                                                    join nft n3 on n3.address = $1 and n2.collection = n3.collection ) )
+            select (na.trait_type #>> '{}')::text  as trait_type,
+                   (na.trait_value #>> '{}')::text as trait_value,
+                   count(*)                        as "cnt!"
+            from nft_attributes na
+                     left join nft_attributes_col na2 on na.trait_type = na2.trait_type and na.trait_value = na2.trait_value
+            group by na.trait_type, na.trait_value
             "#,
             nft
         )
@@ -374,13 +296,13 @@ impl Queries {
         sqlx::query_as!(
             NftPrice,
             r#"
-                select ts, usd_price as "usd_price!"
-                from nft_price_history nph
-                         inner join offers_whitelist ow on ow.address = nph.source
-                where nft = $1
-                  and ts between $2 and $3
-                  and usd_price is not null
-                order by ts
+            select ts, usd_price as "usd_price!"
+            from nft_price_history nph
+                     inner join offers_whitelist ow on ow.address = nph.source
+            where nft = $1
+              and ts between $2 and $3
+              and usd_price is not null
+            order by ts
             "#,
             nft,
             from,
@@ -397,31 +319,16 @@ impl Queries {
     ) -> sqlx::Result<Vec<NftDetails>> {
         sqlx::query_as(
             r#"
-                select nd.*,
-                       nd."auction_status: _" as auction_status,
-                       nd."forsale_status: _" as forsale_status,
-                       0::int8                   total_count,
-                       ag.collection
-                from (
-                    select n.*
-                    from nft n
-                    join nft_collection c
-                        on n.collection = c.address
-                    join nft_direct_sell nds
-                         on nds.nft = n.address and
-                            nds.created <= now() and
-                            (now() <= nds.expired_at or nds.expired_at = to_timestamp(0)) and
-                            nds.state = 'active'
-                            and nds.price <= $1
-                    join offers_whitelist ow on ow.address = nds.address
-                    where n.burned is false and
-                          c.verified is true
-                    order by random()
-                    limit $2
-                ) ag
-                join nft_details nd
-                    on nd.address = ag.address
-
+            select nd.*,
+                   nd."auction_status: _" as auction_status,
+                   nd."forsale_status: _" as forsale_status,
+                   0::int8                   total_count,
+                   nd.collection
+            from nft_details nd
+            where forsale is not null
+              and floor_price <= $1
+            order by random()
+            limit $2
             "#,
         )
         .bind(max_price)
@@ -433,21 +340,15 @@ impl Queries {
     pub async fn nft_sell_count(&self, max_price: i64) -> sqlx::Result<Option<i64>> {
         sqlx::query_scalar!(
             r#"
-            select
-                count(1)
+            select count(1)
             from nft n
-            join nft_collection c
-                on n.collection = c.address
-            join nft_direct_sell nds
-                on nds.nft = n.address and
-                   nds.created <= now() and
-                   (now() <= nds.expired_at or nds.expired_at = to_timestamp(0)) and
-                    nds.state = 'active' and
-                    nds.price <= $1::int8
-            join roots r
-                on nds.root = r.address
-            where n.burned = false and
-                  c.verified = true
+                     join nft_collection c on n.collection = c.address
+                     join nft_direct_sell nds on nds.nft = n.address and nds.created <= now() and
+                                                 (now() <= nds.expired_at or nds.expired_at = to_timestamp(0)) and
+                                                 nds.state = 'active' and nds.price <= $1::int8
+                     join offers_whitelist ow on ow.address = nds.address
+            where n.burned is false
+              and c.verified is true
            "#,
             max_price
         )
@@ -458,16 +359,13 @@ impl Queries {
     pub async fn nft_attributes_dictionary(&self) -> sqlx::Result<Vec<TraitDef>> {
         sqlx::query_as!(
             TraitDef,
-            "
-        select a.collection, a.trait_type, jsonb_agg(a.value) as values
-        from (
-            select distinct a.collection, a.trait_type, a.value
-            from nft_attributes a
-            where a.collection is not null and a.trait_type is not null
-            order by a.collection ASC, a.trait_type ASC, a.value ASC
-        ) as a
-        group by a.collection, a.trait_type
-        "
+            r#"
+            select a.collection, a.trait_type, jsonb_agg(a.value) as values
+            from ( select distinct a.collection, a.trait_type, a.value
+                   from nft_attributes a
+                   order by a.collection, a.trait_type, a.value ) as a
+            group by a.collection, a.trait_type
+            "#
         )
         .fetch_all(self.db.as_ref())
         .await
@@ -480,13 +378,14 @@ impl Queries {
         values: &[serde_json::Value],
     ) -> sqlx::Result<Vec<String>> {
         sqlx::query!(
-            "
-        select distinct a.nft
-        from nft_attributes a
-        where a.collection = $1
-        and a.trait_type = $2
-        and a.value = ANY($3::jsonb[])
-        order by 1 asc",
+            r#"
+            select distinct a.nft
+            from nft_attributes a
+            where a.collection = $1
+              and a.trait_type = $2
+              and a.value = any ($3::jsonb[])
+            order by 1 asc
+            "#,
             collection,
             trait_type,
             values
