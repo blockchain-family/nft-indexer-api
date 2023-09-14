@@ -555,110 +555,6 @@
     },
     "query": "\n            select s.address        as \"address!\",\n                   s.created        as \"created!\",\n                   s.updated        as \"updated!\",\n                   s.tx_lt          as \"tx_lt!\",\n                   s.nft            as \"nft!\",\n                   s.collection,\n                   s.seller,\n                   s.price_token    as \"price_token!\",\n                   s.price          as \"price!\",\n                   s.usd_price,\n                   s.finished_at,\n                   s.expired_at,\n                   s.state          as \"state!: _\",\n                   count(1) over () as \"cnt!\",\n                   s.fee_numerator,\n                   s.fee_denominator\n            from nft_direct_sell_usd s\n            where s.address = $1\n            "
   },
-  "40809ce1c3c6a1a25353fa3f7e10f9aa76d5fac40bbb2ce3b0229fdaa0d4f842": {
-    "describe": {
-      "columns": [
-        {
-          "name": "address!",
-          "ordinal": 0,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "owner!",
-          "ordinal": 1,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "name",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "description",
-          "ordinal": 3,
-          "type_info": "Text"
-        },
-        {
-          "name": "updated!",
-          "ordinal": 4,
-          "type_info": "Timestamp"
-        },
-        {
-          "name": "wallpaper",
-          "ordinal": 5,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "logo",
-          "ordinal": 6,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "total_price",
-          "ordinal": 7,
-          "type_info": "Numeric"
-        },
-        {
-          "name": "max_price",
-          "ordinal": 8,
-          "type_info": "Numeric"
-        },
-        {
-          "name": "owners_count",
-          "ordinal": 9,
-          "type_info": "Int4"
-        },
-        {
-          "name": "verified!",
-          "ordinal": 10,
-          "type_info": "Bool"
-        },
-        {
-          "name": "created!",
-          "ordinal": 11,
-          "type_info": "Timestamp"
-        },
-        {
-          "name": "first_mint",
-          "ordinal": 12,
-          "type_info": "Timestamp"
-        },
-        {
-          "name": "nft_count!",
-          "ordinal": 13,
-          "type_info": "Int8"
-        },
-        {
-          "name": "cnt!",
-          "ordinal": 14,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        false,
-        true,
-        true,
-        true,
-        false,
-        true,
-        true,
-        null,
-        null,
-        null,
-        false,
-        false,
-        false,
-        null,
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "TextArray"
-        ]
-      }
-    },
-    "query": "\n            select c.address        as \"address!\",\n                   c.owner          as \"owner!\",\n                   c.name,\n                   c.description,\n                   c.updated        as \"updated!\",\n                   c.wallpaper,\n                   c.logo,\n                   null::numeric    as total_price,\n                   null::numeric       max_price,\n                   nft.owners_count,\n                   c.verified       as \"verified!\",\n                   c.created        as \"created!\",\n                   c.first_mint,\n                   nft.count        as \"nft_count!\",\n                   count(1) over () as \"cnt!\"\n            from nft_collection c\n                     left join lateral ( select count(1) as count, count(distinct owner)::int as owners_count\n                                         from nft n\n                                         where n.collection = c.address ) nft on true\n            where c.address = any ($1)\n              and owner is not null\n            "
-  },
   "4831425882fbf608a15e7848bdfaa2a71412e72f449706c8f6f644f94361fb86": {
     "describe": {
       "columns": [
@@ -2374,6 +2270,110 @@
       }
     },
     "query": "\n            select ag.address as \"address!\", nft_name, collection_name, object_type as \"object_type!\", image\n            from ( select n.address,\n                          n.name                                                                           nft_name,\n                          nc.name                                                                          collection_name,\n                          'nft'                                                                         as object_type,\n                          case when m.meta is not null then m.meta::jsonb -> 'preview' ->> 'source' end as \"image\",\n                          case when lower(n.address) = lower($1) then 10\n                               when lower(n.name) = lower($1) then 9\n                               when n.name like '' || $1 || ' %' then 7.9\n                               when n.name like '% ' || $1 || '' then 7.86\n                               when n.name like '%' || $1 || '' then 7.855\n                               when n.name like '' || $1 || '%' then 7.85\n                               when n.name like '% ' || $1 || ' %' then 7.7\n                               when n.name like '%' || $1 || '%' then 7\n                               when n.address ilike '%' || $1 || '%' then 5\n                               else 1 end                                                                  priority\n                   from nft n\n                            left join nft_metadata m on n.address = m.nft\n                            join nft_collection nc on n.collection = nc.address and nc.verified\n                   where (n.name ilike '%' || $1 || '%' or n.description ilike '%' || $1 || '%' or n.address ilike '%' || $1 || '%')\n                     and not n.burned\n            \n                   union all\n            \n                   select c.address,\n                          null            nft_name,\n                          c.name          collection_name,\n                          'collection' as object_type,\n                          c.logo          \"image\",\n                          case when lower(c.address) = lower($1) then 20\n                               when lower(c.name) = lower($1) then 19\n                               when c.name like '' || $1 || ' %' then 8.9\n                               when c.name like '% ' || $1 || '' then 8.86\n                               when c.name like '%' || $1 || '' then 8.855\n                               when c.name like '' || $1 || '%' then 8.85\n            \n                               when c.name like '% ' || $1 || ' %' then 8.7\n                               when c.address ilike '%' || $1 || '%' then 6\n                               else 2 end priority\n                   from nft_collection c\n                   where (c.name ilike '%' || $1 || '%' or c.description ilike '%' || $1 || '%' or c.address ilike '%' || $1 || '%')\n                     and c.verified ) ag\n            order by ag.priority desc\n            limit 20\n            "
+  },
+  "ad1d1bbe569552913308083ef8f3a88bd4d775b36b5a37d0870a7bfcc2b577d0": {
+    "describe": {
+      "columns": [
+        {
+          "name": "address!",
+          "ordinal": 0,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "owner!",
+          "ordinal": 1,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "name",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "description",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "updated!",
+          "ordinal": 4,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "wallpaper",
+          "ordinal": 5,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "logo",
+          "ordinal": 6,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "total_price",
+          "ordinal": 7,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "max_price",
+          "ordinal": 8,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "owners_count",
+          "ordinal": 9,
+          "type_info": "Int4"
+        },
+        {
+          "name": "verified!",
+          "ordinal": 10,
+          "type_info": "Bool"
+        },
+        {
+          "name": "created!",
+          "ordinal": 11,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "first_mint",
+          "ordinal": 12,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "nft_count!",
+          "ordinal": 13,
+          "type_info": "Int8"
+        },
+        {
+          "name": "cnt!",
+          "ordinal": 14,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        null,
+        true,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        false,
+        false,
+        false,
+        null,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "TextArray"
+        ]
+      }
+    },
+    "query": "\n            select coalesce(ncc.address, c.address)         as \"address!\",\n                   c.owner                                  as \"owner!\",\n                   coalesce(ncc.name, c.name)               as \"name\",\n                   coalesce(ncc.description, c.description) as \"description\",\n                   coalesce(ncc.updated, c.updated)         as \"updated!\",\n                   coalesce(ncc.wallpaper, c.wallpaper)     as \"wallpaper\",\n                   coalesce(ncc.logo, c.logo)               as \"logo\",\n                   null::numeric                            as total_price,\n                   null::numeric                            max_price,\n                   nft.owners_count,\n                   c.verified                               as \"verified!\",\n                   c.created                                as \"created!\",\n                   c.first_mint,\n                   nft.count                                as \"nft_count!\",\n                   count(1) over ()                         as \"cnt!\"\n            from nft_collection c\n                      left join nft_collection_custom ncc on c.address = ncc.address\n                      left join lateral ( select count(1) as count, count(distinct owner)::int as owners_count\n                                         from nft n\n                                         where n.collection = c.address ) nft on true\n            where c.address = any ($1)\n              and owner is not null\n\n            "
   },
   "b956b7fc297a07ea75b388ca8a982ddcc5ee435ec2cb437ec47a83a93a503fd2": {
     "describe": {
