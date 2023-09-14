@@ -27,29 +27,32 @@ impl Queries {
         sqlx::query_as!(
             NftCollection,
             r#"
-            select coalesce(ncc.address, c.address)         as "address!",
-                   c.owner                                  as "owner!",
-                   coalesce(ncc.name, c.name)               as "name",
-                   coalesce(ncc.description, c.description) as "description",
-                   coalesce(ncc.updated, c.updated)         as "updated!",
-                   coalesce(ncc.wallpaper, c.wallpaper)     as "wallpaper",
-                   coalesce(ncc.logo, c.logo)               as "logo",
-                   null::numeric                            as total_price,
-                   null::numeric                            max_price,
-                   nft.owners_count,
-                   c.verified                               as "verified!",
-                   c.created                                as "created!",
+            select coalesce(ncc.address, c.address)                                                                          as "address!",
+                   c.owner                                                                                                   as "owner!",
+                   coalesce(ncc.name, c.name)                                                                                as "name",
+                   coalesce(ncc.description, c.description)                                                                  as "description",
+                   coalesce(ncc.updated, c.updated)                                                                          as "updated!",
+                   coalesce(ncc.wallpaper, c.wallpaper)                                                                      as "wallpaper",
+                   coalesce(ncc.logo, c.logo)                                                                                as "logo",
+                   null::numeric                                                                                             as total_price,
+                   null::numeric                                                                                             as max_price,
+                   ( select count(*)
+                     from ( select distinct owner
+                            from nft n
+                            where n.collection = c.address
+                              and not n.burned ) owners )::int                                                               as owners_count,
+                   c.verified                                                                                                as "verified!",
+                   c.created                                                                                                 as "created!",
                    c.first_mint,
-                   nft.count                                as "nft_count!",
-                   count(1) over ()                         as "cnt!"
+                   ( select count(*)
+                     from nft n
+                     where n.collection = c.address
+                       and not n.burned )                                                                                    as "nft_count!",
+                   count(1) over ()                                                                                          as "cnt!"
             from nft_collection c
-                      left join nft_collection_custom ncc on c.address = ncc.address
-                      left join lateral ( select count(1) as count, count(distinct owner)::int as owners_count
-                                         from nft n
-                                         where n.collection = c.address ) nft on true
+                     left join nft_collection_custom ncc on c.address = ncc.address
             where c.address = any ($1)
               and owner is not null
-
             "#,
             ids
         )
@@ -66,26 +69,29 @@ impl Queries {
         sqlx::query_as!(
             NftCollection,
             r#"
-            select c.address        as "address!",
-                   c.owner          as "owner!",
+            select c.address                                                                                            as "address!",
+                   c.owner                                                                                              as "owner!",
                    c.name,
                    c.description,
-                   c.updated        as "updated!",
+                   c.updated                                                                                            as "updated!",
                    c.wallpaper,
                    c.logo,
-                   null::numeric    as total_price,
-                   null::numeric    as max_price,
-                   nft.owners_count,
-                   c.verified       as "verified!",
-                   c.created        as "created!",
+                   null::numeric                                                                                        as total_price,
+                   null::numeric                                                                                        as max_price,
+                   ( select count(*)
+                     from ( select distinct owner
+                            from nft n
+                            where n.collection = c.address
+                              and not n.burned ) owners )::int                                                          as owners_count,
+                   c.verified                                                                                           as "verified!",
+                   c.created                                                                                            as "created!",
                    c.first_mint,
-                   nft.count        as "nft_count!",
-                   count(1) over () as "cnt!"
+                   ( select count(*)
+                     from nft n
+                     where n.collection = c.address
+                       and not n.burned )                                                                               as "nft_count!",
+                   count(1) over ()                                                                                     as "cnt!"
             from nft_collection c
-                     left join lateral ( select count(1) as count, count(distinct owner)::int as owners_count
-                                         from nft n
-                                         where n.collection = c.address
-                                           and not n.burned ) nft on true
             where c.owner = $1
             limit $2 offset $3
             "#,
@@ -176,22 +182,19 @@ impl Queries {
         sqlx::query_as!(
             NftCollectionSimple,
             r#"
-            select c.address        as "address!",
+            select c.address                                                                      as "address!",
                    c.name,
                    c.description,
                    c.logo,
-                   c.verified       as "verified!",
-                   count(1) over () as "cnt!",
-                   nft.count        as "nft_count!"
+                   c.verified                                                                     as "verified!",
+                   count(1) over ()                                                               as "cnt!",
+                   ( select count(*) from nft n where n.collection = c.address and not n.burned ) as "nft_count!"
             from nft_collection c
-                     left join lateral ( select count(1) as count, count(distinct owner) as owners_count
-                                         from nft n
-                                         where n.collection = c.address
-                                           and not n.burned ) nft on true
             where ($3::boolean is false or c.verified is true)
               and ($4::varchar is null or c.name ilike $4)
-            order by nft.owners_count desc
-            limit $1 offset $2
+            order by ( select count(*)
+                       from ( select distinct owner from nft n where n.collection = c.address and not n.burned ) owners ) desc
+            limit $1 offset $2;
             "#,
             limit as i64,
             offset as i64,
