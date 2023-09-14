@@ -1,5 +1,5 @@
 use crate::db::queries::Queries;
-use crate::db::{NftEventCategory, NftEventType};
+use crate::db::NftEventType;
 use crate::handlers::calculate_hash;
 use crate::model::AuctionActive;
 use crate::model::AuctionBidPlaced;
@@ -116,7 +116,6 @@ pub async fn get_events_handler(
         None => {
             let nft = query.nft.as_ref();
             let event_type = query.event_type.as_deref().unwrap_or(&[]);
-            let category = query.categories.as_deref().unwrap_or(&[]);
             let collection = query.collections.as_deref().unwrap_or(&[]);
             let owner = query.owner.as_ref();
             let limit = query.limit.unwrap_or(100);
@@ -134,7 +133,6 @@ pub async fn get_events_handler(
                     collection,
                     owner,
                     event_type,
-                    category,
                     offset,
                     final_limit,
                     with_count,
@@ -176,7 +174,6 @@ pub struct EventsQuery {
     pub owner: Option<String>,
     pub collections: Option<Vec<String>>,
     pub nft: Option<String>,
-    pub categories: Option<Vec<NftEventCategory>>,
     #[serde(rename = "types")]
     pub event_type: Option<Vec<NftEventType>>,
     pub limit: Option<usize>,

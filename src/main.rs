@@ -18,9 +18,7 @@
 #![recursion_limit = "256"]
 
 use api::cfg::ApiConfig;
-use api::db::enums::{
-    AuctionStatus, DirectBuyState, DirectSellState, NftEventCategory, NftEventType,
-};
+use api::db::enums::{AuctionStatus, DirectBuyState, DirectSellState, NftEventType};
 use api::db::queries::Queries;
 use api::handlers;
 use api::handlers::auction::{get_auction, get_auction_bids, get_auctions};
@@ -28,6 +26,7 @@ use api::handlers::auth::sign_in;
 use api::handlers::collection::{
     get_collection, get_collections_by_owner, list_collections, list_collections_simple,
 };
+use api::handlers::collection_custom::upsert_collection_custom;
 use api::handlers::events::{get_events, search_all};
 use api::handlers::metrics::get_metrics_summary;
 use api::handlers::nft::{
@@ -79,7 +78,7 @@ use warp::{http::StatusCode, Filter};
         AuctionStatus,
         OrderDirection,
         CollectionDetails,
-        CollectionDetailsPreviewMeta, NftEventType, NftEventCategory, Attribute
+        CollectionDetailsPreviewMeta, NftEventType, Attribute
     )),
     info(title="Marketplace API"),
     modifiers(
@@ -208,6 +207,10 @@ async fn main() {
                 .or(get_fee(db_service.clone()))
                 .or(get_user_by_address(db_service.clone()))
                 .or(upsert_user(db_service.clone()))
+                .or(upsert_collection_custom(
+                    db_service.clone(),
+                    auth_service.clone(),
+                ))
                 .or(sign_in(auth_service.clone())),
         )
         .with(cors);

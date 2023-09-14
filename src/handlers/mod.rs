@@ -3,6 +3,7 @@ use std::collections::hash_map::DefaultHasher;
 pub mod auction;
 pub mod auth;
 pub mod collection;
+pub mod collection_custom;
 pub mod events;
 pub mod metrics;
 pub mod owner;
@@ -32,6 +33,21 @@ macro_rules! catch_error_400 {
                 return Ok(Box::from(warp::reply::with_status(
                     e.to_string(),
                     StatusCode::BAD_REQUEST,
+                )));
+            }
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! catch_error_401 {
+    ($expr:expr) => {
+        match $expr {
+            Ok(val) => val,
+            Err(e) => {
+                return Ok(Box::from(warp::reply::with_status(
+                    e.to_string(),
+                    StatusCode::UNAUTHORIZED,
                 )));
             }
         }
