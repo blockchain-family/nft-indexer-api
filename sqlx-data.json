@@ -1143,136 +1143,6 @@
     },
     "query": "\n                    select a.address,\n                           a.nft,\n                           a.wallet_for_bids,\n                           a.price_token,\n                           a.start_price,\n                           a.max_bid,\n                           a.min_bid,\n                           a.start_usd_price,\n                           a.max_usd_bid,\n                           a.min_usd_bid,\n                           \"status: _\",\n                           a.created_at,\n                           a.finished_at,\n                           a.tx_lt,\n                           a.bids_count,\n                           a.last_bid_from,\n                           a.last_bid_ts,\n                           a.last_bid_value,\n                           a.last_bid_usd_value,\n                           a.fee_numerator,\n                           a.fee_denominator,\n                           count(1) over () as \"cnt!\"\n                    from nft_auction_search a\n                    where (a.nft_owner = any ($1) or array_length($1::varchar[], 1) is null)\n                      and (a.collection = any ($2) or array_length($2::varchar[], 1) is null)\n                      and (a.nft = any ($3) or array_length($3::varchar[], 1) is null)\n                    order by a.created_at desc\n                    limit $4 offset $5\n                    "
   },
-  "64807e54d7cd8d2fd186b9c2b3445489318b1a6b898808697d0b3407fd2558f4": {
-    "describe": {
-      "columns": [
-        {
-          "name": "address!",
-          "ordinal": 0,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "name",
-          "ordinal": 1,
-          "type_info": "Text"
-        },
-        {
-          "name": "description",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "logo",
-          "ordinal": 3,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "verified!",
-          "ordinal": 4,
-          "type_info": "Bool"
-        },
-        {
-          "name": "cnt!",
-          "ordinal": 5,
-          "type_info": "Int8"
-        },
-        {
-          "name": "nft_count!",
-          "ordinal": 6,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        false,
-        true,
-        true,
-        true,
-        false,
-        null,
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "Int8",
-          "Int8",
-          "Bool",
-          "Varchar"
-        ]
-      }
-    },
-    "query": "\n            select c.address        as \"address!\",\n                   c.name,\n                   c.description,\n                   c.logo,\n                   c.verified       as \"verified!\",\n                   count(1) over () as \"cnt!\",\n                   nft.count        as \"nft_count!\"\n            from nft_collection c\n                     left join lateral ( select count(1) as count, count(distinct owner) as owners_count\n                                         from nft n\n                                         where n.collection = c.address\n                                           and not n.burned ) nft on true\n            where ($3::boolean is false or c.verified is true)\n              and ($4::varchar is null or c.name ilike $4)\n            order by nft.owners_count desc\n            limit $1 offset $2\n            "
-  },
-  "66b4eccd0757b4cd9eed0a5a501c6b8644387188004182433fdcf12c597df8b9": {
-    "describe": {
-      "columns": [
-        {
-          "name": "collection!",
-          "ordinal": 0,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "name",
-          "ordinal": 1,
-          "type_info": "Text"
-        },
-        {
-          "name": "logo",
-          "ordinal": 2,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "floor_price",
-          "ordinal": 3,
-          "type_info": "Numeric"
-        },
-        {
-          "name": "total_volume_usd_now!",
-          "ordinal": 4,
-          "type_info": "Numeric"
-        },
-        {
-          "name": "total_volume_usd_previous!",
-          "ordinal": 5,
-          "type_info": "Numeric"
-        },
-        {
-          "name": "owners_count!",
-          "ordinal": 6,
-          "type_info": "Int4"
-        },
-        {
-          "name": "nfts_count!",
-          "ordinal": 7,
-          "type_info": "Int4"
-        },
-        {
-          "name": "total_rows_count!",
-          "ordinal": 8,
-          "type_info": "Int4"
-        }
-      ],
-      "nullable": [
-        false,
-        true,
-        true,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "Timestamp",
-          "Timestamp",
-          "Int8",
-          "Int8"
-        ]
-      }
-    },
-    "query": "with periods as (\n    select\n        $1::timestamp as date_from,\n        $2::timestamp as date_to,\n        'current' as period_type\n    union all\n    select\n        $1::timestamp - ($2::timestamp - $1::timestamp)::interval as date_from,\n        $1::timestamp - interval '1 seconds'                      as date_to,\n        'previous'                                                as period_type\n)\nselect\n    c.address                                       as \"collection!\",\n    c.name,\n    c.logo,\n    least(direct_sell.price_usd, auction.price_usd) as \"floor_price\",\n    coalesce(total_volume.cur, 0)                   as \"total_volume_usd_now!\",\n    coalesce(total_volume.prev, 0)                  as \"total_volume_usd_previous!\",\n    coalesce(nft_counter.owners_count, 0)::integer  as \"owners_count!\",\n    coalesce(nft_counter.cnt, 0)::integer           as \"nfts_count!\",\n    (count(1) over ())::integer                     as \"total_rows_count!\"\nfrom nft_collection c\nleft join lateral (\n    select min(\n        case\n            when\n                n.address is not null\n            then\n                tup.usd_price * na.min_bid\n            else 0 end\n        ) as price_usd\n    from nft_auction na\n    join roots r\n        on r.address = na.root\n    join nft n\n        on n.address = na.nft and\n           n.collection = c.address and\n           not n.burned\n    left join token_usd_prices tup\n        on tup.token = na.price_token\n    where na.status = 'active' and\n          (na.finished_at = to_timestamp(0) or\n           na.finished_at > now())\n) as auction on true\n\nleft join lateral (\n    select min(\n        case\n            when\n                n.address is not null\n            then\n                tup.usd_price * ds.price\n            else\n                0\n            end\n        ) as price_usd\n    from nft_direct_sell ds\n    join roots r\n        on r.address = ds.root\n    join nft n\n        on n.address = ds.nft and\n           n.collection = c.address and\n           not n.burned\n    left join token_usd_prices tup\n        on tup.token = ds.price_token\n    where ds.state = 'active' and\n          (ds.expired_at = to_timestamp(0) or\n           ds.expired_at > now()::timestamp)\n) as direct_sell on true\n\nleft join lateral (\n    select\n        count(1) cnt,\n        count(distinct owner) owners_count\n    from nft n\n    where n.burned = false and\n          n.collection = c.address\n) as nft_counter on true\n\nleft join lateral (\n    select\n        sum(\n            case\n                when\n                    ag.period_type = 'current'\n                then\n                    ag.price_usd\n                else\n                    0\n            end\n        ) cur,\n        sum(\n            case\n                when\n                    ag.period_type = 'previous'\n                then\n                    ag.price_usd\n                else\n                    0\n            end\n        ) prev\n    from (\n        select\n            p.period_type,\n            case\n                when\n                    n.address is not null\n                then\n                    tup.usd_price * ndb.price\n                else\n                    0\n            end as price_usd\n        from periods p\n        left join nft_direct_buy ndb\n            on ndb.updated between p.date_from and p.date_to and\n               ndb.state = 'filled'\n        left join roots r\n            on r.address = ndb.root\n        left join token_usd_prices tup\n            on tup.token = ndb.price_token\n        left join nft n\n            on ndb.nft = n.address and\n               n.collection = c.address and\n               not n.burned and r.address is not null\n        union all\n        select\n            p.period_type,\n            case\n                when\n                    n.address is not null\n                then\n                    tup.usd_price * nds.price\n                else\n                    0\n            end as price_usd\n        from periods p\n        left join nft_direct_sell nds\n            on nds.state = 'filled' and\n               nds.updated between p.date_from and p.date_to\n        left join token_usd_prices tup\n            on tup.token = nds.price_token\n        left join roots r\n            on r.address = nds.root\n        left join nft n\n            on nds.nft = n.address and\n               n.collection = c.address and\n               not n.burned and r.address is not null\n        union all\n        select\n            p.period_type,\n            case\n                when\n                    n.address is not null\n                then\n                    tup.usd_price * na.max_bid\n                else\n                    0\n            end as price_usd\n        from periods p\n        left join public.nft_auction na\n            on na.status = 'completed' and\n               na.finished_at between p.date_from and p.date_to\n        left join roots r\n            on r.address = na.root\n        left join nft n\n            on na.nft = n.address and\n               not n.burned and\n               r.address is not null\n            and n.collection = c.address\n        left join token_usd_prices tup\n            on tup.token = na.price_token\n    ) as ag\n) as total_volume on true\nwhere c.verified = true\norder by coalesce(total_volume.cur, 0) desc\nlimit $3\noffset $4"
-  },
   "687213ecf50c45bd37f7cca849d53caee73468ef1382800129ba050245d7d38b": {
     "describe": {
       "columns": [
@@ -1418,112 +1288,6 @@
       }
     },
     "query": "\n            select s.address        as \"address!\",\n                   s.created        as \"created!\",\n                   s.updated        as \"updated!\",\n                   s.tx_lt          as \"tx_lt!\",\n                   s.nft            as \"nft!\",\n                   s.collection,\n                   s.seller,\n                   s.price_token    as \"price_token!\",\n                   s.price          as \"price!\",\n                   s.usd_price,\n                   s.finished_at,\n                   s.expired_at,\n                   s.state          as \"state!: _\",\n                   count(1) over () as \"cnt!\",\n                   s.fee_numerator,\n                   s.fee_denominator\n            from nft_direct_sell_usd s\n            where s.nft = $1\n              and s.state in ('active', 'expired')\n            order by s.created desc\n            limit 1\n            "
-  },
-  "7aa8d3752b3a5587c857b7fd4b228afed8e637c09406812408624ec3ed5ad91e": {
-    "describe": {
-      "columns": [
-        {
-          "name": "address!",
-          "ordinal": 0,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "owner!",
-          "ordinal": 1,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "name",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "description",
-          "ordinal": 3,
-          "type_info": "Text"
-        },
-        {
-          "name": "updated!",
-          "ordinal": 4,
-          "type_info": "Timestamp"
-        },
-        {
-          "name": "wallpaper",
-          "ordinal": 5,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "logo",
-          "ordinal": 6,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "total_price",
-          "ordinal": 7,
-          "type_info": "Numeric"
-        },
-        {
-          "name": "max_price",
-          "ordinal": 8,
-          "type_info": "Numeric"
-        },
-        {
-          "name": "owners_count",
-          "ordinal": 9,
-          "type_info": "Int4"
-        },
-        {
-          "name": "verified!",
-          "ordinal": 10,
-          "type_info": "Bool"
-        },
-        {
-          "name": "created!",
-          "ordinal": 11,
-          "type_info": "Timestamp"
-        },
-        {
-          "name": "first_mint",
-          "ordinal": 12,
-          "type_info": "Timestamp"
-        },
-        {
-          "name": "nft_count!",
-          "ordinal": 13,
-          "type_info": "Int8"
-        },
-        {
-          "name": "cnt!",
-          "ordinal": 14,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        false,
-        true,
-        true,
-        true,
-        false,
-        true,
-        true,
-        null,
-        null,
-        null,
-        false,
-        false,
-        false,
-        null,
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "Text",
-          "Int8",
-          "Int8"
-        ]
-      }
-    },
-    "query": "\n            select c.address        as \"address!\",\n                   c.owner          as \"owner!\",\n                   c.name,\n                   c.description,\n                   c.updated        as \"updated!\",\n                   c.wallpaper,\n                   c.logo,\n                   null::numeric    as total_price,\n                   null::numeric    as max_price,\n                   nft.owners_count,\n                   c.verified       as \"verified!\",\n                   c.created        as \"created!\",\n                   c.first_mint,\n                   nft.count        as \"nft_count!\",\n                   count(1) over () as \"cnt!\"\n            from nft_collection c\n                     left join lateral ( select count(1) as count, count(distinct owner)::int as owners_count\n                                         from nft n\n                                         where n.collection = c.address\n                                           and not n.burned ) nft on true\n            where c.owner = $1\n            limit $2 offset $3\n            "
   },
   "7dad6b8f31b1681b476f0a56709d390a73c5096d1d062ab065881a3353d26802": {
     "describe": {
@@ -2117,6 +1881,65 @@
       }
     },
     "query": "\n            select s.address        as \"address!\",\n                   s.created        as \"created!\",\n                   s.updated        as \"updated!\",\n                   s.tx_lt          as \"tx_lt!\",\n                   s.nft            as \"nft!\",\n                   s.collection,\n                   s.buyer,\n                   s.price_token    as \"price_token!\",\n                   s.price          as \"price!\",\n                   s.usd_price,\n                   s.finished_at,\n                   s.expired_at,\n                   s.state          as \"state!: _\",\n                   count(1) over () as \"cnt!\",\n                   s.fee_numerator,\n                   s.fee_denominator\n            from nft_direct_buy_usd s\n            where s.buyer = $1\n              and (s.collection = any ($2) or array_length($2::varchar[], 1) is null)\n              and (array_length($3::varchar[], 1) is null or s.state::varchar = any ($3))\n            order by s.updated desc\n            limit $4 offset $5\n            "
+  },
+  "96ba04776c10d7eedde3f7a3fe8345847d42f80bc5ad2cf494046bf53a57e581": {
+    "describe": {
+      "columns": [
+        {
+          "name": "address!",
+          "ordinal": 0,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "description",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "logo",
+          "ordinal": 3,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "verified!",
+          "ordinal": 4,
+          "type_info": "Bool"
+        },
+        {
+          "name": "cnt!",
+          "ordinal": 5,
+          "type_info": "Int8"
+        },
+        {
+          "name": "nft_count!",
+          "ordinal": 6,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        false,
+        true,
+        true,
+        true,
+        false,
+        null,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8",
+          "Bool",
+          "Varchar"
+        ]
+      }
+    },
+    "query": "\n            select c.address                                                                      as \"address!\",\n                   c.name,\n                   c.description,\n                   c.logo,\n                   c.verified                                                                     as \"verified!\",\n                   count(1) over ()                                                               as \"cnt!\",\n                   ( select count(*) from nft n where n.collection = c.address and not n.burned ) as \"nft_count!\"\n            from nft_collection c\n            where ($3::boolean is false or c.verified is true)\n              and ($4::varchar is null or c.name ilike $4)\n            order by ( select count(*)\n                       from ( select distinct owner from nft n where n.collection = c.address and not n.burned ) owners ) desc\n            limit $1 offset $2;\n            "
   },
   "96ef895ee248facc9b0a5f6532d2979714f35d48de1edae9a477a61dda8afc8d": {
     "describe": {
@@ -2907,6 +2730,112 @@
     },
     "query": "\n            select n.*, count(1) over () as \"total_count!\"\n            from nft_details n\n                     join nft_collection nc on nc.address = n.collection and nc.verified\n                     left join lateral ( select count(1) as cnt\n                                         from nft_price_history nph\n                                                  join offers_whitelist ow on ow.address = nph.source\n                                         where n.address = nph.nft\n                                           and nph.ts >= $1 ) offers on true\n            where n.updated >= $1\n              and offers.cnt > 0\n            order by offers.cnt desc, n.updated desc, n.address desc\n            limit $2 offset $3\n            "
   },
+  "c43583cc3d9ccdab6f2b08028955980a5f72b5d794cc6faed92f11b9d8a975d6": {
+    "describe": {
+      "columns": [
+        {
+          "name": "address!",
+          "ordinal": 0,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "owner!",
+          "ordinal": 1,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "name",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "description",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "updated!",
+          "ordinal": 4,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "wallpaper",
+          "ordinal": 5,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "logo",
+          "ordinal": 6,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "total_price",
+          "ordinal": 7,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "max_price",
+          "ordinal": 8,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "owners_count",
+          "ordinal": 9,
+          "type_info": "Int4"
+        },
+        {
+          "name": "verified!",
+          "ordinal": 10,
+          "type_info": "Bool"
+        },
+        {
+          "name": "created!",
+          "ordinal": 11,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "first_mint",
+          "ordinal": 12,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "nft_count!",
+          "ordinal": 13,
+          "type_info": "Int8"
+        },
+        {
+          "name": "cnt!",
+          "ordinal": 14,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        false,
+        true,
+        true,
+        true,
+        false,
+        true,
+        true,
+        null,
+        null,
+        null,
+        false,
+        false,
+        false,
+        null,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "\n            select c.address                                                                                            as \"address!\",\n                   c.owner                                                                                              as \"owner!\",\n                   c.name,\n                   c.description,\n                   c.updated                                                                                            as \"updated!\",\n                   c.wallpaper,\n                   c.logo,\n                   null::numeric                                                                                        as total_price,\n                   null::numeric                                                                                        as max_price,\n                   ( select count(*)\n                     from ( select distinct owner\n                            from nft n\n                            where n.collection = c.address\n                              and not n.burned ) owners )::int                                                          as owners_count,\n                   c.verified                                                                                           as \"verified!\",\n                   c.created                                                                                            as \"created!\",\n                   c.first_mint,\n                   ( select count(*)\n                     from nft n\n                     where n.collection = c.address\n                       and not n.burned )                                                                               as \"nft_count!\",\n                   count(1) over ()                                                                                     as \"cnt!\"\n            from nft_collection c\n            where c.owner = $1\n            limit $2 offset $3\n            "
+  },
   "c51af76698669d07a8eb86e613f4a4bf5825e6e8aff343bb48a245e593163441": {
     "describe": {
       "columns": [
@@ -3158,6 +3087,77 @@
       }
     },
     "query": "\n            select s.address     as \"address!\",\n                   s.created     as \"created!\",\n                   s.updated     as \"updated!\",\n                   s.tx_lt       as \"tx_lt!\",\n                   s.nft         as \"nft!\",\n                   s.collection,\n                   s.buyer,\n                   s.price_token as \"price_token!\",\n                   s.price       as \"price!\",\n                   s.usd_price,\n                   s.finished_at,\n                   s.expired_at,\n                   s.state       as \"state!: _\",\n                   1::bigint     as \"cnt!\",\n                   s.fee_numerator,\n                   s.fee_denominator\n            from nft_direct_buy_usd s\n            where s.address = $1\n            "
+  },
+  "d135516e2b9b46de4d40e84f426d9a23de5f957d21568640f47c0f982e302650": {
+    "describe": {
+      "columns": [
+        {
+          "name": "collection!",
+          "ordinal": 0,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "logo",
+          "ordinal": 2,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "floor_price",
+          "ordinal": 3,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "total_volume_usd_now!",
+          "ordinal": 4,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "total_volume_usd_previous!",
+          "ordinal": 5,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "owners_count!",
+          "ordinal": 6,
+          "type_info": "Int4"
+        },
+        {
+          "name": "nfts_count!",
+          "ordinal": 7,
+          "type_info": "Int4"
+        },
+        {
+          "name": "total_rows_count!",
+          "ordinal": 8,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false,
+        true,
+        true,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Timestamp",
+          "Timestamp",
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "with periods as ( select $1::timestamp as date_from, $2::timestamp as date_to, 'current' as period_type\n                  union all\n                  select $1::timestamp - ($2::timestamp - $1::timestamp)::interval as date_from,\n                         $1::timestamp - interval '1 seconds'                      as date_to,\n                         'previous'                                                as period_type )\nselect c.address                                                                                                 as \"collection!\",\n       c.name,\n       c.logo,\n       least(direct_sell.price_usd, auction.price_usd)                                                           as \"floor_price\",\n       coalesce(total_volume.cur, 0)                                                                             as \"total_volume_usd_now!\",\n       coalesce(total_volume.prev, 0)                                                                            as \"total_volume_usd_previous!\",\n       ( select count(*)\n         from ( select distinct owner\n                from nft n\n                where n.collection = c.address\n                  and not n.burned ) owners )::int                                                               as \"owners_count!\",\n       ( select count(*)\n         from nft n\n         where n.collection = c.address\n           and not n.burned )::int                                                                               as \"nfts_count!\",\n       (count(1) over ())::int                                                                                   as \"total_rows_count!\"\nfrom nft_collection c\n         left join lateral ( select min(case when n.address is not null then tup.usd_price * na.min_bid\n                                             else 0 end) as price_usd\n                             from nft_auction na\n                                      join roots r on r.address = na.root\n                                      join nft n on n.address = na.nft and n.collection = c.address and not n.burned\n                                      left join token_usd_prices tup on tup.token = na.price_token\n                             where na.status = 'active'\n                               and (na.finished_at = to_timestamp(0) or na.finished_at > now()) ) as auction on true\n\n         left join lateral ( select min(case when n.address is not null then tup.usd_price * ds.price else 0 end) as price_usd\n                             from nft_direct_sell ds\n                                      join roots r on r.address = ds.root\n                                      join nft n on n.address = ds.nft and n.collection = c.address and not n.burned\n                                      left join token_usd_prices tup on tup.token = ds.price_token\n                             where ds.state = 'active'\n                               and (ds.expired_at = to_timestamp(0) or ds.expired_at > now()::timestamp) ) as direct_sell\n                   on true\n\n         left join lateral ( select sum(case when ag.period_type = 'current' then ag.price_usd else 0 end)  cur,\n                                    sum(case when ag.period_type = 'previous' then ag.price_usd else 0 end) prev\n                             from ( select p.period_type,\n                                           case when n.address is not null then tup.usd_price * ndb.price else 0 end as price_usd\n                                    from periods p\n                                             left join nft_direct_buy ndb\n                                                       on ndb.updated between p.date_from and p.date_to and ndb.state = 'filled'\n                                             left join roots r on r.address = ndb.root\n                                             left join token_usd_prices tup on tup.token = ndb.price_token\n                                             left join nft n on ndb.nft = n.address and n.collection = c.address and\n                                                                not n.burned and r.address is not null\n                                    union all\n                                    select p.period_type,\n                                           case when n.address is not null then tup.usd_price * nds.price else 0 end as price_usd\n                                    from periods p\n                                             left join nft_direct_sell nds\n                                                       on nds.state = 'filled' and nds.updated between p.date_from and p.date_to\n                                             left join token_usd_prices tup on tup.token = nds.price_token\n                                             left join roots r on r.address = nds.root\n                                             left join nft n on nds.nft = n.address and n.collection = c.address and\n                                                                not n.burned and r.address is not null\n                                    union all\n                                    select p.period_type,\n                                           case when n.address is not null then tup.usd_price * na.max_bid\n                                                else 0 end as price_usd\n                                    from periods p\n                                             left join public.nft_auction na on na.status = 'completed' and\n                                                                                na.finished_at between p.date_from and p.date_to\n                                             left join roots r on r.address = na.root\n                                             left join nft n on na.nft = n.address and not n.burned and\n                                                                r.address is not null and n.collection = c.address\n                                             left join token_usd_prices tup on tup.token = na.price_token ) as ag ) as total_volume\n                   on true\nwhere c.verified = true\norder by coalesce(total_volume.cur, 0) desc\nlimit $3 offset $4"
   },
   "d9fe027bb7fef4e2176e8331268f01cd06b33ed843130a6920fdc6c66945a871": {
     "describe": {
@@ -3740,5 +3740,109 @@
       }
     },
     "query": "\n            with bids_detailed as ( select x.auction                               as \"auction!\",\n                                           x.buyer                                 as \"buyer!\",\n                                           x.price                                 as \"price!\",\n                                           x.price_token,\n                                           x.created_at                            as \"created_at!\",\n                                           x.next_bid_value,\n                                           x.tx_lt,\n                                           x.nft_owner                             as owner,\n                                           max(x.created_at) over w = x.created_at as active,\n                                           x.price * tup.usd_price                 as usd_price,\n                                           x.next_bid_value * tup.usd_price        as next_bid_usd_value,\n                                           x.nft,\n                                           x.collection,\n                                           count(1) over ()                        as \"cnt!\"\n                                    from nft_auction_bid x\n                                             left join token_usd_prices tup on tup.token = x.price_token\n                                    window w as (partition by x.auction) )\n            select \"auction!\",\n                   \"buyer!\",\n                   \"price!\",\n                   price_token        as \"price_token?\",\n                   \"created_at!\",\n                   next_bid_value     as \"next_bid_value?\",\n                   tx_lt              as \"tx_lt?\",\n                   active             as \"active?\",\n                   usd_price          as \"usd_price?\",\n                   next_bid_usd_value as \"next_bid_usd_value?\",\n                   nft                as \"nft?\",\n                   collection         as \"collection?\",\n                   \"cnt!\"\n            from bids_detailed x\n            where x.owner = $1\n              and (x.collection = any ($2) or array_length($2::varchar[], 1) is null)\n              and (x.active = true or ($3::bool is null or $3::bool = false))\n            order by x.\"created_at!\" desc\n            limit $4 offset $5\n            "
+  },
+  "f9a8d9ba354d26d41606b762705ded4216021e071ff97a8d8227f89ddd201f3a": {
+    "describe": {
+      "columns": [
+        {
+          "name": "address!",
+          "ordinal": 0,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "owner!",
+          "ordinal": 1,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "name",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "description",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "updated!",
+          "ordinal": 4,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "wallpaper",
+          "ordinal": 5,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "logo",
+          "ordinal": 6,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "total_price",
+          "ordinal": 7,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "max_price",
+          "ordinal": 8,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "owners_count",
+          "ordinal": 9,
+          "type_info": "Int4"
+        },
+        {
+          "name": "verified!",
+          "ordinal": 10,
+          "type_info": "Bool"
+        },
+        {
+          "name": "created!",
+          "ordinal": 11,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "first_mint",
+          "ordinal": 12,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "nft_count!",
+          "ordinal": 13,
+          "type_info": "Int8"
+        },
+        {
+          "name": "cnt!",
+          "ordinal": 14,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        false,
+        true,
+        true,
+        true,
+        false,
+        true,
+        true,
+        null,
+        null,
+        null,
+        false,
+        false,
+        false,
+        null,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "TextArray"
+        ]
+      }
+    },
+    "query": "\n            select c.address                                                                                            as \"address!\",\n                   c.owner                                                                                              as \"owner!\",\n                   c.name,\n                   c.description,\n                   c.updated                                                                                            as \"updated!\",\n                   c.wallpaper,\n                   c.logo,\n                   null::numeric                                                                                        as total_price,\n                   null::numeric                                                                                           max_price,\n                   ( select count(*)\n                     from ( select distinct owner\n                            from nft n\n                            where n.collection = c.address\n                              and not n.burned ) owners )::int                                                          as owners_count,\n                   c.verified                                                                                           as \"verified!\",\n                   c.created                                                                                            as \"created!\",\n                   c.first_mint,\n                   ( select count(*)\n                     from nft n\n                     where n.collection = c.address\n                       and not n.burned )                                                                               as \"nft_count!\",\n                   count(1) over ()                                                                                     as \"cnt!\"\n            from nft_collection c\n            where c.address = any ($1)\n              and owner is not null\n            "
   }
 }
