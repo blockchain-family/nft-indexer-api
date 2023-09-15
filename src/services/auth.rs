@@ -1,4 +1,3 @@
-use std::borrow::Cow;
 use super::error::Error;
 use crate::model::{JwtClaims, LoginData};
 use base64::engine::general_purpose;
@@ -8,6 +7,7 @@ use http::{HeaderMap, HeaderValue};
 use nekoton::core::ton_wallet::compute_address;
 use nekoton::core::ton_wallet::WalletType;
 use sha2::Digest;
+use std::borrow::Cow;
 use std::str::FromStr;
 use std::time::SystemTime;
 use ton_block::MsgAddressInt;
@@ -59,7 +59,7 @@ impl AuthService {
             login.signature.as_str(),
             login.timestamp,
             self.base_url.as_str(),
-            login.with_signature_id
+            login.with_signature_id,
         )?;
         self.ensure_not_expired(login.timestamp)?;
 
@@ -72,7 +72,7 @@ impl AuthService {
         signature: &str,
         timestamp: u64,
         base_url: &str,
-        with_signature_id: Option<i32>
+        with_signature_id: Option<i32>,
     ) -> anyhow::Result<()> {
         let msg = format!("I want to login at {base_url} with address {address} at {timestamp}");
         let mut hasher = sha2::Sha256::new();
@@ -165,7 +165,6 @@ impl AuthService {
             None => Cow::Borrowed(data),
         }
     }
-
 
     fn parse_public_key(public_key: &str) -> anyhow::Result<PublicKey> {
         Ok(PublicKey::from_bytes(&hex::decode(public_key)?)?)

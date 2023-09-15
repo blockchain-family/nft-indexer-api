@@ -23,7 +23,7 @@ pub struct SignInPayload {
     pub wallet_type: String,
     pub timestamp: u64,
     pub signature: String,
-    pub withSignatureId: Option<i32>
+    pub with_signature_id: Option<i32>,
 }
 
 #[utoipa::path(
@@ -56,7 +56,7 @@ pub async fn sign_in_handler(
         wallet_type: payload.wallet_type,
         timestamp: payload.timestamp,
         signature: payload.signature,
-        with_signature_id: payload.withSignatureId
+        with_signature_id: payload.with_signature_id,
     };
     let authorize = auth_service.authorize(login_data);
     let authorize = catch_error_400!(authorize);

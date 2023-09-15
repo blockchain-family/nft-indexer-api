@@ -767,7 +767,7 @@ pub struct LoginData {
     pub wallet_type: String,
     pub timestamp: u64,
     pub signature: String,
-    pub with_signature_id: Option<i32>
+    pub with_signature_id: Option<i32>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
