@@ -17,10 +17,11 @@ use warp::Filter;
         upsert_collection_custom
     ),
     components(schemas(
-        UpsertCollectionCustomPayload
+        UpsertCollectionCustomPayload,
+        Social
     )),
     tags(
-        (name = "collection", description = "Collection_custom handlers"),
+        (name = "collection-custom", description = "Collection-custom handlers"),
     ),
 )]
 struct ApiDoc;

@@ -54,6 +54,7 @@ use handlers::nft::ApiDocAddon as NftApiDocAddon;
 use handlers::owner::ApiDocAddon as OwnerApiDocAddon;
 use handlers::user::ApiDocAddon as UserApiDocAddon;
 use handlers::ApiDocAddon as ModuleApiDocAddon;
+use handlers::collection_custom::ApiDocAddon as CollectionCustomAddon;
 use moka::future::Cache;
 use std::sync::Arc;
 use std::time::Duration;
@@ -90,7 +91,8 @@ use warp::{http::StatusCode, Filter};
         &NftApiDocAddon,
         &OwnerApiDocAddon,
         &UserApiDocAddon,
-        &ModuleApiDocAddon
+        &ModuleApiDocAddon,
+        &CollectionCustomAddon
     )
 )]
 struct ApiDoc;
