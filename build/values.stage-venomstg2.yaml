@@ -7,7 +7,7 @@ env:
   indexer_api__database__max_connections: 50
   indexer_api__jwt_secret: $(VENOM_API_JWT_SECRET)
   indexer_api__auth_token_lifetime: "31536000"
-  indexer_api__base_url: testnet.oasis.gallery
+  indexer_api__base_url: oasis.gallery
 controller: statefulset
 
 service:
