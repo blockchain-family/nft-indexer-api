@@ -9,23 +9,32 @@ impl Queries {
         sqlx::query_as!(
             NftDirectSell,
             r#"
-            select s.address        as "address!",
-                   s.created        as "created!",
-                   s.updated        as "updated!",
-                   s.tx_lt          as "tx_lt!",
-                   s.nft            as "nft!",
-                   s.collection,
-                   s.seller,
-                   s.price_token    as "price_token!",
-                   s.price          as "price!",
-                   s.usd_price,
-                   s.finished_at,
-                   s.expired_at,
-                   s.state          as "state!: _",
-                   count(1) over () as "cnt!",
-                   s.fee_numerator,
-                   s.fee_denominator
-            from nft_direct_sell_usd s
+            select s.address             as "address!",
+                   s.created             as "created!",
+                   s.updated             as "updated!",
+                   s.tx_lt               as "tx_lt!",
+                   s.nft                 as "nft!",
+                   s.collection          as "collection?",
+                   s.seller              as "seller?",
+                   s.price_token         as "price_token!",
+                   s.price               as "price!",
+                   s.price * p.usd_price as "usd_price?",
+                   s.finished_at         as "finished_at?",
+                   s.expired_at          as "expired_at?",
+                   case when s.state = 'active'::direct_sell_state and to_timestamp(0) < s.finished_at and s.finished_at < now()::timestamp
+                            then 'expired'::direct_sell_state
+                        else s.state end as "state!: _",
+                   count(1) over ()      as "cnt!",
+                   fee_numerator,
+                   fee_denominator
+            from nft_direct_sell s
+                     join offers_whitelist ow on ow.address = s.address
+                     left join token_usd_prices p on s.price_token = p.token
+                     left join lateral ( select (ne.args -> 'fee' -> 'numerator')::int   as fee_numerator,
+                                                (ne.args -> 'fee' -> 'denominator')::int as fee_denominator
+                                         from nft_events ne
+                                         where ne.event_type = 'market_fee_changed'
+                                           and ne.args ->> 'auction' = s.address ) as ev on true
             where s.address = $1
             "#,
             address
@@ -38,23 +47,32 @@ impl Queries {
         sqlx::query_as!(
             NftDirectSell,
             r#"
-            select s.address        as "address!",
-                   s.created        as "created!",
-                   s.updated        as "updated!",
-                   s.tx_lt          as "tx_lt!",
-                   s.nft            as "nft!",
-                   s.collection,
-                   s.seller,
-                   s.price_token    as "price_token!",
-                   s.price          as "price!",
-                   s.usd_price,
-                   s.finished_at,
-                   s.expired_at,
-                   s.state          as "state!: _",
-                   count(1) over () as "cnt!",
-                   s.fee_numerator,
-                   s.fee_denominator
-            from nft_direct_sell_usd s
+            select s.address             as "address!",
+                   s.created             as "created!",
+                   s.updated             as "updated!",
+                   s.tx_lt               as "tx_lt!",
+                   s.nft                 as "nft!",
+                   s.collection          as "collection?",
+                   s.seller              as "seller?",
+                   s.price_token         as "price_token!",
+                   s.price               as "price!",
+                   s.price * p.usd_price as "usd_price?",
+                   s.finished_at         as "finished_at?",
+                   s.expired_at          as "expired_at?",
+                   case when s.state = 'active'::direct_sell_state and to_timestamp(0) < s.finished_at and s.finished_at < now()::timestamp
+                            then 'expired'::direct_sell_state
+                        else s.state end as "state!: _",
+                   count(1) over ()      as "cnt!",
+                   fee_numerator,
+                   fee_denominator
+            from nft_direct_sell s
+                     join offers_whitelist ow on ow.address = s.address
+                     left join token_usd_prices p on s.price_token = p.token
+                     left join lateral ( select (ne.args -> 'fee' -> 'numerator')::int   as fee_numerator,
+                                                (ne.args -> 'fee' -> 'denominator')::int as fee_denominator
+                                         from nft_events ne
+                                         where ne.event_type = 'market_fee_changed'
+                                           and ne.args ->> 'auction' = s.address ) as ev on true
             where s.nft = $1
               and s.state in ('active', 'expired')
             order by s.created desc
@@ -70,23 +88,32 @@ impl Queries {
         sqlx::query_as!(
             NftDirectSell,
             r#"
-            select s.address        as "address!",
-                   s.created        as "created!",
-                   s.updated        as "updated!",
-                   s.tx_lt          as "tx_lt!",
-                   s.nft            as "nft!",
-                   s.collection,
-                   s.seller,
-                   s.price_token    as "price_token!",
-                   s.price          as "price!",
-                   s.usd_price,
-                   s.finished_at,
-                   s.expired_at,
-                   s.state          as "state!: _",
-                   count(1) over () as "cnt!",
-                   s.fee_numerator,
-                   s.fee_denominator
-            from nft_direct_sell_usd s
+            select s.address             as "address!",
+                   s.created             as "created!",
+                   s.updated             as "updated!",
+                   s.tx_lt               as "tx_lt!",
+                   s.nft                 as "nft!",
+                   s.collection          as "collection?",
+                   s.seller              as "seller?",
+                   s.price_token         as "price_token!",
+                   s.price               as "price!",
+                   s.price * p.usd_price as "usd_price?",
+                   s.finished_at         as "finished_at?",
+                   s.expired_at          as "expired_at?",
+                   case when s.state = 'active'::direct_sell_state and to_timestamp(0) < s.finished_at and s.finished_at < now()::timestamp
+                            then 'expired'::direct_sell_state
+                        else s.state end as "state!: _",
+                   count(1) over ()      as "cnt!",
+                   fee_numerator,
+                   fee_denominator
+            from nft_direct_sell s
+                     join offers_whitelist ow on ow.address = s.address
+                     left join token_usd_prices p on s.price_token = p.token
+                     left join lateral ( select (ne.args -> 'fee' -> 'numerator')::int   as fee_numerator,
+                                                (ne.args -> 'fee' -> 'denominator')::int as fee_denominator
+                                         from nft_events ne
+                                         where ne.event_type = 'market_fee_changed'
+                                           and ne.args ->> 'auction' = s.address ) as ev on true
             where s.address = any ($1)
             "#,
             ids
@@ -107,23 +134,30 @@ impl Queries {
         sqlx::query_as!(
             NftDirectSell,
             r#"
-            select s.address        as "address!",
-                   s.created        as "created!",
-                   s.updated        as "updated!",
-                   s.tx_lt          as "tx_lt!",
-                   s.nft            as "nft!",
-                   s.collection,
-                   s.seller,
-                   s.price_token    as "price_token!",
-                   s.price          as "price!",
-                   s.usd_price,
-                   s.finished_at,
-                   s.expired_at,
-                   s.state          as "state!: _",
-                   count(1) over () as "cnt!",
-                   s.fee_numerator,
-                   s.fee_denominator
-            from nft_direct_sell_usd s
+            select s.address             as "address!",
+                   s.created             as "created!",
+                   s.updated             as "updated!",
+                   s.tx_lt               as "tx_lt!",
+                   s.nft                 as "nft!",
+                   s.collection          as "collection?",
+                   s.seller              as "seller?",
+                   s.price_token         as "price_token!",
+                   s.price               as "price!",
+                   s.price * p.usd_price as "usd_price?",
+                   s.finished_at         as "finished_at?",
+                   s.expired_at          as "expired_at?",
+                   s.state               as "state!: _",
+                   count(1) over ()      as "cnt!",
+                   fee_numerator,
+                   fee_denominator
+            from nft_direct_sell s
+                     join offers_whitelist ow on ow.address = s.address
+                     left join token_usd_prices p on s.price_token = p.token
+                     left join lateral ( select (ne.args -> 'fee' -> 'numerator')::int   as fee_numerator,
+                                                (ne.args -> 'fee' -> 'denominator')::int as fee_denominator
+                                         from nft_events ne
+                                         where ne.event_type = 'market_fee_changed'
+                                           and ne.args ->> 'auction' = s.address ) as ev on true
             where s.seller = $1
               and (s.collection = any ($2) or array_length($2::varchar[], 1) is null)
               and (array_length($3::varchar[], 1) is null or s.state::varchar = any ($3))
