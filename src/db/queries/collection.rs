@@ -166,6 +166,8 @@ impl Queries {
             r#"
             select r.address as "address!", r.code::text as "code!"
             from roots r
+            where expiry_date is null
+               or now()::timestamp < expiry_date;
             "#
         )
         .fetch_all(self.db.as_ref())
