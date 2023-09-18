@@ -31,7 +31,7 @@ use api::handlers::events::{get_events, search_all};
 use api::handlers::metrics::get_metrics_summary;
 use api::handlers::nft::{
     get_nft, get_nft_direct_buy, get_nft_list, get_nft_price_history, get_nft_random_list,
-    get_nft_sell_count, get_nft_top_list,
+    get_nft_sell_count, get_nft_top_list, get_nft_types
 };
 use api::handlers::owner::{
     get_fee, get_owner_bids_in, get_owner_bids_out, get_owner_direct_buy, get_owner_direct_buy_in,
@@ -143,6 +143,11 @@ async fn main() {
         .time_to_idle(Duration::from_secs(60))
         .build();
 
+    let cache_60_minutes = Cache::builder()
+        .time_to_live(Duration::from_secs(60 * 60))
+        .time_to_idle(Duration::from_secs(60 * 60))
+        .build();
+
     let cache_5_minutes = Cache::builder()
         .time_to_live(Duration::from_secs(60 * 5))
         .time_to_idle(Duration::from_secs(60 * 5))
@@ -179,16 +184,11 @@ async fn main() {
                 .or(get_nft_top_list(db_service.clone(), cache_minute.clone()))
                 .or(get_nft_direct_buy(db_service.clone()))
                 .or(get_nft_price_history(db_service.clone()))
-                .or(list_collections(
-                    db_service.clone(),
-                    cache_5_minutes.clone(),
-                ))
-                .or(list_collections_simple(
-                    db_service.clone(),
-                    cache_minute.clone(),
-                ))
+                .or(list_collections(db_service.clone(), cache_5_minutes.clone()))
+                .or(list_collections_simple(db_service.clone(), cache_minute.clone()))
                 .or(get_collection(db_service.clone(), cache_5_minutes.clone()))
                 .or(get_collections_by_owner(db_service.clone()))
+                .or(get_nft_types(db_service.clone(), cache_60_minutes.clone()))
                 .or(get_owner_bids_out(db_service.clone()))
                 .or(get_owner_bids_in(db_service.clone()))
                 .or(get_owner_direct_buy_in(db_service.clone()))
@@ -198,19 +198,13 @@ async fn main() {
                 .or(get_auction(db_service.clone()))
                 .or(get_auction_bids(db_service.clone()))
                 .or(get_events(db_service.clone(), cache_minute.clone()))
-                .or(get_metrics_summary(
-                    db_service.clone(),
-                    cache_5_minutes.clone(),
-                ))
+                .or(get_metrics_summary(db_service.clone(), cache_5_minutes.clone()))
                 .or(list_roots(db_service.clone()))
                 .or(search_all(db_service.clone()))
                 .or(get_fee(db_service.clone()))
                 .or(get_user_by_address(db_service.clone()))
                 .or(upsert_user(db_service.clone()))
-                .or(upsert_collection_custom(
-                    db_service.clone(),
-                    auth_service.clone(),
-                ))
+                .or(upsert_collection_custom(db_service.clone(), auth_service.clone()))
                 .or(sign_in(auth_service.clone())),
         )
         .with(cors);

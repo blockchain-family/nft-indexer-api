@@ -331,6 +331,7 @@ pub async fn get_nft_list_handler(
             let offset = params.offset.unwrap_or_default();
             let with_count = params.with_count.unwrap_or(false);
             let limit = params.limit.unwrap_or(100);
+            let nft_type = params.nft_type.as_ref();
 
             let final_limit = match with_count {
                 true => limit,
@@ -352,6 +353,7 @@ pub async fn get_nft_list_handler(
                     &params.attributes.unwrap_or_default(),
                     params.order,
                     with_count,
+                    nft_type,
                 )
                 .await
             );
@@ -533,6 +535,46 @@ pub async fn get_nft_top_list_handler(
     )))
 }
 
+/// GET /nfts/types
+pub fn get_nft_types(
+    db: Queries,
+    cache: Cache<u64, Value>,//Determine cache
+) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
+    warp::path!("nfts" / "types")
+        .and(warp::post())
+        .and(warp::any().map(move || db.clone()))
+        .and(warp::any().map(move || cache.clone()))
+        .and_then(get_nft_types_handler)
+}
+
+pub async fn get_nft_types_handler(
+    db: Queries,
+    cache: Cache<u64, Value>,
+) -> Result<Box<dyn warp::Reply>, Infallible> {
+    let hash = calculate_hash(&"nft/types".to_string());
+    let cached_value = cache.get(&hash);
+
+    let response: Vec<String>;
+    match cached_value {
+        None => {
+            let list_of_types = catch_error_500!(
+                db.nft_get_types()
+                .await
+            );
+            response = list_of_types.iter().map(|x| x.mimetype.clone()).collect();
+            let value_for_cache =
+                serde_json::to_value(response.clone()).expect("Failed serializing cached value");
+            cache.insert(hash, value_for_cache).await;
+        }
+        Some(cached_value) => {
+            response = serde_json::from_value(cached_value).expect("Failed parsing cached value")
+        }
+    }
+
+    response!(&response)
+}
+
+
 async fn make_nfts_response(list: Vec<NftDetails>, db: Queries) -> anyhow::Result<VecWith<NFT>> {
     let count = match list.first() {
         None => 0,
@@ -588,6 +630,8 @@ pub struct NFTListQuery {
     pub order: Option<NFTListOrder>,
     #[serde(rename = "withCount")]
     pub with_count: Option<bool>,
+    #[serde(rename = "nftType")]
+    pub nft_type: Option<String>,
 }
 
 #[derive(Clone, Deserialize, Serialize, Hash, ToSchema)]

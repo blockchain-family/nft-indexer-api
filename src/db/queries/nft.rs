@@ -1,5 +1,5 @@
 use crate::db::queries::Queries;
-use crate::db::NftDetails;
+use crate::db::{NftDetails, NftMimetype};
 use chrono::NaiveDateTime;
 
 use super::*;
@@ -123,6 +123,22 @@ impl Queries {
         .await
     }
 
+    pub async fn nft_get_types(
+        &self,
+    ) -> sqlx::Result<Vec<NftMimetype>> {
+        sqlx::query_as!(
+            NftMimetype,
+            r#"
+            select meta->'files'->>'mimetype' as "mimetype!"
+            from nft_metadata
+            where meta->'files'->>'mimetype' is not null
+            group by "mimetype!"
+            "#
+        )
+            .fetch_all(self.db.as_ref())
+            .await
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub async fn nft_search(
         &self,
@@ -139,6 +155,7 @@ impl Queries {
         attributes: &Vec<AttributeFilter>,
         order: Option<NFTListOrder>,
         with_count: bool,
+        nft_type: Option<&String>,
     ) -> sqlx::Result<Vec<NftDetails>> {
         let mut sql = r#"
             select n.*,
@@ -158,7 +175,8 @@ impl Queries {
                                                                                                             (not $4::bool and n.forsale is null))) or
                    ($4::bool is null and (($3::bool and n.auction is not null and n."auction_status: _" = 'active') or
                                           (not $3::bool and n.auction is null))))
-              and ($5::boolean is false or c.verified is true)    
+              and ($5::boolean is false or c.verified is true)
+              and ($9::varchar is null or n.meta->'files'->>'mimetype' = $9)
         "#
         .to_string();
 
@@ -232,6 +250,7 @@ impl Queries {
             .bind(limit as i64)
             .bind(offset as i64)
             .bind(with_count)
+            .bind(nft_type)
             .fetch_all(self.db.as_ref())
             .await
     }
