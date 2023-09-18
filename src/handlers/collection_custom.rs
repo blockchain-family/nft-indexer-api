@@ -29,11 +29,17 @@ api_doc_addon!(ApiDoc);
 
 #[derive(Debug, Clone, Deserialize, Serialize, Hash, ToSchema)]
 pub struct Social {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub twitter: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub telegram: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub discord: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub youtube: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub facebook: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub medium: Option<String>,
 }
 
