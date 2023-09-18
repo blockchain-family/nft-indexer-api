@@ -124,60 +124,26 @@ impl Queries {
 
         let query = format!(
             r#"
-            with collection_info as ( select c.address,
-                                             c.owner,
-                                             c.name,
-                                             c.description,
-                                             c.created,
-                                             c.updated,
-                                             c.wallpaper,
-                                             c.logo,
-                                             ( select count(*)
-                                               from ( select distinct owner
-                                                      from nft n
-                                                      where n.collection = c.address and not n.burned ) owners )            as owners_count,
-                                             c.verified,
-                                             ( select count(*)
-                                               from nft n
-                                               where n.collection = c.address
-                                                 and not n.burned )                                                         as nft_count,
-                                             c.first_mint,
-                                             count(1) over ()                                                               as "cnt",
-                                             null::numeric                                                                  as max_price,
-                                             null::numeric                                                                  as total_price
-                                      from nft_collection c
-                                      where (c.owner = any ($3) or array_length($3::varchar[], 1) is null)
-                                        and ($4::boolean is false or c.verified is true)
-                                        and ($5::varchar is null or c.name ilike $5)
-                                        and (c.address = any ($6) or array_length($6::varchar[], 1) is null) )
             select c.*,
-                   least(ds.price * tup_ds.usd_price, na.min_bid * tup_na.usd_price) as floor_price_usd,
-                   ( select sum(coalesce(tup.usd_price * nph.price, 0)) as usd
-                     from nft_price_history nph
-                              join offers_whitelist ow on ow.address = nph.source
-                              left join token_usd_prices tup on tup.token = nph.price_token
-                     where nph.collection = c.address )                              as total_volume_usd,
-                   ( select json_agg(res.json)
-                     from ( select json_build_object('traitType', na.trait_type, 'traitValues',
-                                                     json_agg(distinct trim(both from (na.value #>> '{{}}'::text[])))) as json
-                            from nft_attributes na
-                            where na.collection = c.address
-                            group by na.trait_type, na.collection ) res )            as attributes,
-                   ( select json_agg(ag2.preview_url) as previews
-                     from ( select ag.preview_url
-                            from ( select nm.meta -> 'preview' as preview_url
-                                   from nft n
-                                            join nft_metadata nm on n.address = nm.nft
-                                   where n.collection = c.address
-                                     and not n.burned
-                                   limit 50 ) ag
-                            order by random()
-                            limit 3 ) ag2 )                                          as "previews"
-            from collection_info c
-                     left join nft_direct_sell ds on ds.collection = c.address
-                     left join token_usd_prices tup_ds on tup_ds.token = ds.price_token
-                     left join nft_auction na on na.collection = c.address
-                     left join token_usd_prices tup_na on tup_na.token = na.price_token
+                   count(1) over ()  as "cnt",
+                   previews.previews as "previews",
+                   null::numeric     as max_price,
+                   null::numeric     as total_price
+            from nft_collection_details c
+                     left join lateral ( select json_agg(ag2.preview_url) as previews
+                                         from ( select ag.preview_url
+                                                from ( select nm.meta -> 'preview' as preview_url
+                                                       from nft n
+                                                                join nft_metadata nm on n.address = nm.nft
+                                                       where n.collection = c.address
+                                                         and not n.burned
+                                                       limit 50 ) ag
+                                                order by random()
+                                                limit 3 ) ag2 ) previews on true
+            where (c.owner = any ($3) or array_length($3::varchar[], 1) is null)
+              and ($4::boolean is false or c.verified is true)
+              and ($5::varchar is null or c.name ilike $5)
+              and (c.address = any ($6) or array_length($6::varchar[], 1) is null)
             order by {order}
             limit $1 offset $2
             "#
