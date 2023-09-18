@@ -148,7 +148,8 @@ impl Queries {
                    c.total_count     as "cnt",
                    previews.previews as "previews",
                    null::numeric     as max_price,
-                   null::numeric     as total_price
+                   null::numeric     as total_price,
+                   c.social          as "social"
             from nft_collection_details c
                      left join lateral ( select json_agg(ag2.preview_url) as previews
                                          from ( select ag.preview_url
