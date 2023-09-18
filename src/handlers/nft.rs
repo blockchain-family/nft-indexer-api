@@ -354,10 +354,7 @@ pub async fn get_nft_list_handler(
                 .await
             );
 
-            log::info!("1111111111111111");
-
             let mut r = catch_error_500!(make_nfts_response(list, db).await);
-            log::info!("22222222222222222");
             if !with_count {
                 if r.items.len() < final_limit {
                     r.count = (r.items.len() + offset) as i64

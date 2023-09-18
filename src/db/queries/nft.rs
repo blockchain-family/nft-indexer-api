@@ -148,8 +148,8 @@ impl Queries {
             Some(order) => {
                 order_direction = order.direction.to_string();
                 deals_order_field = match order.field {
-                    NFTListOrderField::FloorPriceUsd => "coalesce(ag.floor_price_usd, 0)",
-                    NFTListOrderField::DealPriceUsd => "coalesce(ag.floor_price_usd, 0)", // ???
+                    NFTListOrderField::FloorPriceUsd => "coalesce(ag.price_usd, 0)",
+                    NFTListOrderField::DealPriceUsd => "coalesce(ag.price_usd, 0)", // ???
                     NFTListOrderField::Name => {
                         forsale = false;
                         auction = false;
