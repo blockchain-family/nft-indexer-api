@@ -8,7 +8,6 @@ use crate::handlers::nft::{AttributeFilter, NFTListOrder, NFTListOrderField};
 
 use sqlx::{self};
 
-
 impl Queries {
     pub async fn search_all(&self, search_str: &String) -> sqlx::Result<Vec<SearchResult>> {
         sqlx::query_as!(
@@ -130,17 +129,17 @@ impl Queries {
         collections: &[Address],
         forsale: Option<bool>,
         auction: Option<bool>,
-        _verified: Option<bool>,
+        verified: Option<bool>,
         limit: usize,
         offset: usize,
         _attributes: &Vec<AttributeFilter>,
         order: Option<NFTListOrder>,
         with_count: bool,
     ) -> sqlx::Result<Vec<NftDetails>> {
-        let sql: &str = include_str!("../sql/nfts.sql");
+        let mut sql: &str = include_str!("../sql/nfts.sql");
 
         let mut order_direction = "desc".to_string();
-        let mut deals_order_field = "";
+        let mut deals_order_field = "ag.name";
         let mut forsale = forsale.unwrap_or(false);
         let mut auction = auction.unwrap_or(false);
 
@@ -162,6 +161,12 @@ impl Queries {
 
         let sql = sql.replace("#ORDER_DIRECTION#", &order_direction);
         let sql = sql.replace("#DEALS_ORDER_FIELD#", deals_order_field);
+
+        let sql = if !verified.unwrap_or(true) {
+            sql.replace("nft_verified_mv", "nft")
+        } else {
+            sql
+        };
 
         println!("-----------------");
         println!("{sql}");
