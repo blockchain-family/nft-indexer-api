@@ -16,6 +16,7 @@ use std::collections::HashMap;
 use std::convert::Infallible;
 use std::fmt::{Display, Formatter};
 use std::hash::Hash;
+use tokio::join;
 use warp::http::StatusCode;
 use warp::Filter;
 
@@ -341,9 +342,6 @@ pub async fn get_nft_list_handler(
                 db.nft_search(
                     owners,
                     collections,
-                    params.price_from,
-                    params.price_to,
-                    params.price_token,
                     params.forsale,
                     params.auction,
                     verified,
@@ -356,8 +354,10 @@ pub async fn get_nft_list_handler(
                 .await
             );
 
-            let mut r = catch_error_500!(make_nfts_response(list, db).await);
+            log::info!("1111111111111111");
 
+            let mut r = catch_error_500!(make_nfts_response(list, db).await);
+            log::info!("22222222222222222");
             if !with_count {
                 if r.items.len() < final_limit {
                     r.count = (r.items.len() + offset) as i64
@@ -533,31 +533,65 @@ pub async fn get_nft_top_list_handler(
     )))
 }
 
+// async fn make_nfts_response(list: Vec<NftDetails>, db: Queries) -> anyhow::Result<VecWith<NFT>> {
+//     let count = match list.first() {
+//         None => 0,
+//         Some(first) => first.total_count,
+//     };
+//     let ret: Vec<NFT> = list.iter().map(|it| NFT::from_db(it.clone())).collect();
+//     let collection_ids = ret.iter().map(|x| x.collection.clone()).collect();
+//     let collection = collect_collections(&db, &collection_ids).await?;
+//
+//     let auction_ids: Vec<String> = list.iter().filter_map(|x| x.auction.clone()).collect();
+//     let auction = collect_auctions(&db, &auction_ids).await?;
+//
+//     let direct_sell_ids: Vec<String> = list.iter().filter_map(|x| x.forsale.clone()).collect();
+//     let direct_sell = collect_direct_sell(&db, &direct_sell_ids).await?;
+//
+//     let direct_buy_ids: Vec<String> = list.iter().filter_map(|x| x.best_offer.clone()).collect();
+//     let direct_buy = collect_direct_buy(&db, &direct_buy_ids).await?;
+//     Ok(VecWith {
+//         count,
+//         items: ret,
+//         collection: Some(collection),
+//         nft: None,
+//         auction: Some(auction),
+//         direct_buy: Some(direct_buy),
+//         direct_sell: Some(direct_sell),
+//     })
+// }
+
 async fn make_nfts_response(list: Vec<NftDetails>, db: Queries) -> anyhow::Result<VecWith<NFT>> {
     let count = match list.first() {
         None => 0,
         Some(first) => first.total_count,
     };
+
     let ret: Vec<NFT> = list.iter().map(|it| NFT::from_db(it.clone())).collect();
+
     let collection_ids = ret.iter().map(|x| x.collection.clone()).collect();
-    let collection = collect_collections(&db, &collection_ids).await?;
+    let collection = collect_collections(&db, &collection_ids);
 
     let auction_ids: Vec<String> = list.iter().filter_map(|x| x.auction.clone()).collect();
-    let auction = collect_auctions(&db, &auction_ids).await?;
+    let auction = collect_auctions(&db, &auction_ids);
 
     let direct_sell_ids: Vec<String> = list.iter().filter_map(|x| x.forsale.clone()).collect();
-    let direct_sell = collect_direct_sell(&db, &direct_sell_ids).await?;
+    let direct_sell = collect_direct_sell(&db, &direct_sell_ids);
 
     let direct_buy_ids: Vec<String> = list.iter().filter_map(|x| x.best_offer.clone()).collect();
-    let direct_buy = collect_direct_buy(&db, &direct_buy_ids).await?;
+    let direct_buy = collect_direct_buy(&db, &direct_buy_ids);
+
+    let (collection_result, auction_result, direct_sell_result, direct_buy_result) =
+        join!(collection, auction, direct_sell, direct_buy,);
+
     Ok(VecWith {
         count,
         items: ret,
-        collection: Some(collection),
+        collection: Some(collection_result?),
         nft: None,
-        auction: Some(auction),
-        direct_buy: Some(direct_buy),
-        direct_sell: Some(direct_sell),
+        auction: Some(auction_result?),
+        direct_buy: Some(direct_buy_result?),
+        direct_sell: Some(direct_sell_result?),
     })
 }
 
