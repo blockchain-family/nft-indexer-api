@@ -142,7 +142,7 @@ impl Queries {
                    c.total_volume_usd,
                    c.attributes,
                    c.first_mint,
-                   c.total_count     as "cnt!",
+                   c.total_count     as "cnt",
                    previews.previews as "previews",
                    null::numeric     as max_price,
                    null::numeric     as total_price
