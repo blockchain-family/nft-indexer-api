@@ -8,7 +8,6 @@ use crate::handlers::nft::{AttributeFilter, NFTListOrder, NFTListOrderField};
 
 use sqlx::{self};
 
-
 impl Queries {
     pub async fn search_all(&self, search_str: &String) -> sqlx::Result<Vec<SearchResult>> {
         sqlx::query_as!(
