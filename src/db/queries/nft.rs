@@ -132,7 +132,7 @@ impl Queries {
         verified: Option<bool>,
         limit: usize,
         offset: usize,
-        _attributes: &Vec<AttributeFilter>,
+        _attributes: &[AttributeFilter],
         order: Option<NFTListOrder>,
         with_count: bool,
     ) -> sqlx::Result<Vec<NftDetails>> {
@@ -143,21 +143,18 @@ impl Queries {
         let mut forsale = forsale.unwrap_or(false);
         let mut auction = auction.unwrap_or(false);
 
-        match order {
-            Some(order) => {
-                order_direction = order.direction.to_string();
-                deals_order_field = match order.field {
-                    NFTListOrderField::FloorPriceUsd => "coalesce(ag.price_usd, 0)",
-                    NFTListOrderField::DealPriceUsd => "coalesce(ag.price_usd, 0)", // ???
-                    NFTListOrderField::Name => {
-                        forsale = false;
-                        auction = false;
-                        "ag.name"
-                    }
+        if let Some(order) = order {
+            order_direction = order.direction.to_string();
+            deals_order_field = match order.field {
+                NFTListOrderField::FloorPriceUsd => "coalesce(ag.price_usd, 0)",
+                NFTListOrderField::DealPriceUsd => "coalesce(ag.price_usd, 0)", // ???
+                NFTListOrderField::Name => {
+                    forsale = false;
+                    auction = false;
+                    "ag.name"
                 }
             }
-            None => {}
-        };
+        }
 
         let sql = sql.replace("#ORDER_DIRECTION#", &order_direction);
         let sql = sql.replace("#DEALS_ORDER_FIELD#", deals_order_field);
@@ -167,10 +164,6 @@ impl Queries {
         } else {
             sql
         };
-
-        println!("-----------------");
-        println!("{sql}");
-        println!("-----------------");
 
         sqlx::query_as(&sql)
             .bind(owners)
