@@ -45,23 +45,22 @@ impl Queries {
         sqlx::query_as!(
             NftCollection,
             r#"
-            select coalesce(ncc.address, c.address)         as "address!",
-                   c.owner                                  as "owner!",
-                   coalesce(ncc.name, c.name)               as "name",
-                   coalesce(ncc.description, c.description) as "description",
-                   coalesce(ncc.updated, c.updated)         as "updated!",
-                   coalesce(ncc.wallpaper, c.wallpaper)     as "wallpaper",
-                   coalesce(ncc.logo, c.logo)               as "logo",
-                   null::numeric                            as total_price,
-                   null::numeric                            as max_price,
+            select c.address     as "address!",
+                   c.owner       as "owner!",
+                   c.name        as "name",
+                   c.description as "description",
+                   c.updated     as "updated!",
+                   c.wallpaper   as "wallpaper",
+                   c.logo        as "logo",
+                   null::numeric as total_price,
+                   null::numeric as max_price,
                    c.owners_count::int,
-                   c.verified                               as "verified!",
-                   c.created                                as "created!",
-                   c.first_mint                             as "first_mint!",
-                   c.nft_count                              as "nft_count!",
-                   c.total_count                            as "cnt!"
+                   c.verified    as "verified!",
+                   c.created     as "created!",
+                   c.first_mint  as "first_mint!",
+                   c.nft_count   as "nft_count!",
+                   c.total_count as "cnt!"
             from nft_collection_details c
-                     left join nft_collection_custom ncc on c.address = ncc.address
             where c.address = any ($1)
               and owner is not null
             "#,
@@ -128,8 +127,22 @@ impl Queries {
 
         let query = format!(
             r#"
-            select c.*,
-                   c.total_count     as "cnt!",
+            select c.address,
+                   c.owner,
+                   c.name,
+                   c.description,
+                   c.created,
+                   c.updated,
+                   c.verified,
+                   c.wallpaper,
+                   c.logo,
+                   c.owners_count,
+                   c.nft_count,
+                   c.floor_price_usd,
+                   c.total_volume_usd,
+                   c.attributes,
+                   c.first_mint,
+                   c.total_count     as "cnt",
                    previews.previews as "previews",
                    null::numeric     as max_price,
                    null::numeric     as total_price
