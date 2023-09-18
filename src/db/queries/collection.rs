@@ -28,6 +28,7 @@ impl Queries {
                    c.total_volume_usd,
                    c.attributes,
                    c.first_mint,
+                   c.social,
                    null::numeric as max_price,
                    null::numeric as total_price,
                    1::bigint     as "cnt!",
@@ -59,7 +60,8 @@ impl Queries {
                    c.created     as "created!",
                    c.first_mint  as "first_mint!",
                    c.nft_count   as "nft_count!",
-                   c.total_count as "cnt!"
+                   c.total_count as "cnt!",
+                   c.social      as "social"
             from nft_collection_details c
             where c.address = any ($1)
               and owner is not null
@@ -93,7 +95,8 @@ impl Queries {
                    c.created     as "created!",
                    c.first_mint  as "first_mint!",
                    c.nft_count   as "nft_count!",
-                   c.total_count as "cnt!"
+                   c.total_count as "cnt!",
+                   c.social      as "social"
             from nft_collection_details c
             where c.owner = $1
             limit $2 offset $3
