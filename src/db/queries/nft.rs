@@ -123,9 +123,7 @@ impl Queries {
         .await
     }
 
-    pub async fn nft_get_types(
-        &self,
-    ) -> sqlx::Result<Vec<NftMimetype>> {
+    pub async fn nft_get_types(&self) -> sqlx::Result<Vec<NftMimetype>> {
         sqlx::query_as!(
             NftMimetype,
             r#"
@@ -135,8 +133,8 @@ impl Queries {
             group by "mimetype!"
             "#
         )
-            .fetch_all(self.db.as_ref())
-            .await
+        .fetch_all(self.db.as_ref())
+        .await
     }
 
     #[allow(clippy::too_many_arguments)]

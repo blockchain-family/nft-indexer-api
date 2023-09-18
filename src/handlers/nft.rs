@@ -538,7 +538,7 @@ pub async fn get_nft_top_list_handler(
 /// GET /nfts/types
 pub fn get_nft_types(
     db: Queries,
-    cache: Cache<u64, Value>,//Determine cache
+    cache: Cache<u64, Value>, //Determine cache
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path!("nfts" / "types")
         .and(warp::post())
@@ -557,10 +557,7 @@ pub async fn get_nft_types_handler(
     let response: Vec<String>;
     match cached_value {
         None => {
-            let list_of_types = catch_error_500!(
-                db.nft_get_types()
-                .await
-            );
+            let list_of_types = catch_error_500!(db.nft_get_types().await);
             response = list_of_types.iter().map(|x| x.mimetype.clone()).collect();
             let value_for_cache =
                 serde_json::to_value(response.clone()).expect("Failed serializing cached value");
@@ -573,7 +570,6 @@ pub async fn get_nft_types_handler(
 
     response!(&response)
 }
-
 
 async fn make_nfts_response(list: Vec<NftDetails>, db: Queries) -> anyhow::Result<VecWith<NFT>> {
     let count = match list.first() {
