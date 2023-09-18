@@ -141,11 +141,20 @@ pub async fn get_events_handler(
                 .await
             );
 
+            println!("111---------------------");
+
+            println!("{:#?}", record.content);
+
             let r: Result<NftEvents, serde_json::Error> = match record.content {
                 None => Ok(NftEvents::default()),
                 Some(value) => serde_json::from_value(value),
             };
+
+            println!("111---------------------");
+
             let mut r = catch_error_500!(r);
+
+            println!("111---------------------");
 
             if !with_count {
                 if r.data.len() < final_limit {

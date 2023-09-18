@@ -136,7 +136,7 @@ impl Queries {
         order: Option<NFTListOrder>,
         with_count: bool,
     ) -> sqlx::Result<Vec<NftDetails>> {
-        let mut sql: &str = include_str!("../sql/nfts.sql");
+        let sql: &str = include_str!("../sql/nfts.sql");
 
         let mut order_direction = "desc".to_string();
         let mut deals_order_field = "ag.name";
