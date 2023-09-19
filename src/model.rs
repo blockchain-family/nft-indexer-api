@@ -1,6 +1,6 @@
 use crate::db::{
     MetaRoyalty, MetricsSummaryRecord, NftEventType, NftTraitRecord, OwnerFeeRecord, RootRecord,
-    UserRecord,
+    Social, UserRecord,
 };
 use crate::{
     db::{Address, AuctionStatus, DirectBuyState, DirectSellState, EventCategory, EventType},
@@ -117,7 +117,7 @@ pub struct Collection {
     pub lowest_price: Option<String>,
     pub total_price: Option<String>,
     pub first_mint: i64,
-    pub social: serde_json::Value,
+    pub social: Option<Social>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
@@ -407,7 +407,7 @@ impl CollectionDetails {
                 total_price: db.total_price.map(|x| x.to_string()),
                 lowest_price: None,
                 first_mint: db.first_mint.expect("NFT without collection").timestamp(),
-                social: serde_json::from_value(db.social.unwrap_or_default()).unwrap_or_default(),
+                social: serde_json::from_value(db.social.unwrap_or_default())?,
             },
             floor_price_usd: db.floor_price_usd.map(|x| x.to_string()),
             total_volume_usd: db.total_volume_usd.map(|x| x.to_string()),
