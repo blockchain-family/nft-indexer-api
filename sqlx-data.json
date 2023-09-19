@@ -230,6 +230,174 @@
     },
     "query": "\n            select count(1)\n            from nft n\n                     join nft_collection c on n.collection = c.address\n                     join nft_direct_sell nds on nds.nft = n.address and nds.created <= now() and\n                                                 (now() <= nds.expired_at or nds.expired_at = to_timestamp(0)) and\n                                                 nds.state = 'active' and nds.price <= $1::int8\n                     join offers_whitelist ow on ow.address = nds.address\n            where n.burned is false\n              and c.verified is true\n           "
   },
+  "14947581ad595c80aa7d7229feb3cc20bf94effb250cab5b28f8eed653408bd6": {
+    "describe": {
+      "columns": [
+        {
+          "name": "address",
+          "ordinal": 0,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "collection",
+          "ordinal": 1,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "owner",
+          "ordinal": 2,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "manager",
+          "ordinal": 3,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "name",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "description",
+          "ordinal": 5,
+          "type_info": "Text"
+        },
+        {
+          "name": "burned",
+          "ordinal": 6,
+          "type_info": "Bool"
+        },
+        {
+          "name": "updated",
+          "ordinal": 7,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "tx_lt",
+          "ordinal": 8,
+          "type_info": "Int8"
+        },
+        {
+          "name": "meta",
+          "ordinal": 9,
+          "type_info": "Jsonb"
+        },
+        {
+          "name": "auction",
+          "ordinal": 10,
+          "type_info": "Text"
+        },
+        {
+          "name": "auction_status: _",
+          "ordinal": 11,
+          "type_info": {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "created",
+                  "active",
+                  "cancelled",
+                  "completed",
+                  "expired"
+                ]
+              },
+              "name": "auction_status"
+            }
+          }
+        },
+        {
+          "name": "forsale",
+          "ordinal": 12,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "forsale_status: _",
+          "ordinal": 13,
+          "type_info": {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "create",
+                  "await_nft",
+                  "active",
+                  "filled",
+                  "cancelled",
+                  "expired"
+                ]
+              },
+              "name": "direct_sell_state"
+            }
+          }
+        },
+        {
+          "name": "best_offer",
+          "ordinal": 14,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "floor_price_usd",
+          "ordinal": 15,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "deal_price_usd",
+          "ordinal": 16,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "floor_price",
+          "ordinal": 17,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "floor_price_token",
+          "ordinal": 18,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "nft_id",
+          "ordinal": 19,
+          "type_info": "Text"
+        },
+        {
+          "name": "total_count!",
+          "ordinal": 20,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        true,
+        true,
+        true,
+        true,
+        null,
+        true,
+        true,
+        true,
+        true,
+        true,
+        null,
+        null,
+        false,
+        false,
+        true,
+        null,
+        true,
+        false,
+        false,
+        null,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Numeric",
+          "Int8"
+        ]
+      }
+    },
+    "query": "\n                with deals as (\n                    select n.address,\n                           n.collection,\n                           n.owner,\n                           n.manager,\n                           n.name,\n                           n.description,\n                           n.burned,\n                           n.updated,\n                           n.owner_update_lt,\n                           n.id,\n                           tup.token               as floor_price_token,\n                           s.price                 as floor_price,\n                           s.price * tup.usd_price as floor_price_usd,\n                           null                    as auction,\n                           null::auction_status    as auction_status,\n                           s.address               as forsale,\n                           s.state                 as forsale_status\n\n                    from nft_direct_sell s\n                             join nft_verified_mv n\n                                  on n.address = s.nft\n                             join offers_whitelist ow on ow.address = s.address\n                             left join token_usd_prices tup on tup.token = s.price_token\n                    where s.price <= $1\n                      and s.state = 'active'::direct_sell_state\n                      and (s.expired_at = to_timestamp(0) or s.expired_at > now())\n                    order by random()\n                    limit $2\n                )\n\n                select n.address,\n                       n.collection,\n                       n.owner,\n                       n.manager,\n                       n.name::text        as name,\n                       n.description,\n                       n.burned,\n                       n.updated,\n                       n.owner_update_lt   as tx_lt,\n                       m.meta,\n                       n.auction              auction,\n                       n.auction_status    as \"auction_status: _\",\n                       n.forsale           as forsale,\n                       n.forsale_status    as \"forsale_status: _\",\n                       best_offer.address  as best_offer,\n                       n.floor_price_usd      floor_price_usd,\n                       last_deal.last_price   deal_price_usd,\n                       n.floor_price       as floor_price,\n                       n.floor_price_token as floor_price_token,\n                       n.id::text          as nft_id,\n                       0                   as \"total_count!\"\n                from deals n\n                         left join nft_metadata m on m.nft = n.address\n                         left join lateral ( SELECT s.address\n                                             FROM nft_direct_buy s\n                                                      JOIN offers_whitelist ow ON ow.address = s.address\n                                                      JOIN token_usd_prices tup ON tup.token = s.price_token\n                                             WHERE s.state = 'active'\n                                               AND s.nft = n.address\n                                             group by s.address, (s.price * tup.usd_price)\n                                             HAVING (s.price * tup.usd_price) = MAX(s.price * tup.usd_price)\n                                             LIMIT 1 ) best_offer on true\n\n\n                         left join lateral ( select nph.price * tup.usd_price as last_price\n                                             from nft_price_history nph\n                                                      join offers_whitelist ow on ow.address = nph.source\n                                                      join token_usd_prices tup on tup.token = nph.price_token\n                                             where nph.nft = n.address\n                                             order by nph.ts desc\n                                             limit 1 ) last_deal on true\n\n\n            "
+  },
   "167a97b0bcecae550206519e269c4d0f330d674b86c1f637d8cc3cd454f56dd3": {
     "describe": {
       "columns": [

@@ -365,7 +365,7 @@ impl Queries {
                            s.price                 as floor_price,
                            s.price * tup.usd_price as floor_price_usd,
                            null                    as auction,
-                           null                    as auction_status,
+                           null::auction_status    as auction_status,
                            s.address               as forsale,
                            s.state                 as forsale_status
 
@@ -392,18 +392,16 @@ impl Queries {
                        n.owner_update_lt   as tx_lt,
                        m.meta,
                        n.auction              auction,
-                       n.auction_status    as "auction_status: _",
+                       n.auction_status::auction_status    as auction_status,
                        n.forsale           as forsale,
-                       n.forsale_status    as "forsale_status: _",
+                       n.forsale_status::direct_sell_state    as forsale_status,
                        best_offer.address  as best_offer,
                        n.floor_price_usd      floor_price_usd,
                        last_deal.last_price   deal_price_usd,
                        n.floor_price       as floor_price,
                        n.floor_price_token as floor_price_token,
                        n.id::text          as nft_id,
-                       n.auction_status    as auction_status,
-                       n.forsale           as forsale_status,
-                       0                      total_count
+                       0::int8                   as total_count
                 from deals n
                          left join nft_metadata m on m.nft = n.address
                          left join lateral ( SELECT s.address
@@ -426,10 +424,9 @@ impl Queries {
                                              limit 1 ) last_deal on true
 
 
-            "#,
-        )
-        .bind(max_price)
-        .bind(limit)
+            "#
+
+        ).bind(max_price).bind(limit)
         .fetch_all(self.db.as_ref())
         .await
     }
