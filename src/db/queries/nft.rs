@@ -340,7 +340,6 @@ impl Queries {
             .bind(limit as i64)
             .bind(offset as i64)
             .bind(with_count)
-            .bind(enable_sales_query)
             .bind(with_optimized)
             .fetch_all(self.db.as_ref())
             .await

@@ -70,7 +70,7 @@ with nfts as (
                                 on n.address = a.nft
                            join offers_whitelist ow on ow.address = a.address
                            left join token_usd_prices tup on tup.token = a.price_token
-                  where ($3::bool or $8::bool or $9::bool)
+                  where ($3::bool or $8::bool)
                     and a.nft = n.address
                     and a.status = 'active'::auction_status
                     and (a.finished_at = to_timestamp(0) or a.finished_at > now()::timestamp)
@@ -103,7 +103,7 @@ with nfts as (
                                 on n.address = s.nft
                            join offers_whitelist ow on ow.address = s.address
                            left join token_usd_prices tup on tup.token = s.price_token
-                  where ($4::bool or $8::bool or $9::bool)
+                  where ($4::bool or $8::bool)
                     and s.state = 'active'::direct_sell_state
                     and (s.expired_at = to_timestamp(0) or s.expired_at > now())
                     and ($1 = '{}' or n.owner = any ($1::text[]))
