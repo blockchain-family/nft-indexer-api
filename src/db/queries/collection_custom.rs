@@ -49,8 +49,8 @@ impl Queries {
         &self,
         address: &String,
         owner: &String,
-    ) -> Option<i64> {
-        match sqlx::query_scalar!(
+    ) -> sqlx::Result<Option<i64>> {
+        sqlx::query_scalar!(
             r#"
             select count(1)
             from nft_collection c
@@ -61,10 +61,5 @@ impl Queries {
         )
         .fetch_one(self.db.as_ref())
         .await
-        .expect("Failed validation of collections owner")?
-        {
-            0 => None,
-            v => Some(v),
-        }
     }
 }

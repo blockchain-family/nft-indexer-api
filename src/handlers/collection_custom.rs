@@ -69,10 +69,17 @@ pub async fn upsert_collection_custom_handler(
     let address = catch_error_401!(auth_service.authenticate(headers));
     let address_of_collection = payload.address;
 
-    catch_error_403!(
-        db.validate_owner_of_collection(&address_of_collection, &address)
-            .await
-    );
+    let validation_of_owner = match db
+        .validate_owner_of_collection(&address_of_collection, &address)
+        .await
+        .expect("Failed validation of collections owner")
+        .expect("Failed validation of collections owner")
+    {
+        0 => None,
+        v => Some(v),
+    };
+
+    catch_error_403!(validation_of_owner);
 
     catch_error_500!(
         db.upsert_collection_custom(
