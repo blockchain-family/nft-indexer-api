@@ -201,25 +201,30 @@ impl Queries {
         sqlx::query_as!(
             NftDetails,
             r#"
-            select n.*, count(1) over () as "total_count!"
-            from nft_details n
-                     join nft_collection nc on nc.address = n.collection and nc.verified
-                     left join lateral ( select count(1) as cnt
-                                         from nft_price_history nph
-                                                  join offers_whitelist ow on ow.address = nph.source
-                                         where n.address = nph.nft
-                                           and nph.ts >= $1 ) offers on true
-            where n.updated >= $1
-              and offers.cnt > 0
-            order by offers.cnt desc, n.updated desc, n.address desc
-            limit $2 offset $3
+                select n.*, count(1) over () as "total_count!"
+                from (
+                         select *
+                         from nft_verified_mv nvm
+                                  left join lateral (
+                             select count(1) as cnt
+                             from nft_price_history nph
+                                      join offers_whitelist ow on ow.address = nph.source
+                             where nvm.address = nph.nft
+                               and nph.ts >= $1
+                             ) offers on true
+                         where nvm.updated > $1
+                           and offers.cnt > 0
+                         order by offers.cnt desc, nvm.updated desc, nvm.address desc
+                         limit $2 offset $3) ag
+                         join nft_details n
+                              on ag.address = n.address
             "#,
             from,
             limit,
             offset
         )
-            .fetch_all(self.db.as_ref())
-            .await
+        .fetch_all(self.db.as_ref())
+        .await
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -242,12 +247,13 @@ impl Queries {
 
         let mut order_direction_result = "asc".to_string();
         let mut deals_order_field = "ag.name";
-        let mut enable_sales_query = true;
+        let mut enable_sales_query = false;
         let mut order_result = "".to_string();
         let mut nfts_direction_default = "asc".to_string();
 
         if let Some(order) = order {
             order_direction_result = order.direction.to_string();
+            enable_sales_query = true;
             deals_order_field = match order.field {
                 NFTListOrderField::FloorPriceUsd => {
                     match order.direction {
@@ -270,6 +276,10 @@ impl Queries {
                     "ag.name"
                 }
             }
+        }
+
+        if forsale || auction {
+            enable_sales_query = false;
         }
 
         let with_optimized: bool = if enable_sales_query {

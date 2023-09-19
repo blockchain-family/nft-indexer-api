@@ -24,7 +24,7 @@ with nfts as (
       and not $4
       and ((nvm.collection = any ($2) or $2 = '{}') and (nvm.owner = any ($1) or $1 = '{}'))
       and not burned
-    order by nvm.name #ORDER_DIRECTION#, nvm.address
+    order by nvm.name #NFTS_DIRECTION_BASE#, nvm.address
 ),
 
      deals as (
@@ -70,13 +70,12 @@ with nfts as (
                                 on n.address = a.nft
                            join offers_whitelist ow on ow.address = a.address
                            left join token_usd_prices tup on tup.token = a.price_token
-                  where ($3::bool or $8::bool)
+                  where ($3::bool or $8::bool or $9::bool)
                     and a.nft = n.address
                     and a.status = 'active'::auction_status
                     and (a.finished_at = to_timestamp(0) or a.finished_at > now()::timestamp)
                     and ($1 = '{}' or n.owner = any ($1::text[]))
                     and ($2 = '{}' or n.collection = any ($2))
-                    and $9::bool
 
 
                   union all
@@ -104,15 +103,14 @@ with nfts as (
                                 on n.address = s.nft
                            join offers_whitelist ow on ow.address = s.address
                            left join token_usd_prices tup on tup.token = s.price_token
-                  where ($4::bool or $8::bool)
+                  where ($4::bool or $8::bool or $9::bool)
                     and s.state = 'active'::direct_sell_state
                     and (s.expired_at = to_timestamp(0) or s.expired_at > now())
                     and ($1 = '{}' or n.owner = any ($1::text[]))
                     and ($2 = '{}' or n.collection = any ($2))
-                    and $9::bool
               ) ag
 
-         order by #DEALS_ORDER_FIELD# #NFTS_DIRECTION_BASE#
+         order by #DEALS_ORDER_FIELD# #ORDER_DIRECTION#
      ),
 
      res as (
