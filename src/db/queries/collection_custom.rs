@@ -61,7 +61,7 @@ impl Queries {
         )
         .fetch_one(self.db.as_ref())
         .await
-        .unwrap()?
+        .expect("Failed validation of collections owner")?
         {
             0 => None,
             v => Some(v),
