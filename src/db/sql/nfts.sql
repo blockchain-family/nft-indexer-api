@@ -129,9 +129,9 @@ select n.address,
        n.owner_update_lt                                                   as tx_lt,
        m.meta,
        coalesce(n.auction, auc.auction)                                       auction,
-       coalesce(n.auction_status, auc.status)                              as "auction_status: _",
+       coalesce(n.auction_status, auc.status)::auction_status                              as auction_status,
        coalesce(n.forsale, sale.forsale) as forsale,
-       coalesce(n.forsale_status, sale.status)                             as "forsale_status: _",
+       coalesce(n.forsale_status, sale.status)::direct_sell_state                             as forsale_status,
        best_offer.address                                                  as best_offer,
        coalesce(n.floor_price_usd, least(auc.price_usd, sale.price_usd))      floor_price_usd,
        last_deal.last_price deal_price_usd,
@@ -146,8 +146,8 @@ select n.address,
                                              then sale.token::character varying
                                          else null::character varying end) as floor_price_token,
        n.id::text                                                          as nft_id,
-       coalesce(n.auction_status, auc.status)                              as auction_status,
-       coalesce(n.forsale, sale.forsale)                                   as forsale_status,
+--       coalesce(n.auction_status, auc.status)                              as auction_status,
+--       coalesce(n.auction_status, sale.forsale)                                   as forsale_status,
        case when $7 then count(1) over () else 0 end                         total_count
 from res n
          left join nft_metadata m on m.nft = n.address

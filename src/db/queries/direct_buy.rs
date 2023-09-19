@@ -21,8 +21,8 @@ impl Queries {
                    s.price * p.usd_price as "usd_price?",
                    s.finished_at         as "finished_at?",
                    s.expired_at          as "expired_at?",
-                   case when s.state = 'active'::direct_buy_state and to_timestamp(0::double precision) < s.finished_at and
-                             s.finished_at < now()::timestamp without time zone then 'expired'::direct_buy_state
+                   case when s.state = 'active'::direct_buy_state and to_timestamp(0::double precision) < s.expired_at and
+                             s.expired_at < now()::timestamp then 'expired'::direct_buy_state
                         else s.state end as "state!: _",
                    1::bigint             as "cnt!",
                    fee_numerator,
@@ -59,8 +59,8 @@ impl Queries {
                    s.price * p.usd_price as "usd_price?",
                    s.finished_at         as "finished_at?",
                    s.expired_at          as "expired_at?",
-                   case when s.state = 'active'::direct_buy_state and to_timestamp(0::double precision) < s.finished_at and
-                             s.finished_at < now()::timestamp without time zone then 'expired'::direct_buy_state
+                   case when s.state = 'active'::direct_buy_state and to_timestamp(0::double precision) < s.expired_at and
+                             s.expired_at < now()::timestamp then 'expired'::direct_buy_state
                         else s.state end as "state!: _",
                    1::bigint             as "cnt!",
                    fee_numerator,
@@ -104,8 +104,8 @@ impl Queries {
                    s.price * p.usd_price as "usd_price?",
                    s.finished_at         as "finished_at?",
                    s.expired_at          as "expired_at?",
-                   case when s.state = 'active'::direct_buy_state and to_timestamp(0::double precision) < s.finished_at and
-                             s.finished_at < now()::timestamp without time zone then 'expired'::direct_buy_state
+                   case when s.state = 'active'::direct_buy_state and to_timestamp(0::double precision) < s.expired_at and
+                             s.expired_at < now()::timestamp then 'expired'::direct_buy_state
                         else s.state end as "state!: _",
                    count(1) over ()      as "cnt!",
                    fee_numerator,
@@ -120,7 +120,7 @@ impl Queries {
                                            and (ne.args ->> 'auction') = s.address) ev on true
             where s.nft = $1
               and s.state = 'active'::direct_buy_state
-              and (to_timestamp(0::double precision) = s.finished_at or s.finished_at > now()::timestamp)
+              and (to_timestamp(0::double precision) = s.expired_at or s.expired_at > now()::timestamp)
               and (array_length($2::varchar[], 1) is null or s.state::varchar = any ($2))
             order by s.updated desc
             limit $3 offset $4
@@ -158,8 +158,8 @@ impl Queries {
                    s.price * p.usd_price as "usd_price?",
                    s.finished_at         as "finished_at?",
                    s.expired_at          as "expired_at?",
-                   case when s.state = 'active'::direct_buy_state and to_timestamp(0::double precision) < s.finished_at and
-                             s.finished_at < now()::timestamp without time zone then 'expired'::direct_buy_state
+                   case when s.state = 'active'::direct_buy_state and to_timestamp(0::double precision) < s.expired_at and
+                             s.expired_at < now()::timestamp then 'expired'::direct_buy_state
                         else s.state end as "state!: _",
                    count(1) over ()      as "cnt!",
                    fee_numerator,
@@ -212,8 +212,8 @@ impl Queries {
                    s.price * p.usd_price as "usd_price?",
                    s.finished_at         as "finished_at?",
                    s.expired_at          as "expired_at?",
-                   case when s.state = 'active'::direct_buy_state and to_timestamp(0::double precision) < s.finished_at and
-                             s.finished_at < now()::timestamp without time zone then 'expired'::direct_buy_state
+                   case when s.state = 'active'::direct_buy_state and to_timestamp(0::double precision) < s.expired_at and
+                             s.expired_at < now()::timestamp then 'expired'::direct_buy_state
                         else s.state end as "state!: _",
                    count(1) over ()      as "cnt!",
                    fee_numerator,

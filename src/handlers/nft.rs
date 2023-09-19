@@ -423,7 +423,6 @@ pub async fn get_nft_random_list_handler(
             let max_price = params.max_price;
 
             let list = catch_error_500!(db.nft_random_buy(max_price, limit).await);
-
             let mut r = catch_error_500!(make_nfts_response(list, db).await);
 
             r.count = r.items.len() as i64;
