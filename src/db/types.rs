@@ -379,11 +379,6 @@ pub struct UserRecord {
     pub avatar_url: Option<String>,
 }
 
-#[derive(Serialize, Clone, Debug)]
-pub struct ValidateOwnerOfCollection {
-    pub address: String,
-}
-
 #[derive(Debug, Clone, Deserialize, Serialize, Hash, ToSchema)]
 pub struct Social {
     #[serde(skip_serializing_if = "Option::is_none")]
