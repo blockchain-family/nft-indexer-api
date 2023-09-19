@@ -48,6 +48,7 @@ use api::usd_price::CurrencyClient;
 use handlers::auction::ApiDocAddon as AuctionApiDocAddon;
 use handlers::auth::ApiDocAddon as AuthApiDocAddon;
 use handlers::collection::ApiDocAddon as CollectionApiDocAddon;
+use handlers::collection_custom::ApiDocAddon as CollectionCustomAddon;
 use handlers::events::ApiDocAddon as EventApiDocAddon;
 use handlers::metrics::ApiDocAddon as MetricsApiDocAddon;
 use handlers::nft::ApiDocAddon as NftApiDocAddon;
@@ -90,7 +91,8 @@ use warp::{http::StatusCode, Filter};
         &NftApiDocAddon,
         &OwnerApiDocAddon,
         &UserApiDocAddon,
-        &ModuleApiDocAddon
+        &ModuleApiDocAddon,
+        &CollectionCustomAddon
     )
 )]
 struct ApiDoc;
@@ -138,9 +140,29 @@ async fn main() {
         warp::http::HeaderValue::from_static("GET, POST, OPTIONS"),
     );
 
+    // let cache_minute = Cache::builder()
+    //     .time_to_live(Duration::from_secs(60))
+    //     .time_to_idle(Duration::from_secs(60))
+    //     .build();
+    //
+    // let cache_5_minutes = Cache::builder()
+    //     .time_to_live(Duration::from_secs(60 * 5))
+    //     .time_to_idle(Duration::from_secs(60 * 5))
+    //     .build();
+    //
+    // let cache_10_sec = Cache::builder()
+    //     .time_to_live(Duration::from_secs(10))
+    //     .time_to_idle(Duration::from_secs(10))
+    //     .build();
+    //
+    // let cache_1_sec = Cache::builder()
+    //     .time_to_live(Duration::from_secs(1))
+    //     .time_to_idle(Duration::from_secs(1))
+    //     .build();
+
     let cache_minute = Cache::builder()
-        .time_to_live(Duration::from_secs(60))
-        .time_to_idle(Duration::from_secs(60))
+        .time_to_live(Duration::from_secs(0))
+        .time_to_idle(Duration::from_secs(0))
         .build();
 
     let cache_60_minutes = Cache::builder()
@@ -149,18 +171,18 @@ async fn main() {
         .build();
 
     let cache_5_minutes = Cache::builder()
-        .time_to_live(Duration::from_secs(60 * 5))
-        .time_to_idle(Duration::from_secs(60 * 5))
+        .time_to_live(Duration::from_secs(0))
+        .time_to_idle(Duration::from_secs(0))
         .build();
 
     let cache_10_sec = Cache::builder()
-        .time_to_live(Duration::from_secs(10))
-        .time_to_idle(Duration::from_secs(10))
+        .time_to_live(Duration::from_secs(0))
+        .time_to_idle(Duration::from_secs(0))
         .build();
 
     let cache_1_sec = Cache::builder()
-        .time_to_live(Duration::from_secs(1))
-        .time_to_idle(Duration::from_secs(1))
+        .time_to_live(Duration::from_secs(0))
+        .time_to_idle(Duration::from_secs(0))
         .build();
 
     let api_doc = warp::path("swagger.json")

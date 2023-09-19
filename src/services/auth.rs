@@ -7,6 +7,7 @@ use http::{HeaderMap, HeaderValue};
 use nekoton::core::ton_wallet::compute_address;
 use nekoton::core::ton_wallet::WalletType;
 use sha2::Digest;
+use std::borrow::Cow;
 use std::str::FromStr;
 use std::time::SystemTime;
 use ton_block::MsgAddressInt;
@@ -58,6 +59,7 @@ impl AuthService {
             login.signature.as_str(),
             login.timestamp,
             self.base_url.as_str(),
+            login.with_signature_id,
         )?;
         self.ensure_not_expired(login.timestamp)?;
 
@@ -70,13 +72,14 @@ impl AuthService {
         signature: &str,
         timestamp: u64,
         base_url: &str,
+        with_signature_id: Option<i32>,
     ) -> anyhow::Result<()> {
-        let msg = format!("I want to login at {base_url} with address {address} at {timestamp}",);
+        let msg = format!("I want to login at {base_url} with address {address} at {timestamp}");
         let mut hasher = sha2::Sha256::new();
         hasher.update(msg);
         let msg_hash = format!("{:X}", hasher.finalize());
 
-        if !Self::verify_signature(public_key, msg_hash.as_str(), signature)? {
+        if !Self::verify_signature(public_key, msg_hash.as_str(), signature, with_signature_id)? {
             anyhow::bail!("Bad signature");
         }
 
@@ -129,11 +132,14 @@ impl AuthService {
         public_key: PublicKey,
         data_hash: &str,
         signature: &str,
+        signature_id: Option<i32>,
     ) -> anyhow::Result<bool> {
         let data_hash = hex::decode(data_hash)?;
         if data_hash.len() != 32 {
             anyhow::bail!("Invalid data hash. Expected 32 bytes")
         }
+
+        let data_hash = Self::extend_data_with_signature_id(&data_hash, signature_id);
 
         let signature = match general_purpose::STANDARD.decode(signature) {
             Ok(signature) => signature,
@@ -146,6 +152,18 @@ impl AuthService {
         };
 
         Ok(public_key.verify(&data_hash, &signature).is_ok())
+    }
+
+    pub fn extend_data_with_signature_id(data: &[u8], signature_id: Option<i32>) -> Cow<'_, [u8]> {
+        match signature_id {
+            Some(signature_id) => {
+                let mut result = Vec::with_capacity(4 + data.len());
+                result.extend_from_slice(&signature_id.to_be_bytes());
+                result.extend_from_slice(data);
+                Cow::Owned(result)
+            }
+            None => Cow::Borrowed(data),
+        }
     }
 
     fn parse_public_key(public_key: &str) -> anyhow::Result<PublicKey> {

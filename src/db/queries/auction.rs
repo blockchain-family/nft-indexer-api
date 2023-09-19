@@ -7,33 +7,77 @@ use sqlx::{self};
 
 impl Queries {
     pub async fn collect_auctions(&self, ids: &[String]) -> sqlx::Result<Vec<NftAuction>> {
-        sqlx::query_as!(
+        sqlx::query_as_unchecked!(
             NftAuction,
             r#"
-            select a.address,
-                   a.nft,
-                   a.wallet_for_bids,
-                   a.price_token,
-                   a.start_price,
-                   a.max_bid,
-                   a.min_bid,
-                   a.start_usd_price,
-                   a.max_usd_bid,
-                   a.min_usd_bid,
-                   "status: _",
-                   a.created_at,
-                   a.finished_at,
-                   a.tx_lt,
-                   a.bids_count,
-                   a.last_bid_from,
-                   a.last_bid_ts,
-                   a.last_bid_value,
-                   a.last_bid_usd_value,
-                   a.fee_numerator,
-                   a.fee_denominator,
-                   count(1) over () as "cnt!"
-            from nft_auction_search a
-            where a.address = any ($1)
+                with a as (
+                select distinct on (a.address) a.address,
+                                   a.nft,
+                                   a.collection,
+                                   a.nft_owner,
+                                   a.wallet_for_bids,
+                                   a.price_token,
+                                   a.start_price,
+                                   a.max_bid,
+                                   a.min_bid,
+                                   case
+                                       when a.status = 'active'::auction_status and to_timestamp(0) < a.finished_at and
+                                            a.finished_at < now()::timestamp then 'expired'::auction_status
+                                       else a.status end                          as "status: _",
+                                   a.created_at,
+                                   a.finished_at,
+                                   a.tx_lt,
+                                   sum(case when b.auction is null then 0 else 1 end)
+                                   over (partition by a.address)                  as bids_count,
+                                   first_value(b.buyer) over bids_w               as last_bid_from,
+                                   first_value(b.price) over bids_w               as last_bid_value,
+                                   first_value(b.price * p.usd_price) over bids_w as last_bid_usd_value,
+                                   first_value(b.created_at) over bids_w          as last_bid_ts,
+                                   a.start_price * p.usd_price                    as start_usd_price,
+                                   a.max_bid * p.usd_price                        as max_usd_bid,
+                                   a.min_bid * p.usd_price                        as min_usd_bid,
+                                   ev.fee_numerator,
+                                   ev.fee_denominator
+                                from nft_auction a
+                                         join offers_whitelist ow on ow.address = a.address
+                                         left join nft_auction_bid b on b.auction = a.address and b.declined is false
+                                         left join token_usd_prices p on p.token = a.price_token
+                                         left join lateral ( select (ne.args -> 'fee' -> 'numerator')::int   as fee_numerator,
+                                                                    (ne.args -> 'fee' -> 'denominator')::int as fee_denominator
+                                                             from nft_events ne
+                                                             where ne.event_type = 'market_fee_changed'
+                                                               and ne.args ->> 'auction' = a.address ) as ev on true
+                                where a.address = any ($1)
+                                  and (
+                                        b.declined is false
+                                        or b.declined is null
+                                    )
+                                    window bids_w as (partition by b.auction order by b.created_at desc)
+                            )
+                            select a.address,
+                                   a.nft,
+                                   a.wallet_for_bids,
+                                   a.price_token,
+                                   a.start_price,
+                                   a.max_bid,
+                                   a.min_bid,
+                                   a.start_usd_price,
+                                   a.max_usd_bid,
+                                   a.min_usd_bid,
+                                   "status: _",
+                                   a.created_at,
+                                   a.finished_at,
+                                   a.tx_lt,
+                                   a.bids_count,
+                                   a.last_bid_from,
+                                   a.last_bid_ts,
+                                   a.last_bid_value,
+                                   a.last_bid_usd_value,
+                                   a.fee_numerator,
+                                   a.fee_denominator,
+                                   count(1) over () as "cnt!"
+                            from a
+
             "#,
             ids
         )
@@ -45,30 +89,69 @@ impl Queries {
         sqlx::query_as!(
             NftAuction,
             r#"
-            select a.address,
-                   a.nft,
-                   a.wallet_for_bids,
-                   a.price_token,
-                   a.start_price,
-                   a.max_bid,
-                   a.min_bid,
-                   a.start_usd_price,
-                   a.max_usd_bid,
-                   a.min_usd_bid,
+            with auction as ( select distinct on (a.address) a.address,
+                                                             a.nft,
+                                                             a.collection,
+                                                             a.nft_owner,
+                                                             a.wallet_for_bids,
+                                                             a.price_token,
+                                                             a.start_price,
+                                                             a.max_bid,
+                                                             a.min_bid,
+                                                             case when a.status = 'active'::auction_status and
+                                                                       to_timestamp(0) < a.finished_at and a.finished_at < now()::timestamp
+                                                                      then 'expired'::auction_status
+                                                                  else a.status end                         as "status: _",
+                                                             a.created_at,
+                                                             a.finished_at,
+                                                             a.tx_lt,
+                                                             sum(case when b.auction is null then 0 else 1 end)
+                                                             over (partition by a.address)                  as bids_count,
+                                                             first_value(b.buyer) over bids_w               as last_bid_from,
+                                                             first_value(b.price) over bids_w               as last_bid_value,
+                                                             first_value(b.price * p.usd_price) over bids_w as last_bid_usd_value,
+                                                             first_value(b.created_at) over bids_w          as last_bid_ts,
+                                                             a.start_price * p.usd_price                    as start_usd_price,
+                                                             a.max_bid * p.usd_price                        as max_usd_bid,
+                                                             a.min_bid * p.usd_price                        as min_usd_bid,
+                                                             ev.fee_numerator,
+                                                             ev.fee_denominator
+                              from nft_auction a
+                                       join offers_whitelist ow on ow.address = a.address
+                                       left join nft_auction_bid b on b.auction = a.address and b.declined is false
+                                       left join token_usd_prices p on p.token = a.price_token
+                                       left join lateral ( select (ne.args -> 'fee' -> 'numerator')::int   as fee_numerator,
+                                                                  (ne.args -> 'fee' -> 'denominator')::int as fee_denominator
+                                                           from nft_events ne
+                                                           where ne.event_type = 'market_fee_changed'
+                                                             and ne.args ->> 'auction' = a.address ) as ev on true
+                              where (b.declined is false or b.declined is null)
+                                and a.address = $1
+                              window bids_w as (partition by b.auction order by b.created_at desc) )
+            
+            select a.address            as "address?",
+                   a.nft                as "nft?",
+                   a.wallet_for_bids    as "wallet_for_bids?",
+                   a.price_token        as "price_token?",
+                   a.start_price        as "start_price?",
+                   a.max_bid            as "max_bid?",
+                   a.min_bid            as "min_bid?",
+                   a.start_usd_price    as "start_usd_price?",
+                   a.max_usd_bid        as "max_usd_bid?",
+                   a.min_usd_bid        as "min_usd_bid?",
                    "status: _",
-                   a.created_at,
-                   a.finished_at,
-                   a.tx_lt,
-                   a.bids_count,
-                   a.last_bid_from,
-                   a.last_bid_ts,
-                   a.last_bid_value,
-                   a.last_bid_usd_value,
-                   a.fee_numerator,
-                   a.fee_denominator,
-                   count(1) over () as "cnt!"
-            from nft_auction_search a
-            where a.address = $1
+                   a.created_at         as "created_at?",
+                   a.finished_at        as "finished_at?",
+                   a.tx_lt              as "tx_lt?",
+                   a.bids_count         as "bids_count?",
+                   a.last_bid_from      as "last_bid_from?",
+                   a.last_bid_ts        as "last_bid_ts?",
+                   a.last_bid_value     as "last_bid_value?",
+                   a.last_bid_usd_value as "last_bid_usd_value?",
+                   a.fee_numerator      as "fee_numerator?",
+                   a.fee_denominator    as "fee_denominator?",
+                   count(1) over ()     as "cnt!"
+            from auction a
             "#,
             address
         )
