@@ -6,6 +6,7 @@ use super::*;
 
 use crate::handlers::nft::{AttributeFilter, NFTListOrder, NFTListOrderField};
 
+use crate::model::OrderDirection;
 use sqlx::{self};
 
 impl Queries {
@@ -236,33 +237,42 @@ impl Queries {
         with_count: bool,
     ) -> sqlx::Result<Vec<NftDetails>> {
         let sql: &str = include_str!("../sql/nfts.sql");
-
-        let mut order_direction = "asc".to_string();
-        let mut deals_order_field = "ag.name";
         let forsale = forsale.unwrap_or(false);
         let auction = auction.unwrap_or(false);
-        let mut optimized = true;
+
+        let mut order_direction_result = "asc".to_string();
+        let mut deals_order_field = "ag.name";
+        let mut enable_sales_query = true;
         let mut order_result = "".to_string();
+        let mut nfts_direction_default = "asc".to_string();
 
         if let Some(order) = order {
-            order_direction = order.direction.to_string();
+            order_direction_result = order.direction.to_string();
             deals_order_field = match order.field {
                 NFTListOrderField::FloorPriceUsd => {
-                    order_result = format!("order by coalesce(n.floor_price_usd, least(auc.price_usd, sale.price_usd)) {order_direction}");
+                    match order.direction {
+                        OrderDirection::Asc => order_result = "order by coalesce(n.floor_price_usd, least(auc.price_usd, sale.price_usd)) asc".to_string(),
+                        OrderDirection::Desc => order_result = "order by coalesce(n.floor_price_usd, coalesce(least(auc.price_usd, sale.price_usd)), 0) desc".to_string()
+                    };
+
                     "coalesce(ag.price_usd, 0)"
                 }
                 NFTListOrderField::DealPriceUsd => {
-                    order_result = format!("order by coalesce(n.floor_price_usd, least(auc.price_usd, sale.price_usd)) {order_direction}");
+                    match order.direction {
+                        OrderDirection::Asc => order_result = "order by coalesce(n.floor_price_usd, least(auc.price_usd, sale.price_usd)) asc".to_string(),
+                        OrderDirection::Desc => order_result = "order by coalesce(n.floor_price_usd, coalesce(least(auc.price_usd, sale.price_usd)), 0) desc".to_string()
+                    };
                     "coalesce(ag.price_usd, 0)"
                 } // ???
                 NFTListOrderField::Name => {
-                    optimized = false;
+                    enable_sales_query = false;
+                    nfts_direction_default = order_direction_result.clone();
                     "ag.name"
                 }
             }
         }
 
-        let with_optimized: bool = if optimized {
+        let with_optimized: bool = if enable_sales_query {
             sqlx::query_scalar!("select case
                                when not $3::bool then false
                                when $1::text[] = '{}'::text[] and $2::text[] = '{}'::text[] then true
@@ -274,7 +284,7 @@ impl Queries {
                                                                                             and n.collection = any ($2::text[])
                                                                                       ) > 1000 then true
 
-                               when coalesce(array_length($2::text[], 1), 0) > 0 and $1::text[] = '{}'::text[] and (select sum(total_count)
+                               when coalesce(array_length($2::text[], 1), 0) > 0 and $1::text[] = '{}'::text[] and (select sum(nft_count)
                                                                                                       from nft_collection_details ncd
                                                                                                       where ncd.address = any ($2::text[])
                                                                                                      ) > 1000 then true
@@ -289,15 +299,16 @@ impl Queries {
                                end is_enabled",
             owners,
             collections,
-            optimized
+            enable_sales_query
         ).fetch_one(self.db.as_ref())
                 .await?.expect("failed to get value")
         } else {
             false
         };
 
-        let sql = sql.replace("#ORDER_DIRECTION#", &order_direction);
+        let sql = sql.replace("#ORDER_DIRECTION#", &order_direction_result);
         let sql = sql.replace("#DEALS_ORDER_FIELD#", deals_order_field);
+        let sql = sql.replace("#NFTS_DIRECTION_BASE#", &nfts_direction_default);
 
         let sql = if !verified.unwrap_or(true) {
             sql.replace("nft_verified_mv", "nft")
@@ -319,7 +330,7 @@ impl Queries {
             .bind(limit as i64)
             .bind(offset as i64)
             .bind(with_count)
-            .bind(optimized)
+            .bind(enable_sales_query)
             .bind(with_optimized)
             .fetch_all(self.db.as_ref())
             .await

@@ -112,7 +112,7 @@ with nfts as (
                     and $9::bool
               ) ag
 
-         order by #DEALS_ORDER_FIELD# #ORDER_DIRECTION#
+         order by #DEALS_ORDER_FIELD# #NFTS_DIRECTION_BASE#
      ),
 
      res as (
