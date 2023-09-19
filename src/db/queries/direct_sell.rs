@@ -21,7 +21,7 @@ impl Queries {
                    s.price * p.usd_price as "usd_price?",
                    s.finished_at         as "finished_at?",
                    s.expired_at          as "expired_at?",
-                   case when s.state = 'active'::direct_sell_state and to_timestamp(0) < s.finished_at and s.finished_at < now()::timestamp
+                   case when s.state = 'active'::direct_sell_state and to_timestamp(0) < s.expired_at and s.expired_at < now()::timestamp
                             then 'expired'::direct_sell_state
                         else s.state end as "state!: _",
                    count(1) over ()      as "cnt!",
@@ -59,7 +59,7 @@ impl Queries {
                    s.price * p.usd_price as "usd_price?",
                    s.finished_at         as "finished_at?",
                    s.expired_at          as "expired_at?",
-                   case when s.state = 'active'::direct_sell_state and to_timestamp(0) < s.finished_at and s.finished_at < now()::timestamp
+                   case when s.state = 'active'::direct_sell_state and to_timestamp(0) < s.expired_at and s.expired_at < now()::timestamp
                             then 'expired'::direct_sell_state
                         else s.state end as "state!: _",
                    count(1) over ()      as "cnt!",
@@ -100,7 +100,7 @@ impl Queries {
                    s.price * p.usd_price as "usd_price?",
                    s.finished_at         as "finished_at?",
                    s.expired_at          as "expired_at?",
-                   case when s.state = 'active'::direct_sell_state and to_timestamp(0) < s.finished_at and s.finished_at < now()::timestamp
+                   case when s.state = 'active'::direct_sell_state and to_timestamp(0) < s.expired_at and s.expired_at < now()::timestamp
                             then 'expired'::direct_sell_state
                         else s.state end as "state!: _",
                    count(1) over ()      as "cnt!",
