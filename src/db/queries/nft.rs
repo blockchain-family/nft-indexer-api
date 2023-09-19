@@ -128,8 +128,8 @@ impl Queries {
             limit,
             offset
         )
-        .fetch_all(self.db.as_ref())
-        .await
+            .fetch_all(self.db.as_ref())
+            .await
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -152,19 +152,60 @@ impl Queries {
         let mut deals_order_field = "ag.name";
         let mut forsale = forsale.unwrap_or(false);
         let mut auction = auction.unwrap_or(false);
+        let mut optimized = true;
+        let mut order_result = "".to_string();
 
         if let Some(order) = order {
             order_direction = order.direction.to_string();
             deals_order_field = match order.field {
-                NFTListOrderField::FloorPriceUsd => "coalesce(ag.price_usd, 0)",
-                NFTListOrderField::DealPriceUsd => "coalesce(ag.price_usd, 0)", // ???
+                NFTListOrderField::FloorPriceUsd => {
+                    order_result = format!("order by coalesce(n.floor_price_usd, least(auc.price_usd, sale.price_usd)) {order_direction}");
+                    "coalesce(ag.price_usd, 0)"
+                }
+                NFTListOrderField::DealPriceUsd => {
+                    order_result = format!("order by coalesce(n.floor_price_usd, least(auc.price_usd, sale.price_usd)) {order_direction}");
+                    "coalesce(ag.price_usd, 0)"
+                } // ???
                 NFTListOrderField::Name => {
-                    forsale = false;
-                    auction = false;
+                    optimized = false;
                     "ag.name"
                 }
             }
         }
+
+        let with_optimized: bool = if optimized {
+            sqlx::query_scalar!("select case
+                               when not $3::bool then false
+                               when $1::text[] = '{}'::text[] and $2::text[] = '{}'::text[] then true
+                               when coalesce(array_length($2::text[], 1), 0) > 0 and
+                                    coalesce(array_length($1::text[], 1), 0) > 0 and (
+                                                                                          select count(1)
+                                                                                          from nft n
+                                                                                          where n.owner = any ($1::text[])
+                                                                                            and n.collection = any ($2::text[])
+                                                                                      ) > 1000 then true
+
+                               when coalesce(array_length($2::text[], 1), 0) > 0 and $1::text[] = '{}'::text[] and (select sum(total_count)
+                                                                                                      from nft_collection_details ncd
+                                                                                                      where ncd.address = any ($2::text[])
+                                                                                                     ) > 1000 then true
+
+
+                               when $2::text[] = '{}'::text[] and coalesce(array_length($1::text[], 1), 0) > 0 and (
+                                                                                                         select count(1)
+                                                                                                         from nft_verified_mv n
+                                                                                                         where n.owner = any ($1::text[])
+                                                                                                     ) > 1000 then true
+                               else false
+                               end is_enabled",
+            owners,
+            collections,
+            optimized
+        ).fetch_one(self.db.as_ref())
+                .await?.expect("failed to get value")
+        } else {
+            false
+        };
 
         let sql = sql.replace("#ORDER_DIRECTION#", &order_direction);
         let sql = sql.replace("#DEALS_ORDER_FIELD#", deals_order_field);
@@ -175,41 +216,24 @@ impl Queries {
             sql
         };
 
+        let sql = if !with_optimized {
+            sql.replace("#ORDER_RESULT#", &order_result)
+        } else {
+            sql.replace("#ORDER_RESULT#", "")
+        };
+
         sqlx::query_as(&sql)
             .bind(owners)
             .bind(collections)
             .bind(auction)
             .bind(forsale)
-            // .bind(verified)
             .bind(limit as i64)
             .bind(offset as i64)
             .bind(with_count)
+            .bind(optimized)
+            .bind(with_optimized)
             .fetch_all(self.db.as_ref())
             .await
-
-        // let mut sql = r#"
-        //     select n.*,
-        //            n."auction_status: _" as                      auction_status,
-        //            n."forsale_status: _" as                      forsale_status,
-        //            case when $8 then count(1) over () else 0 end total_count
-        //     from nft_details n
-        //              join nft_collection c on n.collection = c.address
-        //     where (n.owner = any ($1) or array_length($1::varchar[], 1) is null)
-        //       and (n.collection = any ($2) or array_length($2::varchar[], 1) is null)
-        //       and (($3::bool is null and $4::bool is null) or ($3::bool is not null and $4::bool is not null and
-        //                                                        (($4::bool and n.forsale is not null and n."forsale_status: _" = 'active') or
-        //                                                         (not $4::bool and n.forsale is null) or
-        //                                                         ($3::bool and n.auction is not null and n."auction_status: _" = 'active') or
-        //                                                         (not $3::bool and n.auction is null))) or ($3::bool is null and
-        //                                                                                                    (($4::bool and n.forsale is not null and n."forsale_status: _" = 'active') or
-        //                                                                                                     (not $4::bool and n.forsale is null))) or
-        //            ($4::bool is null and (($3::bool and n.auction is not null and n."auction_status: _" = 'active') or
-        //                                   (not $3::bool and n.auction is null))))
-        //       and ($5::boolean is false or c.verified is true)
-        // "#
-        // .to_string();
-
-        // TODO only for tokstock
 
         // for attribute in attributes {
         //     let values = attribute
@@ -234,55 +258,6 @@ impl Queries {
         //         attribute.trait_type, values
         //     );
         // }
-
-        // match order {
-        //     None => {
-        //         let _ = write!(
-        //             sql,
-        //             r#"
-        //                 order by n.name, n.address
-        //             "#
-        //         );
-        //     }
-        //     Some(order) => {
-        //         let field = order.field.to_string();
-        //
-        //         match order.direction {
-        //             OrderDirection::Asc => {
-        //                 let _ = write!(sql, "order by n.{field}, n.name");
-        //             }
-        //             OrderDirection::Desc => match order.field {
-        //                 NFTListOrderField::Name => {
-        //                     let _ = write!(sql, "order by n.name desc");
-        //                 }
-        //                 _ => {
-        //                     let _ =
-        //                         write!(sql, "order by coalesce(n.{field}, 0) desc, n.name desc");
-        //                 }
-        //             },
-        //         }
-        //     }
-        // };
-
-        // let _ = write!(
-        //     sql,
-        //     r#"
-        //         limit $6
-        //         offset $7
-        //     "#
-        // );
-        //
-        // sqlx::query_as(&sql)
-        //     .bind(owners)
-        //     .bind(collections)
-        //     .bind(auction)
-        //     .bind(forsale)
-        //     .bind(verified)
-        //     .bind(limit as i64)
-        //     .bind(offset as i64)
-        //     .bind(with_count)
-        //     .fetch_all(self.db.as_ref())
-        //     .await
     }
 
     pub async fn get_traits(&self, nft: &Address) -> sqlx::Result<Vec<NftTraitRecord>> {
@@ -425,10 +400,9 @@ impl Queries {
 
 
             "#
-
         ).bind(max_price).bind(limit)
-        .fetch_all(self.db.as_ref())
-        .await
+            .fetch_all(self.db.as_ref())
+            .await
     }
 
     pub async fn nft_sell_count(&self, max_price: i64) -> sqlx::Result<Option<i64>> {
@@ -446,8 +420,8 @@ impl Queries {
            "#,
             max_price
         )
-        .fetch_one(self.db.as_ref())
-        .await
+            .fetch_one(self.db.as_ref())
+            .await
     }
 
     pub async fn nft_attributes_dictionary(&self) -> sqlx::Result<Vec<TraitDef>> {

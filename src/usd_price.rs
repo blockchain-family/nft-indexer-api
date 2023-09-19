@@ -61,7 +61,7 @@ impl CurrencyClient {
     }
 
     pub async fn start(self, _period: Duration) -> anyhow::Result<()> {
-        let venom_token = "0:28237a5d5abb32413a79b5f98573074d3b39b72121305d9c9c97912fc06d843c";
+        let venom_token = "0:2c3a2ff6443af741ce653ae4ef2c85c2d52a9df84944bbe14d702c3131da3f14";
         tokio::spawn(async move {
             loop {
                 if let Err(e) = self.update_prices().await {
