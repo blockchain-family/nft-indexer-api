@@ -1,5 +1,5 @@
 use crate::db::queries::Queries;
-use crate::db::{Address, ValidateOwnerOfCollection};
+use crate::db::Address;
 use chrono::NaiveDateTime;
 
 impl Queries {
@@ -49,18 +49,22 @@ impl Queries {
         &self,
         address: &String,
         owner: &String,
-    ) -> sqlx::Result<Option<ValidateOwnerOfCollection>> {
-        sqlx::query_as!(
-            ValidateOwnerOfCollection,
+    ) -> Option<i64> {
+        match sqlx::query_scalar!(
             r#"
-            select c.address
+            select count(1)
             from nft_collection c
             where c.address = $1 and c.owner = $2
             "#,
             address,
             owner
         )
-            .fetch_optional(self.db.as_ref())
-            .await
+        .fetch_one(self.db.as_ref())
+        .await
+        .unwrap()?
+        {
+            0 => None,
+            v => Some(v),
+        }
     }
 }
