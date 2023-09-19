@@ -1,7 +1,7 @@
 use crate::db::queries::Queries;
 use crate::db::{Address, Social};
 use crate::services::auth::AuthService;
-use crate::{api_doc_addon, catch_error_401, catch_error_403, catch_error_500};
+use crate::{api_doc_addon, catch_empty, catch_error_401, catch_error_403, catch_error_500};
 use http::{HeaderMap, HeaderValue};
 use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
@@ -69,12 +69,16 @@ pub async fn upsert_collection_custom_handler(
     let address = catch_error_401!(auth_service.authenticate(headers));
     let address_of_collection = payload.address;
 
-    let validation_of_owner = match db
+    let validation_of_owner_result = db
         .validate_owner_of_collection(&address_of_collection, &address)
-        .await
-        .expect("Failed validation of collections owner")
-        .expect("Failed validation of collections owner")
-    {
+        .await;
+
+    let validation_of_owner_option = catch_error_500!(validation_of_owner_result);
+
+    let validation_of_owner = match catch_empty!(
+        validation_of_owner_option,
+        "Forbidden action for current user"
+    ) {
         0 => None,
         v => Some(v),
     };
