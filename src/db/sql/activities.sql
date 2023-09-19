@@ -82,7 +82,7 @@ select json_build_object(
                                                json_build_object(
                                                        'nftOwner', r.args -> 'value0' -> 'subject_owner',
                                                        'auctionStartTime', r.args -> 'value0' -> 'start_time',
-                                                       'auctionEndTime', r.args -> 'value0' -> 'finish_time',
+                                                       'auctionEndTime', r.args -> 'value0' -> 'end_time',
                                                        'auctionDuration', r.args -> 'value0' -> 'duration',
                                                        'state', 1,
                                                        'paymentToken', r.args -> 'value0' -> 'payment_token',
