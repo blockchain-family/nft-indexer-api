@@ -115,14 +115,14 @@ select json_build_object(
                                      r.computed_event_kind = 'auction_canceled'
                                  then
                                      json_build_object(
-                                         'nftOwner', r.args-> 'value1' -> 'subject_owner',
-                                         'auctionStartTime', r.args -> 'value1' -> 'start_time',
-                                         'auctionEndTime', r.args -> 'value1' -> 'end_time',
-                                         'auctionDuration', r.args -> 'value1' -> 'duration',
+                                         'nftOwner', r.args-> 'value0' -> 'subject_owner',
+                                         'auctionStartTime', r.args -> 'value0' -> 'start_time',
+                                         'auctionEndTime', r.args -> 'value0' -> 'end_time',
+                                         'auctionDuration', r.args -> 'value0' -> 'duration',
                                          'state', 0,
-                                         'paymentToken', r.args -> 'value1' -> 'payment_token',
-                                         'price', r.args -> 'value1' -> 'price',
-                                         'usdPrice', ((r.args -> 'value1' ->> 'price')::numeric * curr.usd_price)::text
+                                         'paymentToken', r.args -> 'value0' -> 'payment_token',
+                                         'price', r.args -> 'value0' ->> 'price',
+                                         'usdPrice', ((r.args -> 'value0' ->> 'price')::numeric * curr.usd_price)::text
                                      )
                              end,
 

@@ -140,24 +140,44 @@ async fn main() {
         warp::http::HeaderValue::from_static("GET, POST, OPTIONS"),
     );
 
+    // let cache_minute = Cache::builder()
+    //     .time_to_live(Duration::from_secs(60))
+    //     .time_to_idle(Duration::from_secs(60))
+    //     .build();
+    //
+    // let cache_5_minutes = Cache::builder()
+    //     .time_to_live(Duration::from_secs(60 * 5))
+    //     .time_to_idle(Duration::from_secs(60 * 5))
+    //     .build();
+    //
+    // let cache_10_sec = Cache::builder()
+    //     .time_to_live(Duration::from_secs(10))
+    //     .time_to_idle(Duration::from_secs(10))
+    //     .build();
+    //
+    // let cache_1_sec = Cache::builder()
+    //     .time_to_live(Duration::from_secs(1))
+    //     .time_to_idle(Duration::from_secs(1))
+    //     .build();
+
     let cache_minute = Cache::builder()
-        .time_to_live(Duration::from_secs(60))
-        .time_to_idle(Duration::from_secs(60))
+        .time_to_live(Duration::from_secs(0))
+        .time_to_idle(Duration::from_secs(0))
         .build();
 
     let cache_5_minutes = Cache::builder()
-        .time_to_live(Duration::from_secs(60 * 5))
-        .time_to_idle(Duration::from_secs(60 * 5))
+        .time_to_live(Duration::from_secs(0))
+        .time_to_idle(Duration::from_secs(0))
         .build();
 
     let cache_10_sec = Cache::builder()
-        .time_to_live(Duration::from_secs(10))
-        .time_to_idle(Duration::from_secs(10))
+        .time_to_live(Duration::from_secs(0))
+        .time_to_idle(Duration::from_secs(0))
         .build();
 
     let cache_1_sec = Cache::builder()
-        .time_to_live(Duration::from_secs(1))
-        .time_to_idle(Duration::from_secs(1))
+        .time_to_live(Duration::from_secs(0))
+        .time_to_idle(Duration::from_secs(0))
         .build();
 
     let api_doc = warp::path("swagger.json")
