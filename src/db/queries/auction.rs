@@ -425,8 +425,7 @@ impl Queries {
                                            x.price * tup.usd_price                 as usd_price,
                                            x.next_bid_value * tup.usd_price        as next_bid_usd_value,
                                            x.nft,
-                                           x.collection,
-                                           count(1) over ()                        as "cnt!"
+                                           x.collection
                                     from nft_auction_bid x
                                              join offers_whitelist ow on ow.address = x.auction
                                              left join token_usd_prices tup on tup.token = x.price_token
@@ -443,7 +442,7 @@ impl Queries {
                    next_bid_usd_value as "next_bid_usd_value?",
                    nft                as "nft?",
                    collection         as "collection?",
-                   "cnt!"
+                   count(1) over ()   as "cnt!"
             from bids_detailed b
             where b."buyer!" = $1
               and (b.collection = any ($2) or array_length($2::varchar[], 1) is null)
@@ -484,8 +483,7 @@ impl Queries {
                                            x.price * tup.usd_price                 as usd_price,
                                            x.next_bid_value * tup.usd_price        as next_bid_usd_value,
                                            x.nft,
-                                           x.collection,
-                                           count(1) over ()                        as "cnt!"
+                                           x.collection
                                     from nft_auction_bid x
                                              left join token_usd_prices tup on tup.token = x.price_token
                                     window w as (partition by x.auction) )
@@ -501,7 +499,7 @@ impl Queries {
                    next_bid_usd_value as "next_bid_usd_value?",
                    nft                as "nft?",
                    collection         as "collection?",
-                   "cnt!"
+                   count(1) over ()   as "cnt!"
             from bids_detailed x
             where x.owner = $1
               and (x.collection = any ($2) or array_length($2::varchar[], 1) is null)
