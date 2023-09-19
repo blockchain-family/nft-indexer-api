@@ -251,16 +251,16 @@ impl Queries {
             deals_order_field = match order.field {
                 NFTListOrderField::FloorPriceUsd => {
                     match order.direction {
-                        OrderDirection::Asc => order_result = "order by coalesce(n.floor_price_usd, least(auc.price_usd, sale.price_usd)) asc".to_string(),
-                        OrderDirection::Desc => order_result = "order by coalesce(n.floor_price_usd, coalesce(least(auc.price_usd, sale.price_usd)), 0) desc".to_string()
+                        OrderDirection::Asc => order_result = "order by coalesce(n.floor_price_usd, least(auc.price_usd, sale.price_usd)) asc, n.name asc, n.address asc".to_string(),
+                        OrderDirection::Desc => order_result = "order by coalesce(n.floor_price_usd, coalesce(least(auc.price_usd, sale.price_usd)), 0) desc, n.name asc, n.address asc".to_string()
                     };
 
                     "coalesce(ag.price_usd, 0)"
                 }
                 NFTListOrderField::DealPriceUsd => {
                     match order.direction {
-                        OrderDirection::Asc => order_result = "order by coalesce(n.floor_price_usd, least(auc.price_usd, sale.price_usd)) asc".to_string(),
-                        OrderDirection::Desc => order_result = "order by coalesce(n.floor_price_usd, coalesce(least(auc.price_usd, sale.price_usd)), 0) desc".to_string()
+                        OrderDirection::Asc => order_result = "order by coalesce(n.floor_price_usd, least(auc.price_usd, sale.price_usd)) asc, n.name asc, n.address asc".to_string(),
+                        OrderDirection::Desc => order_result = "order by coalesce(n.floor_price_usd, coalesce(least(auc.price_usd, sale.price_usd)), 0) desc, n.name asc, n.address asc".to_string()
                     };
                     "coalesce(ag.price_usd, 0)"
                 } // ???
