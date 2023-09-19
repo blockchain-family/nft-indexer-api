@@ -114,7 +114,7 @@ async fn main() {
         cfg.base_url,
     ));
 
-    CurrencyClient::new(db_service.clone())
+    CurrencyClient::new(db_service.clone(), cfg.main_token, cfg.prices_url)
         .expect("err initialize currency client")
         .start(std::time::Duration::from_secs(5 * 60)) // 5 minutes
         .await

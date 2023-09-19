@@ -53,6 +53,8 @@ pub struct ApiConfig {
     pub auth_token_lifetime: u32,
     pub jwt_secret: String,
     pub base_url: String,
+    pub prices_url: String,
+    pub main_token: String,
 }
 
 impl ApiConfig {
@@ -73,6 +75,8 @@ impl Default for ApiConfig {
             auth_token_lifetime: 999999999,
             jwt_secret: "jwtsecret".to_string(),
             base_url: String::default(),
+            prices_url: "".to_string(),
+            main_token: "".to_string(),
         }
     }
 }

@@ -239,8 +239,8 @@ impl Queries {
 
         let mut order_direction = "asc".to_string();
         let mut deals_order_field = "ag.name";
-        let mut forsale = forsale.unwrap_or(false);
-        let mut auction = auction.unwrap_or(false);
+        let forsale = forsale.unwrap_or(false);
+        let auction = auction.unwrap_or(false);
         let mut optimized = true;
         let mut order_result = "".to_string();
 
