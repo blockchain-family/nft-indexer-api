@@ -140,45 +140,26 @@ async fn main() {
         warp::http::HeaderValue::from_static("GET, POST, OPTIONS"),
     );
 
-    // let cache_minute = Cache::builder()
-    //     .time_to_live(Duration::from_secs(60))
-    //     .time_to_idle(Duration::from_secs(60))
-    //     .build();
-    //
-    // let cache_5_minutes = Cache::builder()
-    //     .time_to_live(Duration::from_secs(60 * 5))
-    //     .time_to_idle(Duration::from_secs(60 * 5))
-    //     .build();
-    //
-    // let cache_10_sec = Cache::builder()
-    //     .time_to_live(Duration::from_secs(10))
-    //     .time_to_idle(Duration::from_secs(10))
-    //     .build();
-    //
-    // let cache_1_sec = Cache::builder()
-    //     .time_to_live(Duration::from_secs(1))
-    //     .time_to_idle(Duration::from_secs(1))
-    //     .build();
-
     let cache_minute = Cache::builder()
-        .time_to_live(Duration::from_secs(0))
-        .time_to_idle(Duration::from_secs(0))
+        .time_to_live(Duration::from_secs(60))
+        .time_to_idle(Duration::from_secs(60))
         .build();
 
     let cache_5_minutes = Cache::builder()
-        .time_to_live(Duration::from_secs(0))
-        .time_to_idle(Duration::from_secs(0))
+        .time_to_live(Duration::from_secs(60 * 5))
+        .time_to_idle(Duration::from_secs(60 * 5))
         .build();
 
     let cache_10_sec = Cache::builder()
-        .time_to_live(Duration::from_secs(0))
-        .time_to_idle(Duration::from_secs(0))
+        .time_to_live(Duration::from_secs(10))
+        .time_to_idle(Duration::from_secs(10))
         .build();
 
     let cache_1_sec = Cache::builder()
-        .time_to_live(Duration::from_secs(0))
-        .time_to_idle(Duration::from_secs(0))
+        .time_to_live(Duration::from_secs(1))
+        .time_to_idle(Duration::from_secs(1))
         .build();
+
 
     let api_doc = warp::path("swagger.json")
         .and(warp::get())
@@ -203,13 +184,13 @@ async fn main() {
                 .or(get_nft_price_history(db_service.clone()))
                 .or(list_collections(
                     db_service.clone(),
-                    cache_5_minutes.clone(),
+                    cache_minute.clone(),
                 ))
                 .or(list_collections_simple(
                     db_service.clone(),
                     cache_minute.clone(),
                 ))
-                .or(get_collection(db_service.clone(), cache_5_minutes.clone()))
+                .or(get_collection(db_service.clone(), cache_1_sec.clone()))
                 .or(get_collections_by_owner(db_service.clone()))
                 .or(get_owner_bids_out(db_service.clone()))
                 .or(get_owner_bids_in(db_service.clone()))
@@ -219,10 +200,10 @@ async fn main() {
                 .or(get_auctions(db_service.clone()))
                 .or(get_auction(db_service.clone()))
                 .or(get_auction_bids(db_service.clone()))
-                .or(get_events(db_service.clone(), cache_minute.clone()))
+                .or(get_events(db_service.clone(), cache_10_sec.clone()))
                 .or(get_metrics_summary(
                     db_service.clone(),
-                    cache_5_minutes.clone(),
+                    cache_minute.clone(),
                 ))
                 .or(list_roots(db_service.clone()))
                 .or(search_all(db_service.clone()))
