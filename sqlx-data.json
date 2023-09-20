@@ -582,6 +582,116 @@
     },
     "query": "\n            select count(1)\n            from nft n\n                     join nft_collection c on n.collection = c.address\n                     join nft_direct_sell nds on nds.nft = n.address and nds.created <= now() and\n                                                 (now() <= nds.expired_at or nds.expired_at = to_timestamp(0)) and\n                                                 nds.state = 'active' and nds.price <= $1::int8\n                     join offers_whitelist ow on ow.address = nds.address\n            where n.burned is false\n              and c.verified is true\n           "
   },
+  "1b451fcbad66d11d33719334ff9b9cdd2f7863b26d6f2dcd52bbf4b005b14573": {
+    "describe": {
+      "columns": [
+        {
+          "name": "address!",
+          "ordinal": 0,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "owner!",
+          "ordinal": 1,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "name",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "description",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "updated!",
+          "ordinal": 4,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "wallpaper",
+          "ordinal": 5,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "logo",
+          "ordinal": 6,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "total_price",
+          "ordinal": 7,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "max_price",
+          "ordinal": 8,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "owners_count",
+          "ordinal": 9,
+          "type_info": "Int4"
+        },
+        {
+          "name": "verified!",
+          "ordinal": 10,
+          "type_info": "Bool"
+        },
+        {
+          "name": "created!",
+          "ordinal": 11,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "first_mint!",
+          "ordinal": 12,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "nft_count!",
+          "ordinal": 13,
+          "type_info": "Int8"
+        },
+        {
+          "name": "cnt!",
+          "ordinal": 14,
+          "type_info": "Int8"
+        },
+        {
+          "name": "social",
+          "ordinal": 15,
+          "type_info": "Jsonb"
+        }
+      ],
+      "nullable": [
+        true,
+        null,
+        true,
+        true,
+        true,
+        true,
+        true,
+        null,
+        null,
+        null,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "TextArray"
+        ]
+      }
+    },
+    "query": "\n            select c.address     as \"address!\",\n                   coalesce(c.owner, '0:0000000000000000000000000000000000000000000000000000000000000000')       as \"owner!\",\n                   c.name        as \"name\",\n                   c.description as \"description\",\n                   c.updated     as \"updated!\",\n                   c.wallpaper   as \"wallpaper\",\n                   c.logo        as \"logo\",\n                   null::numeric as total_price,\n                   null::numeric as max_price,\n                   c.owners_count::int,\n                   c.verified    as \"verified!\",\n                   c.created     as \"created!\",\n                   c.first_mint  as \"first_mint!\",\n                   c.nft_count   as \"nft_count!\",\n                   c.total_count as \"cnt!\",\n                   c.social      as \"social\"\n            from nft_collection_details c\n            where c.address = any ($1)\n              --and owner is not null\n            "
+  },
   "1f1f8196528dc4157c746098f130fd5fa2c950e2b89d02dd2eae4e539c90d889": {
     "describe": {
       "columns": [
@@ -2257,116 +2367,6 @@
       }
     },
     "query": "\n                    select a.address,\n                           a.nft,\n                           a.wallet_for_bids,\n                           a.price_token,\n                           a.start_price,\n                           a.max_bid,\n                           a.min_bid,\n                           a.start_usd_price,\n                           a.max_usd_bid,\n                           a.min_usd_bid,\n                           \"status: _\",\n                           a.created_at,\n                           a.finished_at,\n                           a.tx_lt,\n                           a.bids_count,\n                           a.last_bid_from,\n                           a.last_bid_ts,\n                           a.last_bid_value,\n                           a.last_bid_usd_value,\n                           a.fee_numerator,\n                           a.fee_denominator,\n                           count(1) over () as \"cnt!\"\n                    from nft_auction_search a\n                    where (a.nft_owner = any ($1) or array_length($1::varchar[], 1) is null)\n                      and (a.collection = any ($2) or array_length($2::varchar[], 1) is null)\n                      and (a.nft = any ($3) or array_length($3::varchar[], 1) is null)\n                    order by a.bids_count\n                    limit $4 offset $5\n                    "
-  },
-  "88ff49de0d06751098d2fcbe69be1a9d0b8dc9f1972eae30cddf2979559ff274": {
-    "describe": {
-      "columns": [
-        {
-          "name": "address!",
-          "ordinal": 0,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "owner!",
-          "ordinal": 1,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "name",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "description",
-          "ordinal": 3,
-          "type_info": "Text"
-        },
-        {
-          "name": "updated!",
-          "ordinal": 4,
-          "type_info": "Timestamp"
-        },
-        {
-          "name": "wallpaper",
-          "ordinal": 5,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "logo",
-          "ordinal": 6,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "total_price",
-          "ordinal": 7,
-          "type_info": "Numeric"
-        },
-        {
-          "name": "max_price",
-          "ordinal": 8,
-          "type_info": "Numeric"
-        },
-        {
-          "name": "owners_count",
-          "ordinal": 9,
-          "type_info": "Int4"
-        },
-        {
-          "name": "verified!",
-          "ordinal": 10,
-          "type_info": "Bool"
-        },
-        {
-          "name": "created!",
-          "ordinal": 11,
-          "type_info": "Timestamp"
-        },
-        {
-          "name": "first_mint!",
-          "ordinal": 12,
-          "type_info": "Timestamp"
-        },
-        {
-          "name": "nft_count!",
-          "ordinal": 13,
-          "type_info": "Int8"
-        },
-        {
-          "name": "cnt!",
-          "ordinal": 14,
-          "type_info": "Int8"
-        },
-        {
-          "name": "social",
-          "ordinal": 15,
-          "type_info": "Jsonb"
-        }
-      ],
-      "nullable": [
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true,
-        null,
-        null,
-        null,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true
-      ],
-      "parameters": {
-        "Left": [
-          "TextArray"
-        ]
-      }
-    },
-    "query": "\n            select c.address     as \"address!\",\n                   c.owner       as \"owner!\",\n                   c.name        as \"name\",\n                   c.description as \"description\",\n                   c.updated     as \"updated!\",\n                   c.wallpaper   as \"wallpaper\",\n                   c.logo        as \"logo\",\n                   null::numeric as total_price,\n                   null::numeric as max_price,\n                   c.owners_count::int,\n                   c.verified    as \"verified!\",\n                   c.created     as \"created!\",\n                   c.first_mint  as \"first_mint!\",\n                   c.nft_count   as \"nft_count!\",\n                   c.total_count as \"cnt!\",\n                   c.social      as \"social\"\n            from nft_collection_details c\n            where c.address = any ($1)\n              and owner is not null\n            "
   },
   "92624b001d1d088d1874f37cd5a48fae5826871da9783f4ce6a96ff3650c6f85": {
     "describe": {

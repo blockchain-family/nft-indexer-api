@@ -47,7 +47,7 @@ impl Queries {
             NftCollection,
             r#"
             select c.address     as "address!",
-                   c.owner       as "owner!",
+                   coalesce(c.owner, '0:0000000000000000000000000000000000000000000000000000000000000000')       as "owner!",
                    c.name        as "name",
                    c.description as "description",
                    c.updated     as "updated!",
@@ -64,7 +64,7 @@ impl Queries {
                    c.social      as "social"
             from nft_collection_details c
             where c.address = any ($1)
-              and owner is not null
+              --and owner is not null
             "#,
             ids
         )

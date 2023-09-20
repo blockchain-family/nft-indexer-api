@@ -160,7 +160,6 @@ async fn main() {
         .time_to_idle(Duration::from_secs(1))
         .build();
 
-
     let api_doc = warp::path("swagger.json")
         .and(warp::get())
         .map(|| warp::reply::json(&ApiDoc::openapi()));
@@ -182,10 +181,7 @@ async fn main() {
                 .or(get_nft_top_list(db_service.clone(), cache_minute.clone()))
                 .or(get_nft_direct_buy(db_service.clone()))
                 .or(get_nft_price_history(db_service.clone()))
-                .or(list_collections(
-                    db_service.clone(),
-                    cache_minute.clone(),
-                ))
+                .or(list_collections(db_service.clone(), cache_minute.clone()))
                 .or(list_collections_simple(
                     db_service.clone(),
                     cache_minute.clone(),
