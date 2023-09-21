@@ -60,7 +60,7 @@ pub async fn handle_rejection(err: Rejection) -> Result<impl Reply, Infallible> 
             "Method Not Allowed".to_string(),
         )
     } else {
-        println!("unhandled error: {:?}", err);
+        log::error!("unhandled error: {:?}", err);
         (
             StatusCode::INTERNAL_SERVER_ERROR,
             "Internal Server Error".to_string(),

@@ -141,8 +141,6 @@ pub async fn get_events_handler(
                 .await
             );
 
-            // println!("{:#?}", record.content);
-
             let r: Result<NftEvents, serde_json::Error> = match record.content {
                 None => Ok(NftEvents::default()),
                 Some(value) => serde_json::from_value(value),

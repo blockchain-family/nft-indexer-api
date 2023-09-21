@@ -13,6 +13,7 @@ config = "0.13"
 dotenv = "0.15.0"
 ed25519-dalek = { git = "https://github.com/broxus/ed25519-dalek.git" }
 hex = "0.4.3"
+http = "0.2"
 jsonwebtoken = { version = "8", default-features = false }
 lazy_static = "1.4.0"
 log = "0.4.17"
@@ -33,9 +34,8 @@ sqlx = { version = "0.6.2", features = [
     "offline"
 ] }
 stackdriver_logger = { version = "*", default-features = false, features = ["prod"] }
+thiserror = "1.0"
 tokio = { version = "1.20", features = [ "macros", "rt", "time" ] }
 ton_block = { git = "https://github.com/broxus/ton-labs-block" }
 utoipa = "3.3.0"
 warp = "0.3.3"
-http = "0.2"
-thiserror = "1.0"
