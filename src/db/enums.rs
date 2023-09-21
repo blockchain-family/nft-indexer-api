@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter};
 
 use serde::{Deserialize, Serialize};
-
+use utoipa::ToSchema;
 #[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type)]
 #[sqlx(type_name = "event_type", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
@@ -46,38 +46,38 @@ pub enum EventCategory {
     Collection,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type)]
+#[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type, ToSchema)]
 #[sqlx(type_name = "auction_status", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum AuctionStatus {
     Active = 0,
-    Cancelled,
-    Completed,
-    Expired,
+    Cancelled = 1,
+    Completed = 2,
+    Expired = 3,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type)]
+#[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type, ToSchema)]
 #[sqlx(type_name = "direct_sell_state", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum DirectSellState {
     Create = 0,
-    AwaitNft,
-    Active,
-    Filled,
-    Cancelled,
-    Expired,
+    AwaitNft = 1,
+    Active = 2,
+    Filled = 3,
+    Cancelled = 4,
+    Expired = 5,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type)]
+#[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type, ToSchema)]
 #[sqlx(type_name = "direct_buy_state", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum DirectBuyState {
     Create = 0,
-    AwaitTokens,
-    Active,
-    Filled,
-    Cancelled,
-    Expired,
+    AwaitTokens = 1,
+    Active = 2,
+    Filled = 3,
+    Cancelled = 4,
+    Expired = 5,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type)]
@@ -92,7 +92,7 @@ pub enum NftPriceSource {
     DirectSell,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type)]
+#[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type, ToSchema)]
 #[sqlx(type_name = "t_root_types")]
 #[serde(rename_all = "snake_case")]
 pub enum RootType {
@@ -104,19 +104,8 @@ pub enum RootType {
     Sell,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type)]
-#[sqlx(type_name = "event_category", rename_all = "snake_case")]
-#[serde(rename_all = "snake_case")]
-pub enum NftEventCategory {
-    Auction,
-    DirectBuy,
-    DirectSell,
-    Collection,
-    Nft,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type)]
-#[sqlx(type_name = "event_category")]
+#[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type, Hash, ToSchema)]
+#[sqlx(type_name = "event_kind")]
 #[serde(rename_all = "snake_case")]
 pub enum NftEventType {
     SellActive,
@@ -137,35 +126,21 @@ pub enum NftEventType {
     Transfer,
 }
 
-impl Display for NftEventCategory {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+impl ToString for NftEventType {
+    fn to_string(&self) -> String {
         match self {
-            NftEventCategory::Auction => write!(f, "auction"),
-            NftEventCategory::DirectBuy => write!(f, "direct_buy"),
-            NftEventCategory::DirectSell => write!(f, "direct_sell"),
-            NftEventCategory::Collection => write!(f, "collection"),
-            NftEventCategory::Nft => write!(f, "nft"),
-        }
-    }
-}
-
-impl Display for NftEventType {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            NftEventType::SellActive => write!(f, "SellActive"),
-            NftEventType::SellPurchased => write!(f, "SellPurchased"),
-            NftEventType::SellCanceled => write!(f, "SellCanceled"),
-
-            NftEventType::OfferActive => write!(f, "OfferActive"),
-            NftEventType::OfferFilled => write!(f, "OfferFilled"),
-            NftEventType::OfferCanceled => write!(f, "OfferCanceled"),
-
-            NftEventType::AuctionActive => write!(f, "AuctionActive"),
-            NftEventType::AuctionBidPlaced => write!(f, "AuctionBidPlaced"),
-            NftEventType::AuctionCanceled => write!(f, "AuctionCanceled"),
-            NftEventType::AuctionComplete => write!(f, "AuctionComplete"),
-            NftEventType::Mint => write!(f, "Mint"),
-            NftEventType::Transfer => write!(f, "Transfer"),
+            NftEventType::SellActive => "sell_active".to_string(),
+            NftEventType::SellPurchased => "sell_purchased".to_string(),
+            NftEventType::SellCanceled => "sell_canceled".to_string(),
+            NftEventType::OfferActive => "offer_active".to_string(),
+            NftEventType::OfferFilled => "offer_filled".to_string(),
+            NftEventType::OfferCanceled => "offer_canceled".to_string(),
+            NftEventType::AuctionActive => "auction_active".to_string(),
+            NftEventType::AuctionBidPlaced => "auction_bid_placed".to_string(),
+            NftEventType::AuctionCanceled => "auction_canceled".to_string(),
+            NftEventType::AuctionComplete => "auction_complete".to_string(),
+            NftEventType::Mint => "mint".to_string(),
+            NftEventType::Transfer => "transfer".to_string(),
         }
     }
 }

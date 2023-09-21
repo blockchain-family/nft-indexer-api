@@ -1,11 +1,7 @@
-mod queries;
-pub use self::queries::*;
+pub mod queries;
 
 mod types;
 pub use self::types::*;
+pub mod enums;
 
-mod enums;
 pub use self::enums::*;
-
-//pub mod nft;
-//pub mod event;

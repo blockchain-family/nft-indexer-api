@@ -1,24 +1,16 @@
-mod nft;
-pub use self::nft::*;
-
-mod auction;
-pub use self::auction::*;
-
-mod events;
-pub use self::events::*;
-
-mod collection;
-pub use self::collection::*;
-
-mod owner;
-pub use self::owner::*;
-
-mod metrics;
-
-pub use self::metrics::*;
-
+pub mod nft;
+use std::collections::hash_map::DefaultHasher;
+pub mod auction;
+pub mod auth;
+pub mod collection;
+pub mod collection_custom;
+pub mod events;
+pub mod metrics;
+pub mod owner;
+pub mod user;
+use utoipa::ToSchema;
 #[macro_export]
-macro_rules! catch_error {
+macro_rules! catch_error_500 {
     ($expr:expr) => {
         match $expr {
             Ok(val) => val,
@@ -26,6 +18,51 @@ macro_rules! catch_error {
                 return Ok(Box::from(warp::reply::with_status(
                     e.to_string(),
                     StatusCode::INTERNAL_SERVER_ERROR,
+                )));
+            }
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! catch_error_400 {
+    ($expr:expr) => {
+        match $expr {
+            Ok(val) => val,
+            Err(e) => {
+                return Ok(Box::from(warp::reply::with_status(
+                    e.to_string(),
+                    StatusCode::BAD_REQUEST,
+                )));
+            }
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! catch_error_401 {
+    ($expr:expr) => {
+        match $expr {
+            Ok(val) => val,
+            Err(e) => {
+                return Ok(Box::from(warp::reply::with_status(
+                    e.to_string(),
+                    StatusCode::UNAUTHORIZED,
+                )));
+            }
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! catch_error_403 {
+    ($expr:expr) => {
+        match $expr {
+            Some(val) => val,
+            None => {
+                return Ok(Box::from(warp::reply::with_status(
+                    "Forbidden action".to_string(),
+                    StatusCode::FORBIDDEN,
                 )));
             }
         }
@@ -57,15 +94,9 @@ macro_rules! response {
     };
 }
 
-use std::convert::Infallible;
 use std::fmt::Display;
-use warp::{
-    http::{Response, StatusCode},
-    Filter,
-};
+use std::hash::{Hash, Hasher};
 
-use crate::db::Queries;
-use crate::model::{Root, Roots};
 use serde::{Deserialize, Serialize};
 
 lazy_static::lazy_static! {
@@ -74,24 +105,65 @@ lazy_static::lazy_static! {
     };
 }
 
-/// GET /swagger
-pub fn get_swagger() -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone
-{
-    warp::path!("swagger")
-        .and(warp::get())
-        .and_then(get_swagger_handler)
+#[macro_export]
+macro_rules! api_doc_addon {
+    ($addon:ty) => {
+        use utoipa::openapi::Components;
+        use utoipa::Modify;
+        pub struct ApiDocAddon;
+        impl Modify for ApiDocAddon {
+            fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
+                let mut addon = <$addon>::openapi();
+                openapi.paths.paths.append(&mut addon.paths.paths);
+                if openapi.tags.is_none() {
+                    openapi.tags = Some(vec![]);
+                }
+                if let Some(tags) = openapi.tags.as_mut() {
+                    if let Some(addon_tags) = addon.tags.as_mut() {
+                        tags.append(addon_tags);
+                    }
+                }
+                if openapi.components.is_none() {
+                    openapi.components = Some(Components::new());
+                }
+                if let Some(components) = openapi.components.as_mut() {
+                    if let Some(addon_components) = addon.components.as_mut() {
+                        components.schemas.append(&mut addon_components.schemas);
+                    }
+                }
+            }
+        }
+    };
 }
 
-async fn get_swagger_handler() -> Result<impl warp::Reply, Infallible> {
-    Ok(Box::from(warp::reply::with_status(
-        Response::builder()
-            .header("Content-Type", "application/yaml")
-            .body::<&[u8]>(SWAGGER.as_ref()),
-        StatusCode::OK,
-    )))
-}
+use crate::db::queries::Queries;
+use crate::model::{Root, Roots};
+use reqwest::StatusCode;
+use std::convert::Infallible;
 
-/// POST /roots
+use utoipa::OpenApi;
+use warp::Filter;
+
+#[derive(OpenApi)]
+#[openapi(
+    paths(list_roots),
+    components(schemas(Roots, Root)),
+    tags(
+        (name = "service", description = "Service handlers"),
+    )
+)]
+struct ApiDoc;
+api_doc_addon!(ApiDoc);
+
+#[utoipa::path(
+    get,
+    tag = "service",
+    path = "/roots",
+    responses(
+        (status = 200, body = Roots),
+        (status = 500),
+    ),
+)]
 pub fn list_roots(
     db: Queries,
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
@@ -102,13 +174,12 @@ pub fn list_roots(
 }
 
 pub async fn list_roots_handler(db: Queries) -> Result<Box<dyn warp::Reply>, Infallible> {
-    let list = catch_error!(db.list_roots().await);
-
+    let list = catch_error_500!(db.list_roots().await);
     let roots: Vec<Root> = list.into_iter().map(Root::from).collect();
     response!(&Roots { roots })
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize, Hash, ToSchema)]
 pub enum OrderDirection {
     #[serde(rename = "asc")]
     Asc,
@@ -123,4 +194,10 @@ impl Display for OrderDirection {
             OrderDirection::Desc => write!(f, "desc"),
         }
     }
+}
+
+pub fn calculate_hash<T: Hash>(t: &T) -> u64 {
+    let mut s = DefaultHasher::new();
+    t.hash(&mut s);
+    s.finish()
 }

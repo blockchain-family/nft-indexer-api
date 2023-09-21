@@ -3,7 +3,7 @@ use chrono::NaiveDateTime;
 use log::error;
 use serde::{Deserialize, Serialize};
 use sqlx::types::BigDecimal;
-
+use utoipa::ToSchema;
 pub type Address = String;
 
 #[derive(Debug, Clone, sqlx::FromRow)]
@@ -76,7 +76,8 @@ pub struct NftCollection {
     pub max_price: Option<BigDecimal>,
     pub total_price: Option<BigDecimal>,
     pub cnt: i64,
-    pub first_mint: Option<NaiveDateTime>,
+    pub first_mint: NaiveDateTime,
+    pub social: Option<serde_json::Value>,
 }
 
 #[derive(Clone, Debug)]
@@ -107,7 +108,7 @@ pub struct NftCollectionDetails {
     pub verified: Option<bool>,
     pub wallpaper: Option<String>,
     pub logo: Option<String>,
-    pub owners_count: Option<i32>,
+    pub owners_count: Option<i64>,
     pub nft_count: Option<i64>,
     pub max_price: Option<BigDecimal>,
     pub total_price: Option<BigDecimal>,
@@ -117,6 +118,7 @@ pub struct NftCollectionDetails {
     pub cnt: i64,
     pub previews: serde_json::Value,
     pub first_mint: Option<NaiveDateTime>,
+    pub social: Option<serde_json::Value>,
 }
 
 #[derive(Clone, Debug)]
@@ -230,7 +232,6 @@ pub struct NftPriceHistory {
     pub ts: NaiveDateTime,
     pub price: BigDecimal,
     pub price_token: Option<Address>,
-
     pub nft: Option<Address>,
     pub collection: Option<Address>,
     pub is_deal: bool,
@@ -256,7 +257,7 @@ pub struct Profile {
 
 #[derive(Clone, Debug)]
 pub struct TraitDef {
-    pub collection: Option<Address>,
+    pub collection: Address,
     pub trait_type: String,
     pub values: Option<serde_json::Value>,
 }
@@ -276,12 +277,21 @@ pub struct MetaParsed {
     pub full_image_mimetype: Option<String>,
     pub attributes: Option<serde_json::Value>,
     pub typ: Option<String>,
+    pub royalty: Option<MetaRoyalty>,
 }
 #[derive(Deserialize, Clone, Debug)]
 struct MetaFile {
     pub source: Option<String>,
     pub mimetype: Option<String>,
 }
+
+#[derive(Deserialize, Serialize, Clone, Debug, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct MetaRoyalty {
+    pub description: Option<String>,
+    pub royalty_type: Option<String>,
+}
+
 #[derive(Deserialize, Clone, Debug)]
 struct MetaJson {
     pub files: Vec<MetaFile>,
@@ -289,6 +299,7 @@ struct MetaJson {
     #[serde(rename = "type")]
     pub typ: Option<String>,
     pub attributes: Option<serde_json::Value>,
+    pub royalty: Option<MetaRoyalty>,
 }
 
 impl NftDetails {
@@ -314,6 +325,7 @@ impl NftDetails {
                             full_image_mimetype: full_image.1,
                             attributes: meta_json.attributes,
                             typ,
+                            royalty: meta_json.royalty,
                         }
                     }
                     Err(e) => {
@@ -351,4 +363,34 @@ pub struct OwnerFeeRecord {
     pub fee_denominator: i32,
     pub collection: Option<String>,
     pub nft: Option<String>,
+}
+
+#[derive(Debug, Clone, sqlx::FromRow, Default)]
+pub struct UserRecord {
+    pub address: String,
+    pub logo_nft: Option<String>,
+    pub username: Option<String>,
+    pub bio: Option<String>,
+    pub twitter: Option<String>,
+    pub instagram: Option<String>,
+    pub facebook: Option<String>,
+    pub link: Option<String>,
+    pub email: Option<String>,
+    pub avatar_url: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, Hash, ToSchema)]
+pub struct Social {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub twitter: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub telegram: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub discord: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub youtube: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub facebook: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub medium: Option<String>,
 }

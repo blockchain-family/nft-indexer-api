@@ -15,7 +15,7 @@ fn default_url() -> String {
 }
 
 fn default_max_connections() -> u32 {
-    1
+    50
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -50,13 +50,18 @@ pub struct ApiConfig {
     #[serde(default = "default_http_address")]
     pub http_address: SocketAddr,
     pub database: DatabaseConfig,
+    pub auth_token_lifetime: u32,
+    pub jwt_secret: String,
+    pub base_url: String,
+    pub prices_url: String,
+    pub main_token: String,
 }
 
 impl ApiConfig {
     pub fn new() -> Result<ApiConfig, ConfigError> {
         let prefix = std::env::var("PREFIX").unwrap_or_else(|_| String::from("indexer_api"));
         config::Config::builder()
-            .add_source(Environment::with_prefix(&prefix).separator("_"))
+            .add_source(Environment::with_prefix(&prefix).separator("__"))
             .build()?
             .try_deserialize()
     }
@@ -67,6 +72,11 @@ impl Default for ApiConfig {
         ApiConfig {
             http_address: default_http_address(),
             database: DatabaseConfig::default(),
+            auth_token_lifetime: 999999999,
+            jwt_secret: "jwtsecret".to_string(),
+            base_url: String::default(),
+            prices_url: "".to_string(),
+            main_token: "".to_string(),
         }
     }
 }

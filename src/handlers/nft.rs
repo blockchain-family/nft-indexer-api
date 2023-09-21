@@ -1,23 +1,69 @@
-use crate::db::NftDetails;
-use crate::handlers::OrderDirection;
-use crate::model::{DirectBuy, NFTPrice, NftTrait, VecWith, NFT};
+use crate::db::queries::Queries;
+use crate::db::{MetaRoyalty, NftDetails};
+use crate::handlers::calculate_hash;
+use crate::model::{DirectBuy, NFTPrice, NftTrait, OrderDirection, VecWith, NFT};
 use crate::{
-    catch_empty, catch_error,
-    db::{Address, DirectBuyState, Queries},
+    api_doc_addon, catch_empty, catch_error_500,
+    db::{Address, DirectBuyState},
     model::{Auction, Collection, DirectSell},
     response,
 };
 use chrono::NaiveDateTime;
+use moka::future::Cache;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::collections::HashMap;
 use std::convert::Infallible;
 use std::fmt::{Display, Formatter};
+use std::hash::Hash;
+use tokio::join;
 use warp::http::StatusCode;
 use warp::Filter;
 
-use super::collect_collections;
+use crate::handlers::auction::collect_auctions;
+use crate::handlers::collection::collect_collections;
+use crate::schema::VecWithDirectBuy;
+use crate::schema::VecWithNFT;
+use utoipa::OpenApi;
+use utoipa::ToSchema;
 
-/// POST /nft/details
+#[derive(OpenApi)]
+#[openapi(
+    paths(get_nft, get_nft_direct_buy, get_nft_price_history, get_nft_list, get_nft_top_list, get_nft_random_list),
+    components(schemas(
+        NFTParam,
+        GetNFTResult,
+        NftTrait,
+        NftPriceHistoryQuery,
+        NFTPrice,
+        VecWithNFT,
+        NFTListOrder,
+        AttributeFilter,
+        NFTListQuery,
+        PriceHistoryScale,
+        VecWithDirectBuy,
+        NFTListOrderField,
+        NFTTopListQuery,
+        MetaRoyalty,
+        NFTListRandomBuyQuery
+    )),
+    tags(
+        (name = "nft", description = "NFT handlers"),
+    )
+)]
+struct ApiDoc;
+api_doc_addon!(ApiDoc);
+
+#[utoipa::path(
+    post,
+    tag = "nft",
+    path = "/nft/details",
+    request_body(content = NFTParam, description = "Get NFT"),
+    responses(
+        (status = 200, body = GetNFTResult),
+        (status = 500),
+    ),
+)]
 pub fn get_nft(
     db: Queries,
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
@@ -32,46 +78,46 @@ pub async fn get_nft_handler(
     param: NFTParam,
     db: Queries,
 ) -> Result<Box<dyn warp::Reply>, Infallible> {
-    let nft = catch_error!(db.get_nft_details(&param.nft).await);
-    let mut nft = catch_empty!(nft, "not found");
-
+    let nft = catch_error_500!(db.get_nft_details(&param.nft).await);
+    let nft = catch_empty!(nft, "not found");
     let collections_ids = match &nft.collection {
         Some(c) => vec![c.clone()],
         None => vec![],
     };
-    let collection = catch_error!(collect_collections(&db, &collections_ids).await);
+
+    let collection = catch_error_500!(collect_collections(&db, &collections_ids).await);
 
     let mut auction = HashMap::default();
-    if nft.auction.is_none() {
-        let auc = catch_error!(
-            db.get_nft_auction_by_nft(&nft.address.clone().unwrap_or_default())
-                .await
-        );
-
-        if let Some(a) = auc {
-            nft.auction = a.address
-        }
-    };
+    // if nft.auction.is_none() {
+    //     let auc = catch_error_500!(
+    //         db.get_nft_auction_by_nft(&nft.address.clone().unwrap_or_default())
+    //             .await
+    //     );
+    //
+    //     if let Some(a) = auc {
+    //         nft.auction = a.address
+    //     }
+    // };
     if let Some(ref auction_id) = nft.auction {
-        let a = catch_error!(db.get_nft_auction(auction_id).await);
+        let a = catch_error_500!(db.get_nft_auction(auction_id).await);
         if let Some(a) = a {
             auction.insert(auction_id.clone(), Auction::from_db(&a, &db.tokens));
         }
     };
 
     let mut direct_sell = HashMap::default();
-    if nft.forsale.is_none() {
-        let a = catch_error!(
-            db.get_nft_direct_sell(&nft.address.clone().unwrap_or_default())
-                .await
-        );
-
-        if let Some(a) = a {
-            nft.forsale = Some(a.address)
-        }
-    }
+    // if nft.forsale.is_none() {
+    //     let a = catch_error_500!(
+    //         db.get_nft_direct_sell(&nft.address.clone().unwrap_or_default())
+    //             .await
+    //     );
+    //
+    //     if let Some(a) = a {
+    //         nft.forsale = Some(a.address)
+    //     }
+    // }
     if let Some(ref direct_sell_id) = nft.forsale {
-        let a = catch_error!(db.get_direct_sell(direct_sell_id).await);
+        let a = catch_error_500!(db.get_direct_sell(direct_sell_id).await);
         if let Some(a) = a {
             direct_sell.insert(direct_sell_id.clone(), DirectSell::from_db(&a, &db.tokens));
         }
@@ -79,7 +125,7 @@ pub async fn get_nft_handler(
 
     let mut direct_buy = HashMap::default();
     let nft_addr = nft.address.clone().unwrap_or_default();
-    let mut list = catch_error!(
+    let mut list = catch_error_500!(
         db.list_nft_direct_buy(&nft_addr, &[DirectBuyState::Active], 100, 0)
             .await
     );
@@ -111,7 +157,7 @@ pub async fn get_nft_handler(
     response!(&ret)
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, ToSchema)]
 pub struct GetNFTResult {
     pub nft: NFT,
     pub collection: HashMap<Address, Collection>,
@@ -123,7 +169,7 @@ pub struct GetNFTResult {
     pub traits: Vec<NftTrait>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, ToSchema)]
 pub struct NFTParam {
     pub nft: Address,
     pub status: Option<Vec<DirectBuyState>>,
@@ -131,7 +177,16 @@ pub struct NFTParam {
     pub offset: Option<usize>,
 }
 
-/// POST /nft/direct/buy
+#[utoipa::path(
+    post,
+    tag = "nft",
+    path = "/nft/direct/buy",
+    request_body(content = NFTParam, description = "Get NFT direct buy"),
+    responses(
+        (status = 200, body = VecWithDirectBuy),
+        (status = 500),
+    ),
+)]
 pub fn get_nft_direct_buy(
     db: Queries,
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
@@ -150,7 +205,7 @@ pub async fn get_nft_direct_buy_handler(
     let offset = params.offset.unwrap_or_default();
     let nft = params.nft;
     let status = params.status.as_deref().unwrap_or_default();
-    let list = catch_error!(db.list_nft_direct_buy(&nft, status, limit, offset).await);
+    let list = catch_error_500!(db.list_nft_direct_buy(&nft, status, limit, offset).await);
 
     let count = list.first().map(|it| it.cnt).unwrap_or_default();
     let ret: Vec<DirectBuy> = list
@@ -159,8 +214,8 @@ pub async fn get_nft_direct_buy_handler(
         .collect();
     let nft_ids = ret.iter().map(|x| x.nft.clone()).collect();
 
-    let (nft, collection) = catch_error!(collect_nft_and_collection(&db, &nft_ids).await);
-    let ret = VecWith {
+    let (nft, collection) = catch_error_500!(collect_nft_and_collection(&db, &nft_ids).await);
+    let ret = VecWithDirectBuy {
         count,
         items: ret,
         nft: Some(nft),
@@ -172,7 +227,16 @@ pub async fn get_nft_direct_buy_handler(
     response!(&ret)
 }
 
-/// POST /nft/price-history
+#[utoipa::path(
+    post,
+    tag = "nft",
+    path = "/nft/price-history",
+    request_body(content = NftPriceHistoryQuery, description = "Get NFT price history"),
+    responses(
+        (status = 200, body = Vec<NFTPrice>),
+        (status = 500),
+    ),
+)]
 pub fn get_nft_price_history(
     db: Queries,
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
@@ -187,134 +251,347 @@ pub async fn get_nft_price_history_handler(
     query: NftPriceHistoryQuery,
     db: Queries,
 ) -> Result<Box<dyn warp::Reply>, Infallible> {
-    let from = NaiveDateTime::from_timestamp(query.from, 0);
-    let to = NaiveDateTime::from_timestamp(query.to, 0);
-
-    let list = catch_error!(db.list_nft_price_history(&query.nft, from, to).await);
-
+    let from = NaiveDateTime::from_timestamp_opt(query.from, 0).expect("Failed to get datetime");
+    let to = NaiveDateTime::from_timestamp_opt(query.to, 0).expect("Failed to get datetime");
+    let list = catch_error_500!(db.list_nft_price_history(&query.nft, from, to).await);
     let ret: Vec<NFTPrice> = list.into_iter().map(NFTPrice::from_db).collect();
     response!(&ret)
 }
 
-/// POST /nfts/top
+#[utoipa::path(
+    post,
+    tag = "nft",
+    path = "/nfts/top",
+    request_body(content = NFTTopListQuery, description = "Get NFT top list"),
+    responses(
+        (status = 200, body = VecWithNFT),
+        (status = 500),
+    ),
+)]
 pub fn get_nft_top_list(
     db: Queries,
+    cache: Cache<u64, Value>,
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path!("nfts" / "top")
         .and(warp::post())
         .and(warp::body::json::<NFTTopListQuery>())
         .and(warp::any().map(move || db.clone()))
+        .and(warp::any().map(move || cache.clone()))
         .and_then(get_nft_top_list_handler)
 }
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize, Hash, ToSchema)]
 pub struct NFTTopListQuery {
     pub from: i64,
     pub limit: i64,
     pub offset: i64,
 }
 
+#[derive(Clone, Deserialize, Serialize, Hash)]
+struct NFTTopListQueryCache {
+    pub limit: i64,
+    pub offset: i64,
+}
+
 /// POST /nfts/
+#[utoipa::path(
+    post,
+    tag = "nft",
+    path = "/nfts",
+    request_body(content = NFTListQuery, description = "NFT list"),
+    responses(
+        (status = 200, body = VecWithNFT),
+        (status = 500),
+    ),
+)]
 pub fn get_nft_list(
     db: Queries,
+    cache: Cache<u64, Value>,
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path!("nfts")
         .and(warp::post())
         .and(warp::body::json::<NFTListQuery>())
         .and(warp::any().map(move || db.clone()))
+        .and(warp::any().map(move || cache.clone()))
         .and_then(get_nft_list_handler)
+}
+
+pub async fn get_nft_list_handler(
+    params: NFTListQuery,
+    db: Queries,
+    cache: Cache<u64, Value>,
+) -> Result<Box<dyn warp::Reply>, Infallible> {
+    let hash = calculate_hash(&params);
+    let cached_value = cache.get(&hash);
+
+    let response;
+    match cached_value {
+        None => {
+            let owners = params.owners.as_deref().unwrap_or(&[]);
+            let collections = params.collections.as_deref().unwrap_or(&[]);
+            let verified = Some(params.verified.unwrap_or(true));
+            let offset = params.offset.unwrap_or_default();
+            let with_count = params.with_count.unwrap_or(false);
+            let limit = params.limit.unwrap_or(100);
+
+            let final_limit = match with_count {
+                true => limit,
+                false => limit + 1,
+            };
+
+            let list = catch_error_500!(
+                db.nft_search(
+                    owners,
+                    collections,
+                    params.forsale,
+                    params.auction,
+                    verified,
+                    final_limit,
+                    offset,
+                    &params.attributes.unwrap_or_default(),
+                    params.order,
+                    with_count,
+                )
+                .await
+            );
+
+            let mut r = catch_error_500!(make_nfts_response(list, db).await);
+            if !with_count {
+                if r.items.len() < final_limit {
+                    r.count = (r.items.len() + offset) as i64
+                } else {
+                    r.items.pop();
+                    r.count = (r.items.len() + offset + 1) as i64;
+                }
+            }
+            response = r;
+            let value_for_cache =
+                serde_json::to_value(response.clone()).expect("Failed serializing cached value");
+            cache.insert(hash, value_for_cache).await;
+        }
+        Some(cached_value) => {
+            response = serde_json::from_value(cached_value).expect("Failed parsing cached value")
+        }
+    }
+
+    response!(&response)
+}
+
+#[derive(Clone, Deserialize, Serialize, Hash, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct NFTListRandomBuyQuery {
+    pub max_price: i64,
+    pub limit: i32,
+}
+
+#[utoipa::path(
+    post,
+    tag = "nft",
+    path = "/nfts/random-buy",
+    request_body(content = NFTListRandomBuyQuery, description = "NFT Random buy list"),
+    responses(
+        (status = 200, body = VecWithNFT),
+        (status = 500),
+    ),
+)]
+pub fn get_nft_random_list(
+    db: Queries,
+    cache: Cache<u64, Value>,
+) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
+    warp::path!("nfts" / "random-buy")
+        .and(warp::post())
+        .and(warp::body::json::<NFTListRandomBuyQuery>())
+        .and(warp::any().map(move || db.clone()))
+        .and(warp::any().map(move || cache.clone()))
+        .and_then(get_nft_random_list_handler)
+}
+
+pub async fn get_nft_random_list_handler(
+    params: NFTListRandomBuyQuery,
+    db: Queries,
+    cache: Cache<u64, Value>,
+) -> Result<Box<dyn warp::Reply>, Infallible> {
+    let hash = calculate_hash(&params);
+    let cached_value = cache.get(&hash);
+
+    let response;
+    match cached_value {
+        None => {
+            let mut limit = params.limit;
+            if limit > 30 {
+                limit = 30
+            }
+            let max_price = params.max_price;
+
+            let list = catch_error_500!(db.nft_random_buy(max_price, limit).await);
+            let mut r = catch_error_500!(make_nfts_response(list, db).await);
+
+            r.count = r.items.len() as i64;
+
+            response = r;
+            let value_for_cache =
+                serde_json::to_value(response.clone()).expect("Failed serializing cached value");
+            cache.insert(hash, value_for_cache).await;
+        }
+        Some(cached_value) => {
+            response = serde_json::from_value(cached_value).expect("Failed parsing cached value")
+        }
+    }
+
+    response!(&response)
+}
+
+#[derive(Clone, Deserialize, Serialize, Hash, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct NFTSellCountQuery {
+    pub max_price: i64,
+}
+
+#[derive(Clone, Deserialize, Serialize, Hash, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct NFTSellCountResponse {
+    pub count: i64,
+    pub timestamp: i64,
+}
+
+/// GET /nfts/sell-count
+pub fn get_nft_sell_count(
+    db: Queries,
+    cache: Cache<u64, Value>,
+) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
+    warp::path!("nfts" / "sell-count")
+        .and(warp::get())
+        .and(warp::body::json::<NFTSellCountQuery>())
+        .and(warp::any().map(move || db.clone()))
+        .and(warp::any().map(move || cache.clone()))
+        .and_then(get_nft_sell_count_handler)
+}
+
+pub async fn get_nft_sell_count_handler(
+    params: NFTSellCountQuery,
+    db: Queries,
+    cache: Cache<u64, Value>,
+) -> Result<Box<dyn warp::Reply>, Infallible> {
+    let hash = calculate_hash(&params);
+    let cached_value = cache.get(&hash);
+    let response;
+    match cached_value {
+        None => {
+            let max_price = params.max_price;
+            let sell_count =
+                catch_error_500!(db.nft_sell_count(max_price).await).unwrap_or_default();
+            response = NFTSellCountResponse {
+                count: sell_count,
+                timestamp: chrono::offset::Utc::now().naive_utc().timestamp(),
+            };
+            let value_for_cache =
+                serde_json::to_value(response.clone()).expect("Failed serializing cached value");
+            cache.insert(hash, value_for_cache).await;
+        }
+        Some(cached_value) => {
+            response = serde_json::from_value(cached_value).expect("Failed parsing cached value")
+        }
+    }
+
+    response!(&response)
 }
 
 pub async fn get_nft_top_list_handler(
     params: NFTTopListQuery,
     db: Queries,
+    cache: Cache<u64, Value>,
 ) -> Result<Box<dyn warp::Reply>, Infallible> {
-    let from = NaiveDateTime::from_timestamp(params.from, 0);
-    let list = catch_error!(db.nft_top_search(from, params.limit, params.offset).await);
+    let params_cache = NFTTopListQueryCache {
+        limit: params.limit,
+        offset: params.offset,
+    };
+    let hash = calculate_hash(&params_cache);
+    let cached_value = cache.get(&hash);
 
-    let response = catch_error!(make_nfts_response(list, db).await);
+    let response;
+    match cached_value {
+        None => {
+            let from =
+                NaiveDateTime::from_timestamp_opt(params.from, 0).expect("Failed to get datetime");
+            let list = catch_error_500!(db.nft_top_search(from, params.limit, params.offset).await);
+            response = catch_error_500!(make_nfts_response(list, db).await);
+            let value_for_cache =
+                serde_json::to_value(response.clone()).expect("Failed serializing cached value");
+            cache.insert(hash, value_for_cache).await;
+        }
+        Some(cached_value) => {
+            response = serde_json::from_value(cached_value).expect("Failed parsing cached value")
+        }
+    }
+
     Ok(Box::from(warp::reply::with_status(
         warp::reply::json(&response),
         StatusCode::OK,
     )))
 }
 
-pub async fn get_nft_list_handler(
-    params: NFTListQuery,
-    db: Queries,
-) -> Result<Box<dyn warp::Reply>, Infallible> {
-    let owners = params.owners.as_deref().unwrap_or(&[]);
-    let collections = params.collections.as_deref().unwrap_or(&[]);
-    let verified = Some(params.verified.unwrap_or(true));
-    let offset = params.offset.unwrap_or_default();
-    let with_count = params.with_count.unwrap_or(false);
-    let limit = params.limit.unwrap_or(100);
-
-    let final_limit = match with_count {
-        true => limit,
-        false => limit + 1,
-    };
-
-    let list = catch_error!(
-        db.nft_search(
-            owners,
-            collections,
-            params.price_from,
-            params.price_to,
-            params.price_token,
-            params.forsale,
-            params.auction,
-            verified,
-            final_limit,
-            offset,
-            &params.attributes.unwrap_or_default(),
-            params.order,
-            with_count,
-        )
-        .await
-    );
-
-    let mut response = catch_error!(make_nfts_response(list, db).await);
-
-    if !with_count {
-        if response.items.len() < final_limit {
-            response.count = (response.items.len() + offset) as i64
-        } else {
-            response.items.pop();
-            response.count = (response.items.len() + offset + 1) as i64;
-        }
-    }
-    response!(&response)
-}
+// async fn make_nfts_response(list: Vec<NftDetails>, db: Queries) -> anyhow::Result<VecWith<NFT>> {
+//     let count = match list.first() {
+//         None => 0,
+//         Some(first) => first.total_count,
+//     };
+//     let ret: Vec<NFT> = list.iter().map(|it| NFT::from_db(it.clone())).collect();
+//     let collection_ids = ret.iter().map(|x| x.collection.clone()).collect();
+//     let collection = collect_collections(&db, &collection_ids).await?;
+//
+//     let auction_ids: Vec<String> = list.iter().filter_map(|x| x.auction.clone()).collect();
+//     let auction = collect_auctions(&db, &auction_ids).await?;
+//
+//     let direct_sell_ids: Vec<String> = list.iter().filter_map(|x| x.forsale.clone()).collect();
+//     let direct_sell = collect_direct_sell(&db, &direct_sell_ids).await?;
+//
+//     let direct_buy_ids: Vec<String> = list.iter().filter_map(|x| x.best_offer.clone()).collect();
+//     let direct_buy = collect_direct_buy(&db, &direct_buy_ids).await?;
+//     Ok(VecWith {
+//         count,
+//         items: ret,
+//         collection: Some(collection),
+//         nft: None,
+//         auction: Some(auction),
+//         direct_buy: Some(direct_buy),
+//         direct_sell: Some(direct_sell),
+//     })
+// }
 
 async fn make_nfts_response(list: Vec<NftDetails>, db: Queries) -> anyhow::Result<VecWith<NFT>> {
     let count = match list.first() {
         None => 0,
         Some(first) => first.total_count,
     };
+
     let ret: Vec<NFT> = list.iter().map(|it| NFT::from_db(it.clone())).collect();
+
     let collection_ids = ret.iter().map(|x| x.collection.clone()).collect();
-    let collection = collect_collections(&db, &collection_ids).await?;
+    let collection = collect_collections(&db, &collection_ids);
 
     let auction_ids: Vec<String> = list.iter().filter_map(|x| x.auction.clone()).collect();
-    let auction = super::collect_auctions(&db, &auction_ids).await?;
+    let auction = collect_auctions(&db, &auction_ids);
 
     let direct_sell_ids: Vec<String> = list.iter().filter_map(|x| x.forsale.clone()).collect();
-    let direct_sell = collect_direct_sell(&db, &direct_sell_ids).await?;
+    let direct_sell = collect_direct_sell(&db, &direct_sell_ids);
 
     let direct_buy_ids: Vec<String> = list.iter().filter_map(|x| x.best_offer.clone()).collect();
-    let direct_buy = collect_direct_buy(&db, &direct_buy_ids).await?;
+    let direct_buy = collect_direct_buy(&db, &direct_buy_ids);
+
+    let (collection_result, auction_result, direct_sell_result, direct_buy_result) =
+        join!(collection, auction, direct_sell, direct_buy,);
+
     Ok(VecWith {
         count,
         items: ret,
-        collection: Some(collection),
+        collection: Some(collection_result?),
         nft: None,
-        auction: Some(auction),
-        direct_buy: Some(direct_buy),
-        direct_sell: Some(direct_sell),
+        auction: Some(auction_result?),
+        direct_buy: Some(direct_buy_result?),
+        direct_sell: Some(direct_sell_result?),
     })
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, Hash, ToSchema)]
 pub struct AttributeFilter {
     #[serde(rename = "traitType")]
     pub trait_type: String,
@@ -322,7 +599,7 @@ pub struct AttributeFilter {
     pub trait_values: Vec<String>,
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize, Hash, ToSchema)]
 pub struct NFTListQuery {
     pub owners: Option<Vec<String>>,
     pub collections: Option<Vec<String>>,
@@ -343,12 +620,14 @@ pub struct NFTListQuery {
     pub with_count: Option<bool>,
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize, Hash, ToSchema)]
 pub enum NFTListOrderField {
     #[serde(rename = "floorPriceUsd")]
     FloorPriceUsd,
     #[serde(rename = "dealPriceUsd")]
     DealPriceUsd,
+    #[serde(rename = "name")]
+    Name,
 }
 
 impl Display for NFTListOrderField {
@@ -356,17 +635,18 @@ impl Display for NFTListOrderField {
         match self {
             NFTListOrderField::FloorPriceUsd => write!(f, "floor_price_usd"),
             NFTListOrderField::DealPriceUsd => write!(f, "deal_price_usd"),
+            NFTListOrderField::Name => write!(f, "name"),
         }
     }
 }
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize, Hash, ToSchema)]
 pub struct NFTListOrder {
     pub field: NFTListOrderField,
     pub direction: OrderDirection,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, ToSchema)]
 pub enum PriceHistoryScale {
     #[serde(rename = "h")]
     Hours,
@@ -389,7 +669,7 @@ impl Default for PriceHistoryScale {
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, ToSchema)]
 pub struct NftPriceHistoryQuery {
     pub nft: Address,
     pub scale: Option<PriceHistoryScale>,

@@ -4,3 +4,7 @@
   </a>
 </p>
 
+```
+# Open API
+/swagger.json
+```

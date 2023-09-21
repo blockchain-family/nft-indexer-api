@@ -1,8 +1,10 @@
 /target
 .idea
+.cargo
 
 /adnl-keys.json
 /config.yaml
 /ton-global.config.json
 .DS_Store
 Settings.toml
+.env
