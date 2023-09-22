@@ -168,7 +168,7 @@ impl Queries {
               and (c.address = any ($6) or array_length($6::varchar[], 1) is null)
               and ($7::varchar is null or c.address in (select n.collection from nft n
                                 left join nft_metadata nm on n.address = nm.nft
-                                where nm.meta->'files'->>'mimetype' = $7)
+                                where nm.meta->>'files' ilike CONCAT('%"mimetype": "', $7, '"%'))
               )
             order by {order}
             limit $1 offset $2

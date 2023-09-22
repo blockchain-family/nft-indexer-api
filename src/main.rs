@@ -165,11 +165,6 @@ async fn main() {
         .time_to_idle(Duration::from_secs(0))
         .build();
 
-    let cache_60_minutes = Cache::builder()
-        .time_to_live(Duration::from_secs(60 * 60))
-        .time_to_idle(Duration::from_secs(60 * 60))
-        .build();
-
     let cache_5_minutes = Cache::builder()
         .time_to_live(Duration::from_secs(0))
         .time_to_idle(Duration::from_secs(0))
@@ -216,7 +211,7 @@ async fn main() {
                 ))
                 .or(get_collection(db_service.clone(), cache_5_minutes.clone()))
                 .or(get_collections_by_owner(db_service.clone()))
-                .or(get_nft_types(db_service.clone(), cache_60_minutes.clone()))
+                .or(get_nft_types(db_service.clone(), cache_5_minutes.clone()))
                 .or(get_owner_bids_out(db_service.clone()))
                 .or(get_owner_bids_in(db_service.clone()))
                 .or(get_owner_direct_buy_in(db_service.clone()))

@@ -29,7 +29,7 @@ use utoipa::ToSchema;
 
 #[derive(OpenApi)]
 #[openapi(
-    paths(get_nft, get_nft_direct_buy, get_nft_price_history, get_nft_list, get_nft_top_list, get_nft_random_list),
+    paths(get_nft, get_nft_direct_buy, get_nft_price_history, get_nft_list, get_nft_top_list, get_nft_random_list, get_nft_types),
     components(schemas(
         NFTParam,
         GetNFTResult,
@@ -531,7 +531,15 @@ pub async fn get_nft_top_list_handler(
     )))
 }
 
-/// GET /nfts/types
+#[utoipa::path(
+    get,
+    tag = "nft",
+    path = "/nfts/types",
+    responses(
+        (status = 200, body =  Vec<String>),
+        (status = 500),
+    ),
+)]
 pub fn get_nft_types(
     db: Queries,
     cache: Cache<u64, Value>, //Determine cache
