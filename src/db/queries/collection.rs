@@ -47,7 +47,7 @@ impl Queries {
             NftCollection,
             r#"
             select c.address     as "address!",
-                   c.owner       as "owner!",
+                   coalesce(c.owner, '0:0000000000000000000000000000000000000000000000000000000000000000')       as "owner!",
                    c.name        as "name",
                    c.description as "description",
                    c.updated     as "updated!",
@@ -64,7 +64,7 @@ impl Queries {
                    c.social      as "social"
             from nft_collection_details c
             where c.address = any ($1)
-              and owner is not null
+              --and owner is not null
             "#,
             ids
         )
@@ -146,11 +146,11 @@ impl Queries {
                    c.total_volume_usd,
                    c.attributes,
                    c.first_mint,
-                   c.total_count     as "cnt",
-                   previews.previews as "previews",
-                   null::numeric     as max_price,
-                   null::numeric     as total_price,
-                   c.social          as "social"
+                   case when $4::boolean is false then c.total_count else c.verified_count end as "cnt",
+                   previews.previews                                                           as "previews",
+                   null::numeric                                                               as max_price,
+                   null::numeric                                                               as total_price,
+                   c.social                                                                    as "social"
             from nft_collection_details c
                      left join lateral ( select json_agg(ag2.preview_url) as previews
                                          from ( select ag.preview_url
@@ -211,13 +211,13 @@ impl Queries {
         sqlx::query_as!(
             NftCollectionSimple,
             r#"
-            select c.address     as "address!",
+            select c.address                                                                   as "address!",
                    c.name,
                    c.description,
                    c.logo,
-                   c.verified    as "verified!",
-                   c.total_count as "cnt!",
-                   c.nft_count   as "nft_count!"
+                   c.verified                                                                  as "verified!",
+                   case when $3::boolean is false then c.total_count else c.verified_count end as "cnt!",
+                   c.nft_count                                                                 as "nft_count!"
             from nft_collection_details c
             where ($3::boolean is false or c.verified is true)
               and ($4::varchar is null or c.name ilike $4)

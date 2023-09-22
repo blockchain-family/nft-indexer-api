@@ -1,5 +1,3 @@
--- FINAL
--- explain analyse
 with nfts as (
     select nvm.address,
            nvm.collection,
@@ -24,9 +22,9 @@ with nfts as (
       --only when sale type filters are disabled
         not $3
       and not $4
-      and (nvm.collection = any ($2) or $2 = '{}' and (nvm.owner = any ($1) or $1 = '{}'))
+      and ((nvm.collection = any ($2) or $2 = '{}') and (nvm.owner = any ($1) or $1 = '{}'))
       and not burned
-    order by nvm.name #ORDER_DIRECTION#, nvm.address
+    order by nvm.name #NFTS_DIRECTION_BASE#, nvm.address
 ),
 
      deals as (
@@ -72,10 +70,13 @@ with nfts as (
                                 on n.address = a.nft
                            join offers_whitelist ow on ow.address = a.address
                            left join token_usd_prices tup on tup.token = a.price_token
-                  where $3::bool
+                  where ($3::bool or $8::bool)
                     and a.nft = n.address
                     and a.status = 'active'::auction_status
                     and (a.finished_at = to_timestamp(0) or a.finished_at > now()::timestamp)
+                    and ($1 = '{}' or n.owner = any ($1::text[]))
+                    and ($2 = '{}' or n.collection = any ($2))
+
 
                   union all
 
@@ -102,9 +103,11 @@ with nfts as (
                                 on n.address = s.nft
                            join offers_whitelist ow on ow.address = s.address
                            left join token_usd_prices tup on tup.token = s.price_token
-                  where $4::bool
+                  where ($4::bool or $8::bool)
                     and s.state = 'active'::direct_sell_state
                     and (s.expired_at = to_timestamp(0) or s.expired_at > now())
+                    and ($1 = '{}' or n.owner = any ($1::text[]))
+                    and ($2 = '{}' or n.collection = any ($2))
               ) ag
 
          order by #DEALS_ORDER_FIELD# #ORDER_DIRECTION#
@@ -129,12 +132,12 @@ select n.address,
        n.owner_update_lt                                                   as tx_lt,
        m.meta,
        coalesce(n.auction, auc.auction)                                       auction,
-       coalesce(n.auction_status, auc.status)::auction_status                              as auction_status,
-       coalesce(n.forsale, sale.forsale) as forsale,
-       coalesce(n.forsale_status, sale.status)::direct_sell_state                             as forsale_status,
+       coalesce(n.auction_status, auc.status)::auction_status              as auction_status,
+       coalesce(n.forsale, sale.forsale)                                   as forsale,
+       coalesce(n.forsale_status, sale.status)::direct_sell_state          as forsale_status,
        best_offer.address                                                  as best_offer,
        coalesce(n.floor_price_usd, least(auc.price_usd, sale.price_usd))      floor_price_usd,
-       last_deal.last_price deal_price_usd,
+       last_deal.last_price                                                   deal_price_usd,
        coalesce(n.floor_price, case
                                    when least(auc.price_usd, sale.price_usd) = auc.price_usd then auc.min_bid
                                    when least(auc.price_usd, sale.price_usd) = sale.price_usd then sale.price
@@ -146,8 +149,6 @@ select n.address,
                                              then sale.token::character varying
                                          else null::character varying end) as floor_price_token,
        n.id::text                                                          as nft_id,
---       coalesce(n.auction_status, auc.status)                              as auction_status,
---       coalesce(n.auction_status, sale.forsale)                                   as forsale_status,
        case when $7 then count(1) over () else 0 end                         total_count
 from res n
          left join nft_metadata m on m.nft = n.address
@@ -196,5 +197,6 @@ from res n
                              where nph.nft = n.address
                              order by nph.ts desc
                              limit 1 ) last_deal on true
-limit $5 offset $6
 
+#ORDER_RESULT#
+limit $5 offset $6

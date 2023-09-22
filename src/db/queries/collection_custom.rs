@@ -6,7 +6,7 @@ impl Queries {
     #[allow(clippy::too_many_arguments)]
     pub async fn upsert_collection_custom(
         &self,
-        address: Address,
+        address: &Address,
         owner: &String,
         updated: NaiveDateTime,
         name: Option<String>,
@@ -43,5 +43,23 @@ impl Queries {
         .await?;
 
         Ok(())
+    }
+
+    pub async fn validate_owner_of_collection(
+        &self,
+        address: &String,
+        owner: &String,
+    ) -> sqlx::Result<Option<i64>> {
+        sqlx::query_scalar!(
+            r#"
+            select count(1)
+            from nft_collection c
+            where c.address = $1 and c.owner = $2
+            "#,
+            address,
+            owner
+        )
+        .fetch_one(self.db.as_ref())
+        .await
     }
 }

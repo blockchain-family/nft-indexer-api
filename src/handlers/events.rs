@@ -127,6 +127,9 @@ pub async fn get_events_handler(
                 true => limit,
                 false => limit + 1,
             };
+
+            let verified = if nft.is_some() { Some(false) } else { verified };
+
             let record = catch_error_500!(
                 db.list_events(
                     nft,
@@ -140,8 +143,6 @@ pub async fn get_events_handler(
                 )
                 .await
             );
-
-            // println!("{:#?}", record.content);
 
             let r: Result<NftEvents, serde_json::Error> = match record.content {
                 None => Ok(NftEvents::default()),

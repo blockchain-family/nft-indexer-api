@@ -12,6 +12,8 @@ use std::{collections::HashMap, str::FromStr, time::Duration};
 pub struct CurrencyClient {
     http_client: reqwest::Client,
     db: Queries,
+    main_token: String,
+    prices_url: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -22,9 +24,14 @@ pub struct TokenUsdPricesRequest {
 pub type TokenUsdPricesResponse = HashMap<String, String>;
 
 impl CurrencyClient {
-    pub fn new(db: Queries) -> reqwest::Result<Self> {
+    pub fn new(db: Queries, main_token: String, prices_url: String) -> reqwest::Result<Self> {
         let http_client = reqwest::Client::builder().build()?;
-        Ok(CurrencyClient { http_client, db })
+        Ok(CurrencyClient {
+            http_client,
+            db,
+            main_token,
+            prices_url,
+        })
     }
 
     pub async fn get_prices(&self) -> reqwest::Result<TokenUsdPricesResponse> {
@@ -61,17 +68,16 @@ impl CurrencyClient {
     }
 
     pub async fn start(self, _period: Duration) -> anyhow::Result<()> {
-        let venom_token = "0:28237a5d5abb32413a79b5f98573074d3b39b72121305d9c9c97912fc06d843c";
         tokio::spawn(async move {
             loop {
                 if let Err(e) = self.update_prices().await {
                     log::error!("usd prices update task error: {}", e);
                 }
-                let price = self.get_prices_venom_dex(venom_token).await;
+                let price = self.get_prices_venom_dex(&self.main_token).await;
                 match price {
                     Ok(price) => {
                         let price = TokenUsdPrice {
-                            token: venom_token.to_string(),
+                            token: self.main_token.to_string(),
                             usd_price: price.price / BigDecimal::from(10_i64.pow(9)),
                             ts: Utc::now().naive_utc(),
                         };
@@ -88,7 +94,7 @@ impl CurrencyClient {
     }
 
     async fn get_prices_venom_dex(&self, token: &str) -> reqwest::Result<VenomDexPriceResponse> {
-        let url = format!("https://testnetapi.web3.world/v1/currencies/{token}");
+        let url = format!("{}{token}", self.prices_url);
         self.http_client
             .post(url)
             .send()

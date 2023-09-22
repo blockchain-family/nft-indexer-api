@@ -55,6 +55,21 @@ macro_rules! catch_error_401 {
 }
 
 #[macro_export]
+macro_rules! catch_error_403 {
+    ($expr:expr) => {
+        match $expr {
+            Some(val) => val,
+            None => {
+                return Ok(Box::from(warp::reply::with_status(
+                    "Forbidden action".to_string(),
+                    StatusCode::FORBIDDEN,
+                )));
+            }
+        }
+    };
+}
+
+#[macro_export]
 macro_rules! catch_empty {
     ($expr:expr, $err:expr) => {
         match $expr {
