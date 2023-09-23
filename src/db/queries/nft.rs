@@ -231,11 +231,7 @@ impl Queries {
         sqlx::query_as!(
             NftMimetype,
             r#"
-            select m.mimetype as "mimetype!" from (
-            select jsonb_array_elements(meta->'files')->>'mimetype' as mimetype FROM nft_metadata
-            where jsonb_typeof(meta->'files') = 'array'
-            ) m
-            group by m.mimetype
+            select mimetype as "mimetype!" from nft_collection_type group by mimetype
             "#
         )
         .fetch_all(self.db.as_ref())
@@ -357,6 +353,7 @@ impl Queries {
             .bind(offset as i64)
             .bind(with_count)
             .bind(with_optimized)
+            .bind(nft_type)
             .fetch_all(self.db.as_ref())
             .await
 

@@ -23,6 +23,8 @@ with nfts as (
         not $3
       and not $4
       and ((nvm.collection = any ($2) or $2 = '{}') and (nvm.owner = any ($1) or $1 = '{}'))
+      and ($9::varchar is null or nvm.address in (select nсt.nft_address from nft_collection_type nсt
+                                where nсt.mimetype ilike $9))
       and not burned
     order by nvm.name #NFTS_DIRECTION_BASE#, nvm.address
 ),
