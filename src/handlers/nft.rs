@@ -542,7 +542,7 @@ pub async fn get_nft_top_list_handler(
 )]
 pub fn get_nft_types(
     db: Queries,
-    cache: Cache<u64, Value>, //Determine cache
+    cache: Cache<u64, Value>,
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path!("nfts" / "types")
         .and(warp::post())
