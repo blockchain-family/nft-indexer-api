@@ -166,7 +166,7 @@ impl Queries {
               and ($4::boolean is false or c.verified is true)
               and ($5::varchar is null or c.name ilike $5)
               and (c.address = any ($6) or array_length($6::varchar[], 1) is null)
-              and ($7::varchar is null or c.address in (select nсt.collection_address from nft_collection_type nсt
+              and ($7::varchar is null or c.address in (select distinct nсt.collection_address from collection_type_mv nсt
                                 where nсt.mimetype ilike $7)
               )
             order by {order}
