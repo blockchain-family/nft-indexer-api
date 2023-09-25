@@ -231,7 +231,7 @@ impl Queries {
         sqlx::query_as!(
             NftMimetype,
             r#"
-            select mimetype as "mimetype!" from nft_collection_type group by mimetype
+            select distinct mimetype as "mimetype!" from nft_collection_type group by mimetype
             "#
         )
         .fetch_all(self.db.as_ref())
