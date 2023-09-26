@@ -116,7 +116,7 @@ async fn main() {
 
     CurrencyClient::new(db_service.clone(), cfg.main_token, cfg.prices_url)
         .expect("err initialize currency client")
-        .start(std::time::Duration::from_secs(5 * 60)) // 5 minutes
+        .start(Duration::from_secs(5 * 60)) // 5 minutes
         .await
         .expect("err start currency client");
 
@@ -130,34 +130,30 @@ async fn main() {
         ])
         .allow_methods(vec!["GET", "POST", "OPTIONS"]);
 
-    let mut cors_headers = warp::http::HeaderMap::new();
+    let mut cors_headers = http::HeaderMap::new();
     cors_headers.insert(
         "access-control-allow-origin",
-        warp::http::HeaderValue::from_static("*"),
+        http::HeaderValue::from_static("*"),
     );
     cors_headers.insert(
         "access-control-allow-methods",
-        warp::http::HeaderValue::from_static("GET, POST, OPTIONS"),
+        http::HeaderValue::from_static("GET, POST, OPTIONS"),
     );
 
     let cache_minute = Cache::builder()
         .time_to_live(Duration::from_secs(60))
-        .time_to_idle(Duration::from_secs(60))
         .build();
 
     let cache_5_minutes = Cache::builder()
         .time_to_live(Duration::from_secs(60 * 5))
-        .time_to_idle(Duration::from_secs(60 * 5))
         .build();
 
     let cache_10_sec = Cache::builder()
         .time_to_live(Duration::from_secs(10))
-        .time_to_idle(Duration::from_secs(10))
         .build();
 
     let cache_1_sec = Cache::builder()
         .time_to_live(Duration::from_secs(1))
-        .time_to_idle(Duration::from_secs(1))
         .build();
 
     let api_doc = warp::path("swagger.json")
