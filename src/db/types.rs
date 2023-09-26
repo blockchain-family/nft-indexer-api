@@ -121,7 +121,7 @@ pub struct NftCollectionDetails {
     pub social: Option<serde_json::Value>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, sqlx::FromRow)]
 pub struct NftAuction {
     pub address: Option<Address>,
     pub nft: Option<Address>,

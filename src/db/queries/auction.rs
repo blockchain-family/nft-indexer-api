@@ -159,44 +159,6 @@ impl Queries {
         .await
     }
 
-    pub async fn get_nft_auction_by_nft(&self, nft: &String) -> sqlx::Result<Option<NftAuction>> {
-        sqlx::query_as!(
-            NftAuction,
-            r#"
-            select a.address,
-                   a.nft,
-                   a.wallet_for_bids,
-                   a.price_token,
-                   a.start_price,
-                   a.max_bid,
-                   a.min_bid,
-                   a.start_usd_price,
-                   a.max_usd_bid,
-                   a.min_usd_bid,
-                   "status: _",
-                   a.created_at,
-                   a.finished_at,
-                   a.tx_lt,
-                   a.bids_count,
-                   a.last_bid_from,
-                   a.last_bid_ts,
-                   a.last_bid_value,
-                   a.last_bid_usd_value,
-                   a.fee_numerator,
-                   a.fee_denominator,
-                   count(1) over () as "cnt!"
-            from nft_auction_search a
-            where a.nft = $1
-              and a."status: _" in ('active', 'expired')
-            order by a.created_at desc
-            limit 1
-            "#,
-            nft
-        )
-        .fetch_optional(self.db.as_ref())
-        .await
-    }
-
     pub async fn get_nft_auction_last_bid(
         &self,
         auction: &String,
@@ -273,134 +235,97 @@ impl Queries {
         limit: usize,
         offset: usize,
     ) -> sqlx::Result<Vec<NftAuction>> {
-        match sort {
-            AuctionsSortOrder::BidsCount => {
-                sqlx::query_as!(
-                    NftAuction,
-                    r#"
-                    select a.address,
-                           a.nft,
-                           a.wallet_for_bids,
-                           a.price_token,
-                           a.start_price,
-                           a.max_bid,
-                           a.min_bid,
-                           a.start_usd_price,
-                           a.max_usd_bid,
-                           a.min_usd_bid,
-                           "status: _",
-                           a.created_at,
-                           a.finished_at,
-                           a.tx_lt,
-                           a.bids_count,
-                           a.last_bid_from,
-                           a.last_bid_ts,
-                           a.last_bid_value,
-                           a.last_bid_usd_value,
-                           a.fee_numerator,
-                           a.fee_denominator,
-                           count(1) over () as "cnt!"
-                    from nft_auction_search a
-                    where (a.nft_owner = any ($1) or array_length($1::varchar[], 1) is null)
-                      and (a.collection = any ($2) or array_length($2::varchar[], 1) is null)
-                      and (a.nft = any ($3) or array_length($3::varchar[], 1) is null)
-                    order by a.bids_count
-                    limit $4 offset $5
-                    "#,
-                    owners,
-                    collections,
-                    tokens,
-                    limit as i64,
-                    offset as i64
-                )
-                .fetch_all(self.db.as_ref())
-                .await
-            }
-            AuctionsSortOrder::StartDate => {
-                sqlx::query_as!(
-                    NftAuction,
-                    r#"
-                    select a.address,
-                           a.nft,
-                           a.wallet_for_bids,
-                           a.price_token,
-                           a.start_price,
-                           a.max_bid,
-                           a.min_bid,
-                           a.start_usd_price,
-                           a.max_usd_bid,
-                           a.min_usd_bid,
-                           "status: _",
-                           a.created_at,
-                           a.finished_at,
-                           a.tx_lt,
-                           a.bids_count,
-                           a.last_bid_from,
-                           a.last_bid_ts,
-                           a.last_bid_value,
-                           a.last_bid_usd_value,
-                           a.fee_numerator,
-                           a.fee_denominator,
-                           count(1) over () as "cnt!"
-                    from nft_auction_search a
-                    where (a.nft_owner = any ($1) or array_length($1::varchar[], 1) is null)
-                      and (a.collection = any ($2) or array_length($2::varchar[], 1) is null)
-                      and (a.nft = any ($3) or array_length($3::varchar[], 1) is null)
-                    order by a.created_at desc
-                    limit $4 offset $5
-                    "#,
-                    owners,
-                    collections,
-                    tokens,
-                    limit as i64,
-                    offset as i64
-                )
-                .fetch_all(self.db.as_ref())
-                .await
-            }
-            _ => {
-                sqlx::query_as!(
-                    NftAuction,
-                    r#"
-                    select a.address,
-                           a.nft,
-                           a.wallet_for_bids,
-                           a.price_token,
-                           a.start_price,
-                           a.max_bid,
-                           a.min_bid,
-                           a.start_usd_price,
-                           a.max_usd_bid,
-                           a.min_usd_bid,
-                           "status: _",
-                           a.created_at,
-                           a.finished_at,
-                           a.tx_lt,
-                           a.bids_count,
-                           a.last_bid_from,
-                           a.last_bid_ts,
-                           a.last_bid_value,
-                           a.last_bid_usd_value,
-                           a.fee_numerator,
-                           a.fee_denominator,
-                           count(1) over () as "cnt!"
-                    from nft_auction_search a
-                    where (a.nft_owner = any ($1) or array_length($1::varchar[], 1) is null)
-                      and (a.collection = any ($2) or array_length($2::varchar[], 1) is null)
-                      and (a.nft = any ($3) or array_length($3::varchar[], 1) is null)
-                    order by a.created_at desc
-                    limit $4 offset $5
-                    "#,
-                    owners,
-                    collections,
-                    tokens,
-                    limit as i64,
-                    offset as i64
-                )
-                .fetch_all(self.db.as_ref())
-                .await
-            }
-        }
+        let query = r#"
+        with a as (
+                select distinct on (a.address) a.address,
+                                               a.nft,
+                                               a.collection,
+                                               a.nft_owner,
+                                               a.wallet_for_bids,
+                                               a.price_token,
+                                               a.start_price,
+                                               a.max_bid,
+                                               a.min_bid,
+                                               case
+                                                   when a.status = 'active'::auction_status and to_timestamp(0) < a.finished_at and
+                                                        a.finished_at < now()::timestamp then 'expired'::auction_status
+                                                   else a.status end                          as status,
+                                               a.created_at,
+                                               a.finished_at,
+                                               a.tx_lt,
+                                               sum(case when b.auction is null then 0 else 1 end)
+                                               over (partition by a.address)                  as bids_count,
+                                               first_value(b.buyer) over bids_w               as last_bid_from,
+                                               first_value(b.price) over bids_w               as last_bid_value,
+                                               first_value(b.price * p.usd_price) over bids_w as last_bid_usd_value,
+                                               first_value(b.created_at) over bids_w          as last_bid_ts,
+                                               a.start_price * p.usd_price                    as start_usd_price,
+                                               a.max_bid * p.usd_price                        as max_usd_bid,
+                                               a.min_bid * p.usd_price                        as min_usd_bid,
+                                               ev.fee_numerator,
+                                               ev.fee_denominator,
+                                               count(1) over () as cnt
+                from nft_auction a
+                         join offers_whitelist ow on ow.address = a.address
+                         left join nft_auction_bid b on b.auction = a.address and b.declined is false
+                         left join token_usd_prices p on p.token = a.price_token
+                         left join lateral ( select (ne.args -> 'fee' -> 'numerator')::int   as fee_numerator,
+                                                    (ne.args -> 'fee' -> 'denominator')::int as fee_denominator
+                                             from nft_events ne
+                                             where ne.event_type = 'market_fee_changed'
+                                               and ne.args ->> 'auction' = a.address ) as ev on true
+                where ((a.nft_owner = any ($1) or array_length($1::varchar[], 1) is null)
+                    and (a.collection = any ($2) or array_length($2::varchar[], 1) is null)
+                    and (a.nft = any ($3) or array_length($3::varchar[], 1) is null))
+                  and (
+                        b.declined is false
+                        or b.declined is null)
+                    window bids_w as (partition by b.auction order by b.created_at desc)
+            )
+
+            select a.address,
+                   a.nft,
+                   a.wallet_for_bids,
+                   a.price_token,
+                   a.start_price,
+                   a.max_bid,
+                   a.min_bid,
+                   a.start_usd_price,
+                   a.max_usd_bid,
+                   a.min_usd_bid,
+                   a.status,
+                   a.created_at,
+                   a.finished_at,
+                   a.tx_lt,
+                   a.bids_count,
+                   a.last_bid_from,
+                   a.last_bid_ts,
+                   a.last_bid_value,
+                   a.last_bid_usd_value,
+                   a.fee_numerator,
+                   a.fee_denominator,
+                   a.cnt
+            from a
+        "#;
+
+        let (order_by, order_direction) = match sort {
+            AuctionsSortOrder::BidsCount => ("bids_count", ""),
+            _ => ("created_at", "desc"),
+        };
+
+        let full_query = format!(
+            "{} ORDER BY {} {} LIMIT $4 OFFSET $5",
+            query, order_by, order_direction
+        );
+
+        sqlx::query_as(full_query.as_str())
+            .bind(owners)
+            .bind(collections)
+            .bind(tokens)
+            .bind(limit as i64)
+            .bind(offset as i64)
+            .fetch_all(self.db.as_ref())
+            .await
     }
 
     pub async fn list_owner_auction_bids_out(
@@ -414,7 +339,7 @@ impl Queries {
         sqlx::query_as!(
             NftAuctionBidExt,
             r#"
-            with bids_detailed as ( select x.auction                               as "auction!",
+             with bids_detailed as ( select x.auction                               as "auction!",
                                            x.buyer                                 as "buyer!",
                                            x.price                                 as "price!",
                                            x.price_token,
@@ -429,6 +354,8 @@ impl Queries {
                                     from nft_auction_bid x
                                              join offers_whitelist ow on ow.address = x.auction
                                              left join token_usd_prices tup on tup.token = x.price_token
+                                    where x.buyer = $1
+                                       and (x.collection = any ($2) or array_length($2::varchar[], 1) is null)
                                     window w as (partition by x.auction) )
             select "auction!",
                    "buyer!",
@@ -442,11 +369,9 @@ impl Queries {
                    next_bid_usd_value as "next_bid_usd_value?",
                    nft                as "nft?",
                    collection         as "collection?",
-                   count(1) over ()   as "cnt!"
+                   count(1) over () as "cnt!"
             from bids_detailed b
-            where b."buyer!" = $1
-              and (b.collection = any ($2) or array_length($2::varchar[], 1) is null)
-              and ($3::bool is null or $3::bool = false or b.active is true)
+            where ($3::bool is null or $3::bool = false or b.active is true)
             order by b."created_at!" desc
             limit $4 offset $5
             "#,
@@ -486,6 +411,8 @@ impl Queries {
                                            x.collection
                                     from nft_auction_bid x
                                              left join token_usd_prices tup on tup.token = x.price_token
+                                    where x.nft_owner = $1
+                                    and (x.collection = any ($2) or array_length($2::varchar[], 1) is null)
                                     window w as (partition by x.auction) )
             select "auction!",
                    "buyer!",
@@ -501,9 +428,7 @@ impl Queries {
                    collection         as "collection?",
                    count(1) over ()   as "cnt!"
             from bids_detailed x
-            where x.owner = $1
-              and (x.collection = any ($2) or array_length($2::varchar[], 1) is null)
-              and (x.active = true or ($3::bool is null or $3::bool = false))
+            where (x.active = true or ($3::bool is null or $3::bool = false))
             order by x."created_at!" desc
             limit $4 offset $5
             "#,
