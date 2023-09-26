@@ -146,7 +146,7 @@ impl Queries {
                    c.attributes,
                    c.first_mint,
                    case when $4::boolean is false then c.total_count else c.verified_count end as "cnt",
-                   previews.previews                                                           as "previews",
+                   coalesce(previews.previews, '[]'::json)                                     as "previews",
                    null::numeric                                                               as max_price,
                    null::numeric                                                               as total_price,
                    c.social                                                                    as "social"
@@ -158,7 +158,7 @@ impl Queries {
                                                                 join nft_metadata nm on n.address = nm.nft
                                                        where n.collection = c.address
                                                          and not n.burned
-                                                       limit 50 ) ag
+                                                       limit 8 ) ag
                                                 order by random()
                                                 limit 3 ) ag2 ) previews on true
             where (c.owner = any ($3) or array_length($3::varchar[], 1) is null)
