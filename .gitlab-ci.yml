@@ -36,22 +36,22 @@ stop:stage-tokstock:
   environment:
     name: stage
 
-deploy:venom-stage:
+deploy:vstage:
   only:
     - stage
   extends: .deploy
   variables:
-    APP_CONFIG: venom
+    APP_CONFIG: vstage
   environment:
     name: stage
-    on_stop: stop:venom-stage
+    on_stop: stop:vstage
 
-stop:venom-stage:
+stop:vstage:
   only:
     - stage
   extends: .stop
   variables:
-    APP_CONFIG: venom
+    APP_CONFIG: vstage
   environment:
     name: stage
 
