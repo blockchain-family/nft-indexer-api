@@ -24,7 +24,7 @@ with nfts as (
       and not $4
       and ((nvm.collection = any ($2) or $2 = '{}') and (nvm.owner = any ($1) or $1 = '{}'))
       and ($9::varchar is null or nvm.address in (select nсt.nft_address from nft_type_mv nсt
-                                where nсt.mimetype ilike $9))
+                                where nсt.mimetype = $9 and ($10::boolean is false or nсt.verified is true)))
       and not burned
     order by nvm.name #NFTS_DIRECTION_BASE#, nvm.address
 ),
@@ -71,7 +71,7 @@ with nfts as (
                            join nft_verified_mv n
                                 on n.address = a.nft
                                 and ($9::varchar is null or n.address in (select nсt.nft_address from nft_type_mv nсt
-                                    where nсt.mimetype ilike $9))
+                                    where nсt.mimetype ilike $9 and ($10::boolean is false or nсt.verified is true)))
                            join offers_whitelist ow on ow.address = a.address
                            left join token_usd_prices tup on tup.token = a.price_token
                   where ($3::bool or $8::bool)
@@ -106,7 +106,7 @@ with nfts as (
                            join nft_verified_mv n
                                 on n.address = s.nft
                                 and ($9::varchar is null or n.address in (select nсt.nft_address from nft_type_mv nсt
-                                where nсt.mimetype ilike $9))
+                                where nсt.mimetype ilike $9 and ($10::boolean is false or nсt.verified is true)))
                            join offers_whitelist ow on ow.address = s.address
                            left join token_usd_prices tup on tup.token = s.price_token
                   where ($4::bool or $8::bool)

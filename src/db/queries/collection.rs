@@ -167,7 +167,7 @@ impl Queries {
               and ($5::varchar is null or c.name ilike $5)
               and (c.address = any ($6) or array_length($6::varchar[], 1) is null)
               and ($7::varchar is null or c.address in (select distinct nсt.collection_address from collection_type_mv nсt
-                                where nсt.mimetype ilike $7)
+                                where nсt.mimetype = $7 and ($4::boolean is false or nсt.verified is true))
               )
             order by {order}
             limit $1 offset $2

@@ -515,6 +515,7 @@ impl Queries {
             .bind(with_count)
             .bind(with_optimized)
             .bind(nft_type)
+            .bind(verified.unwrap_or(true))
             .fetch_all(self.db.as_ref())
             .await
     }
