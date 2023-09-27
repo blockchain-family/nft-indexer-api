@@ -178,6 +178,28 @@ impl Queries {
         .await
     }
 
+    pub async fn nft_get_for_banner(&self) -> sqlx::Result<Vec<NftForBanner>> {
+        sqlx::query_as!(
+            NftForBanner,
+            r#"
+            select
+                nc."name"                            as "name!",
+                nc.address                           as "collection_address!",
+                n.address                            as "nft_address!",
+                nmd.meta -> 'preview' ->> 'source'   as "picture!",
+                nmd.meta -> 'preview' ->> 'mimetype' as "mimetype!"
+            from
+                nft_collection nc
+                join nft n on nc.address = n.collection
+                join nft_metadata nmd on nmd.nft = n.address
+            where
+                nc.for_banner is true
+            "#
+        )
+        .fetch_all(self.db.as_ref())
+        .await
+    }
+
     pub async fn collect_nfts(&self, ids: &[String]) -> sqlx::Result<Vec<NftDetails>> {
         sqlx::query_as!(
             NftDetails,

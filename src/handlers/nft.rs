@@ -1,5 +1,5 @@
 use crate::db::queries::Queries;
-use crate::db::{MetaRoyalty, NftDetails};
+use crate::db::{MetaRoyalty, NftDetails, NftForBanner};
 use crate::handlers::calculate_hash;
 use crate::model::{DirectBuy, NFTPrice, NftTrait, OrderDirection, VecWith, NFT};
 use crate::{
@@ -10,6 +10,7 @@ use crate::{
 };
 use chrono::NaiveDateTime;
 use moka::future::Cache;
+use rand::seq::SliceRandom;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
@@ -473,6 +474,51 @@ pub async fn get_nft_sell_count_handler(
     }
 
     response!(&response)
+}
+
+#[utoipa::path(
+    post,
+    tag = "nft",
+    path = "/nft/banner",
+    request_body(content = NftPriceHistoryQuery, description = "Get NFT price history"),
+    responses(
+        (status = 200, body = Vec<NFTPrice>),
+        (status = 500),
+    ),
+)]
+pub fn get_nft_for_banner(
+    db: Queries,
+    cache: Cache<u64, Value>,
+) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
+    warp::path!("nft" / "banner")
+        .and(warp::post())
+        .and(warp::any().map(move || db.clone()))
+        .and(warp::any().map(move || cache.clone()))
+        .and_then(get_nft_for_banner_handler)
+}
+
+pub async fn get_nft_for_banner_handler(
+    db: Queries,
+    cache: Cache<u64, Value>,
+) -> Result<Box<dyn warp::Reply>, Infallible> {
+    let hash = calculate_hash(&"nft/banner".to_string());
+    let cached_value = cache.get(&hash);
+
+    let nfts_for_banner: Vec<NftForBanner>;
+    match cached_value {
+        None => {
+            nfts_for_banner = catch_error_500!(db.nft_get_for_banner().await);
+            let value_for_cache = serde_json::to_value(nfts_for_banner.clone())
+                .expect("Failed serializing cached value");
+            cache.insert(hash, value_for_cache).await;
+        }
+        Some(cached_value) => {
+            nfts_for_banner =
+                serde_json::from_value(cached_value).expect("Failed parsing cached value")
+        }
+    }
+
+    response!(&nfts_for_banner.choose(&mut rand::thread_rng()))
 }
 
 pub async fn get_nft_top_list_handler(
