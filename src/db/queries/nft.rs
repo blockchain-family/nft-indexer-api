@@ -178,25 +178,41 @@ impl Queries {
         .await
     }
 
-    pub async fn nft_get_for_banner(&self) -> sqlx::Result<Vec<NftForBanner>> {
+    pub async fn nft_get_for_banner(&self) -> sqlx::Result<Option<NftForBanner>> {
         sqlx::query_as!(
             NftForBanner,
             r#"
             select
-                nc."name"                            as "name!",
-                nc.address                           as "collection_address!",
-                n.address                            as "nft_address!",
-                nmd.meta -> 'preview' ->> 'source'   as "picture!",
-                nmd.meta -> 'preview' ->> 'mimetype' as "mimetype!"
-            from
-                nft_collection nc
-                join nft n on nc.address = n.collection
-                join nft_metadata nmd on nmd.nft = n.address
-            where
-                nc.for_banner is true
+                result.name as "name!",
+                result.collection_address as "collection_address!",
+                result.nft_address as "nft_address!",
+                result.picture as "picture!",
+                result.mimetype "mimetype!"
+            from (
+                select
+                     nc."name",
+                     nc.address as "collection_address",
+                     n.address as "nft_address",
+                     nmd.meta -> 'preview' ->> 'source' as "picture",
+                     nmd.meta -> 'preview' ->> 'mimetype' as "mimetype"
+                from
+                     nft_collection nc
+                     join nft n on nc.address = n.collection
+                     join nft_metadata nmd on nmd.nft = n.address
+                where
+                     nmd.meta -> 'preview' ->> 'source' is not null
+                     and nc.address = (
+                         select nc.address from nft_collection nc where nc.for_banner
+                         ORDER BY RANDOM()
+                         LIMIT 1
+                     )
+                     limit 50
+            ) result
+            ORDER BY RANDOM()
+            LIMIT 1
             "#
         )
-        .fetch_all(self.db.as_ref())
+        .fetch_optional(self.db.as_ref())
         .await
     }
 

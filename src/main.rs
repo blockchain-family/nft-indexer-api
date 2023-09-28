@@ -175,10 +175,7 @@ async fn main() {
                 ))
                 .or(get_nft(db_service.clone()))
                 .or(get_nft_top_list(db_service.clone(), cache_minute.clone()))
-                .or(get_nft_for_banner(
-                    db_service.clone(),
-                    cache_5_minutes.clone(),
-                ))
+                .or(get_nft_for_banner(db_service.clone(), cache_minute.clone()))
                 .or(get_nft_direct_buy(db_service.clone()))
                 .or(get_nft_price_history(db_service.clone()))
                 .or(list_collections(db_service.clone(), cache_minute.clone()))

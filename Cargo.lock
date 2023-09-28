@@ -96,7 +96,6 @@ dependencies = [
  "moka",
  "nekoton",
  "nekoton-utils",
- "rand",
  "reqwest",
  "serde",
  "serde_json",

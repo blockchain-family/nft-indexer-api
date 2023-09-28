@@ -10,7 +10,6 @@ use crate::{
 };
 use chrono::NaiveDateTime;
 use moka::future::Cache;
-use rand::seq::SliceRandom;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
@@ -503,21 +502,21 @@ pub async fn get_nft_for_banner_handler(
     let hash = calculate_hash(&"nft/banner".to_string());
     let cached_value = cache.get(&hash);
 
-    let nfts_for_banner: Vec<NftForBanner>;
+    let nft_for_banner: Option<NftForBanner>;
     match cached_value {
         None => {
-            nfts_for_banner = catch_error_500!(db.nft_get_for_banner().await);
-            let value_for_cache = serde_json::to_value(nfts_for_banner.clone())
+            nft_for_banner = catch_error_500!(db.nft_get_for_banner().await);
+            let value_for_cache = serde_json::to_value(nft_for_banner.clone())
                 .expect("Failed serializing cached value");
             cache.insert(hash, value_for_cache).await;
         }
         Some(cached_value) => {
-            nfts_for_banner =
+            nft_for_banner =
                 serde_json::from_value(cached_value).expect("Failed parsing cached value")
         }
     }
 
-    response!(&nfts_for_banner.choose(&mut rand::thread_rng()))
+    response!(&nft_for_banner)
 }
 
 pub async fn get_nft_top_list_handler(
