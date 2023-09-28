@@ -60,6 +60,11 @@ pub struct NftMeta {
     pub updated: NaiveDateTime,
 }
 
+#[derive(Serialize, Clone, Debug)]
+pub struct NftMimetype {
+    pub mimetype: String,
+}
+
 #[derive(Clone, Debug)]
 pub struct NftCollection {
     pub address: Address,

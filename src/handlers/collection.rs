@@ -70,6 +70,8 @@ pub struct ListCollectionsParams {
     pub limit: Option<usize>,
     pub offset: Option<usize>,
     pub order: Option<CollectionListOrder>,
+    #[serde(rename = "nftType")]
+    pub nft_type: Option<String>,
 }
 
 #[utoipa::path(
@@ -111,6 +113,7 @@ pub async fn list_collections_handler(
             let collections = params.collections.as_deref().unwrap_or(&[]);
             let limit = params.limit.unwrap_or(100);
             let offset = params.offset.unwrap_or_default();
+            let nft_type = params.nft_type.as_ref();
             let list = db
                 .list_collections(
                     name,
@@ -120,6 +123,7 @@ pub async fn list_collections_handler(
                     limit,
                     offset,
                     params.order,
+                    nft_type,
                 )
                 .await;
 

@@ -1,5 +1,5 @@
 use crate::db::queries::Queries;
-use crate::db::NftDetails;
+use crate::db::{NftDetails, NftMimetype};
 use chrono::NaiveDateTime;
 
 use super::*;
@@ -430,6 +430,21 @@ impl Queries {
         .await
     }
 
+    pub async fn nft_get_types(&self, verified: bool) -> sqlx::Result<Vec<NftMimetype>> {
+        sqlx::query_as!(
+            NftMimetype,
+            r#"
+            select distinct mimetype as "mimetype!"
+            from collection_type_mv
+            where $1::boolean is false or verified is true
+            group by mimetype
+            "#,
+            verified
+        )
+        .fetch_all(self.db.as_ref())
+        .await
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub async fn nft_search(
         &self,
@@ -443,6 +458,7 @@ impl Queries {
         _attributes: &[AttributeFilter],
         order: Option<NFTListOrder>,
         with_count: bool,
+        nft_type: Option<&String>,
     ) -> sqlx::Result<Vec<NftDetails>> {
         let sql: &str = include_str!("../sql/nfts.sql");
         let forsale = forsale.unwrap_or(false);
@@ -540,6 +556,8 @@ impl Queries {
             .bind(offset as i64)
             .bind(with_count)
             .bind(with_optimized)
+            .bind(nft_type)
+            .bind(verified.unwrap_or(true))
             .fetch_all(self.db.as_ref())
             .await
     }
