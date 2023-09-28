@@ -4,7 +4,7 @@ use chrono::NaiveDateTime;
 
 use super::*;
 
-use crate::handlers::nft::{AttributeFilter, NFTListOrder, NFTListOrderField};
+use crate::handlers::nft::NFTListOrderField;
 
 use crate::db::query_params::nft::NftSearchParams;
 use crate::model::OrderDirection;

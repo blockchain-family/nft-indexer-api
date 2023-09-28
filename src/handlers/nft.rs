@@ -309,7 +309,6 @@ pub async fn get_nft_list_handler(
     let response;
     match cached_value {
         None => {
-            let offset = params.offset.unwrap_or_default();
             let with_count = params.with_count.unwrap_or(false);
             let limit = params.limit.unwrap_or(100);
             let final_limit = match with_count {

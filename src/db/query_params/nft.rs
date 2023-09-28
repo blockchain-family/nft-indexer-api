@@ -15,4 +15,5 @@ pub struct NftSearchParams<'a> {
     pub _attributes: &'a [AttributeFilter],
     pub order: Option<&'a NFTListOrder>,
     pub with_count: bool,
+    pub nft_type: Option<&'a String>,
 }
