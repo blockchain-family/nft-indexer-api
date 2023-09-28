@@ -248,6 +248,16 @@ pub struct NftPrice {
     pub usd_price: BigDecimal,
 }
 
+#[derive(Deserialize, Serialize, Clone, Debug, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct NftForBanner {
+    pub name: String,
+    pub collection_address: Address,
+    pub nft_address: Address,
+    pub picture: String,
+    pub mimetype: String,
+}
+
 #[derive(Clone, Debug)]
 pub struct Profile {
     pub address: Address,

@@ -30,8 +30,8 @@ use api::handlers::collection_custom::upsert_collection_custom;
 use api::handlers::events::{get_events, search_all};
 use api::handlers::metrics::get_metrics_summary;
 use api::handlers::nft::{
-    get_nft, get_nft_direct_buy, get_nft_list, get_nft_price_history, get_nft_random_list,
-    get_nft_sell_count, get_nft_top_list, get_nft_types,
+    get_nft, get_nft_direct_buy, get_nft_for_banner, get_nft_list, get_nft_price_history,
+    get_nft_random_list, get_nft_sell_count, get_nft_top_list, get_nft_types,
 };
 use api::handlers::owner::{
     get_fee, get_owner_bids_in, get_owner_bids_out, get_owner_direct_buy, get_owner_direct_buy_in,
@@ -175,6 +175,7 @@ async fn main() {
                 ))
                 .or(get_nft(db_service.clone()))
                 .or(get_nft_top_list(db_service.clone(), cache_minute.clone()))
+                .or(get_nft_for_banner(db_service.clone(), cache_minute.clone()))
                 .or(get_nft_direct_buy(db_service.clone()))
                 .or(get_nft_price_history(db_service.clone()))
                 .or(list_collections(db_service.clone(), cache_minute.clone()))
