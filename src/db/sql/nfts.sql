@@ -20,7 +20,7 @@ with nfts as (
     from nft_verified_mv nvm
     where
       --only when sale type filters are disabled
-        not $3 and not $4 and $9 is null and $10 is null
+        not $3 and not $4 and $11 is null and $12 is null
       and ((nvm.collection = any ($2) or $2 = '{}') and (nvm.owner = any ($1) or $1 = '{}'))
       and ($9::varchar is null or nvm.address in (select nсt.nft_address from nft_type_mv nсt
                                 where nсt.mimetype = $9 and ($10::boolean is false or nсt.verified is true)))
@@ -73,14 +73,14 @@ with nfts as (
                                     where nсt.mimetype ilike $9 and ($10::boolean is false or nсt.verified is true)))
                            join offers_whitelist ow on ow.address = a.address
                            left join token_usd_prices tup on tup.token = a.price_token
-                  where ($3::bool or $8::bool or $9 is not null or $10 is not null)
+                  where ($3::bool or $8::bool or $11 is not null or $12 is not null)
                     and a.nft = n.address
                     and a.status = 'active'::auction_status
                     and (a.finished_at = to_timestamp(0) or a.finished_at > now()::timestamp)
                     and ($1 = '{}' or n.owner = any ($1::text[]))
                     and ($2 = '{}' or n.collection = any ($2))
-                    and ($9 is null or a.min_bid * tup.usd_price >= $9)
-                    and ($10 is null or a.min_bid * tup.usd_price <= $10)
+                    and ($11 is null or a.min_bid * tup.usd_price >= $11)
+                    and ($12 is null or a.min_bid * tup.usd_price <= $12)
 
                   union all
 
@@ -109,13 +109,13 @@ with nfts as (
                                 where nсt.mimetype ilike $9 and ($10::boolean is false or nсt.verified is true)))
                            join offers_whitelist ow on ow.address = s.address
                            left join token_usd_prices tup on tup.token = s.price_token
-                  where ($4::bool or $8::bool or $9 is not null or $10 is not null)
+                  where ($4::bool or $8::bool or $11 is not null or $12 is not null)
                     and s.state = 'active'::direct_sell_state
                     and (s.expired_at = to_timestamp(0) or s.expired_at > now())
                     and ($1 = '{}' or n.owner = any ($1::text[]))
                     and ($2 = '{}' or n.collection = any ($2))
-                    and ($9 is null or s.price * tup.usd_price >= $9)
-                    and ($10 is null or s.price * tup.usd_price <= $10)
+                    and ($11 is null or s.price * tup.usd_price >= $11)
+                    and ($12 is null or s.price * tup.usd_price <= $12)
               ) ag
 
          order by #DEALS_ORDER_FIELD# #ORDER_DIRECTION#
