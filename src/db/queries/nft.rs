@@ -392,7 +392,7 @@ impl Queries {
         .await
     }
 
-    pub async fn nft_get_types(&self, verified: Option<bool>) -> sqlx::Result<Vec<NftMimetype>> {
+    pub async fn nft_get_types(&self, verified: bool) -> sqlx::Result<Vec<NftMimetype>> {
         sqlx::query_as!(
             NftMimetype,
             r#"

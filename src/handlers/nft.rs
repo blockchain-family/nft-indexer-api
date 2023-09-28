@@ -511,6 +511,11 @@ pub async fn get_nft_top_list_handler(
     )))
 }
 
+#[derive(Clone, Deserialize, Serialize, Hash)]
+struct NFTTypeCache {
+    pub verified_type: bool,
+}
+
 #[utoipa::path(
     get,
     tag = "nft",
@@ -537,14 +542,17 @@ pub async fn get_nft_types_handler(
     db: Queries,
     cache: Cache<u64, Value>,
 ) -> Result<Box<dyn warp::Reply>, Infallible> {
-    let verified = Some(params.verified.unwrap_or(true));
-    let hash = calculate_hash(&"nft/types".to_string());
+    let verified_flag = params.verified.unwrap_or(true);
+    let params_cache = NFTTypeCache {
+        verified_type: verified_flag,
+    };
+    let hash = calculate_hash(&params_cache);
     let cached_value = cache.get(&hash);
 
     let response: Vec<String>;
     match cached_value {
         None => {
-            let list_of_types = catch_error_500!(db.nft_get_types(verified).await);
+            let list_of_types = catch_error_500!(db.nft_get_types(verified_flag).await);
             response = list_of_types.iter().map(|x| x.mimetype.clone()).collect();
             let value_for_cache =
                 serde_json::to_value(response.clone()).expect("Failed serializing cached value");
