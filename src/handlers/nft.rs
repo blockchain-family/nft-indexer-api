@@ -480,9 +480,8 @@ pub async fn get_nft_sell_count_handler(
     post,
     tag = "nft",
     path = "/nft/banner",
-    request_body(content = NftPriceHistoryQuery, description = "Get NFT price history"),
     responses(
-        (status = 200, body = Vec<NFTPrice>),
+        (status = 200, body = NftForBanner),
         (status = 500),
     ),
 )]
