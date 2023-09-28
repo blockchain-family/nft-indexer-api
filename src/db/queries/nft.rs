@@ -6,6 +6,7 @@ use super::*;
 
 use crate::handlers::nft::{AttributeFilter, NFTListOrder, NFTListOrderField};
 
+use crate::db::query_params::nft::NftSearchParams;
 use crate::model::OrderDirection;
 use sqlx::{self};
 
@@ -445,24 +446,10 @@ impl Queries {
         .await
     }
 
-    #[allow(clippy::too_many_arguments)]
-    pub async fn nft_search(
-        &self,
-        owners: &[Address],
-        collections: &[Address],
-        forsale: Option<bool>,
-        auction: Option<bool>,
-        verified: Option<bool>,
-        limit: usize,
-        offset: usize,
-        _attributes: &[AttributeFilter],
-        order: Option<NFTListOrder>,
-        with_count: bool,
-        nft_type: Option<&String>,
-    ) -> sqlx::Result<Vec<NftDetails>> {
+    pub async fn nft_search(&self, params: &NftSearchParams<'_>) -> sqlx::Result<Vec<NftDetails>> {
         let sql: &str = include_str!("../sql/nfts.sql");
-        let forsale = forsale.unwrap_or(false);
-        let auction = auction.unwrap_or(false);
+        let forsale = params.forsale.unwrap_or(false);
+        let auction = params.auction.unwrap_or(false);
 
         let mut order_direction_result = "asc".to_string();
         let mut deals_order_field = "ag.name";
@@ -470,7 +457,7 @@ impl Queries {
         let mut order_result = "".to_string();
         let mut nfts_direction_default = "asc".to_string();
 
-        if let Some(order) = order {
+        if let Some(order) = params.order {
             order_direction_result = order.direction.to_string();
             enable_sales_query = true;
             deals_order_field = match order.field {
@@ -522,8 +509,8 @@ impl Queries {
                                                                                                      ) > 1000 then true
                                else false
                                end is_enabled",
-            owners,
-            collections,
+            params.owners,
+            params.collections,
             enable_sales_query
         ).fetch_one(self.db.as_ref())
                 .await?.expect("failed to get value")
@@ -535,7 +522,7 @@ impl Queries {
         let sql = sql.replace("#DEALS_ORDER_FIELD#", deals_order_field);
         let sql = sql.replace("#NFTS_DIRECTION_BASE#", &nfts_direction_default);
 
-        let sql = if !verified.unwrap_or(true) {
+        let sql = if !params.verified.unwrap_or(true) {
             sql.replace("nft_verified_mv", "nft")
         } else {
             sql
@@ -548,16 +535,18 @@ impl Queries {
         };
 
         sqlx::query_as(&sql)
-            .bind(owners)
-            .bind(collections)
+            .bind(params.owners)
+            .bind(params.collections)
             .bind(auction)
             .bind(forsale)
-            .bind(limit as i64)
-            .bind(offset as i64)
-            .bind(with_count)
+            .bind(params.limit as i64)
+            .bind(params.offset as i64)
+            .bind(params.with_count)
             .bind(with_optimized)
-            .bind(nft_type)
-            .bind(verified.unwrap_or(true))
+            .bind(params.nft_type)
+            .bind(params.verified.unwrap_or(true))
+            .bind(params.price_from)
+            .bind(params.price_to)
             .fetch_all(self.db.as_ref())
             .await
     }

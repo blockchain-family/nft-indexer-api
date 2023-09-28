@@ -8,6 +8,8 @@ use crate::{
     model::{Auction, Collection, DirectSell},
     response,
 };
+
+use bigdecimal::BigDecimal;
 use chrono::NaiveDateTime;
 use moka::future::Cache;
 use serde::{Deserialize, Serialize};
@@ -20,6 +22,7 @@ use tokio::join;
 use warp::http::StatusCode;
 use warp::Filter;
 
+use crate::db::query_params::nft::NftSearchParams;
 use crate::handlers::auction::collect_auctions;
 use crate::handlers::collection::collect_collections;
 use crate::schema::VecWithDirectBuy;
@@ -306,43 +309,39 @@ pub async fn get_nft_list_handler(
     let response;
     match cached_value {
         None => {
-            let owners = params.owners.as_deref().unwrap_or(&[]);
-            let collections = params.collections.as_deref().unwrap_or(&[]);
-            let verified = Some(params.verified.unwrap_or(true));
             let offset = params.offset.unwrap_or_default();
             let with_count = params.with_count.unwrap_or(false);
             let limit = params.limit.unwrap_or(100);
-            let nft_type = params.nft_type.as_ref();
-
             let final_limit = match with_count {
                 true => limit,
                 false => limit + 1,
             };
 
-            let list = catch_error_500!(
-                db.nft_search(
-                    owners,
-                    collections,
-                    params.forsale,
-                    params.auction,
-                    verified,
-                    final_limit,
-                    offset,
-                    &params.attributes.unwrap_or_default(),
-                    params.order,
-                    with_count,
-                    nft_type,
-                )
-                .await
-            );
+            let search_params = &NftSearchParams {
+                owners: params.owners.as_deref().unwrap_or(&[]),
+                collections: params.collections.as_deref().unwrap_or(&[]),
+                forsale: params.forsale,
+                auction: params.auction,
+                price_from: params.price_from.as_ref(),
+                price_to: params.price_to.as_ref(),
+                verified: Some(params.verified.unwrap_or(true)),
+                limit,
+                offset: params.offset.unwrap_or_default(),
+                _attributes: &[],
+                order: None,
+                with_count,
+                nft_type: params.nft_type.as_ref(),
+            };
+
+            let list = catch_error_500!(db.nft_search(search_params,).await);
 
             let mut r = catch_error_500!(make_nfts_response(list, db).await);
             if !with_count {
                 if r.items.len() < final_limit {
-                    r.count = (r.items.len() + offset) as i64
+                    r.count = (r.items.len() + search_params.offset) as i64
                 } else {
                     r.items.pop();
-                    r.count = (r.items.len() + offset + 1) as i64;
+                    r.count = (r.items.len() + search_params.offset + 1) as i64;
                 }
             }
             response = r;
@@ -657,9 +656,9 @@ pub struct NFTListQuery {
     pub owners: Option<Vec<String>>,
     pub collections: Option<Vec<String>>,
     #[serde(rename = "priceFrom")]
-    pub price_from: Option<u64>,
+    pub price_from: Option<BigDecimal>,
     #[serde(rename = "priceTo")]
-    pub price_to: Option<u64>,
+    pub price_to: Option<BigDecimal>,
     #[serde(rename = "priceToken")]
     pub price_token: Option<String>,
     pub forsale: Option<bool>,
