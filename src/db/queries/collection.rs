@@ -119,6 +119,7 @@ impl Queries {
         limit: usize,
         offset: usize,
         order: Option<CollectionListOrder>,
+        nft_type: Option<&String>,
     ) -> sqlx::Result<Vec<NftCollectionDetails>> {
         let order = match order {
             None => "c.owners_count desc".to_string(),
@@ -165,6 +166,9 @@ impl Queries {
               and ($4::boolean is false or c.verified is true)
               and ($5::varchar is null or c.name ilike $5)
               and (c.address = any ($6) or array_length($6::varchar[], 1) is null)
+              and ($7::varchar is null or c.address in (select distinct nсt.collection_address from collection_type_mv nсt
+                                where nсt.mimetype = $7 and ($4::boolean is false or nсt.verified is true))
+              )
             order by {order}
             limit $1 offset $2
             "#
@@ -177,6 +181,7 @@ impl Queries {
             .bind(verified)
             .bind(name)
             .bind(collections)
+            .bind(nft_type)
             .fetch_all(self.db.as_ref())
             .await
     }
