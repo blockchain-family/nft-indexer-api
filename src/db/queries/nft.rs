@@ -392,12 +392,16 @@ impl Queries {
         .await
     }
 
-    pub async fn nft_get_types(&self) -> sqlx::Result<Vec<NftMimetype>> {
+    pub async fn nft_get_types(&self, verified: Option<bool>) -> sqlx::Result<Vec<NftMimetype>> {
         sqlx::query_as!(
             NftMimetype,
             r#"
-            select distinct mimetype as "mimetype!" from collection_type_mv group by mimetype
-            "#
+            select distinct mimetype as "mimetype!"
+            from collection_type_mv
+            where $1::boolean is false or verified is true
+            group by mimetype
+            "#,
+            verified
         )
         .fetch_all(self.db.as_ref())
         .await

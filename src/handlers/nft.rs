@@ -526,22 +526,25 @@ pub fn get_nft_types(
 ) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
     warp::path!("nfts" / "types")
         .and(warp::post())
+        .and(warp::body::json::<NFTType>())
         .and(warp::any().map(move || db.clone()))
         .and(warp::any().map(move || cache.clone()))
         .and_then(get_nft_types_handler)
 }
 
 pub async fn get_nft_types_handler(
+    params: NFTType,
     db: Queries,
     cache: Cache<u64, Value>,
 ) -> Result<Box<dyn warp::Reply>, Infallible> {
+    let verified = Some(params.verified.unwrap_or(true));
     let hash = calculate_hash(&"nft/types".to_string());
     let cached_value = cache.get(&hash);
 
     let response: Vec<String>;
     match cached_value {
         None => {
-            let list_of_types = catch_error_500!(db.nft_get_types().await);
+            let list_of_types = catch_error_500!(db.nft_get_types(verified).await);
             response = list_of_types.iter().map(|x| x.mimetype.clone()).collect();
             let value_for_cache =
                 serde_json::to_value(response.clone()).expect("Failed serializing cached value");
@@ -618,6 +621,11 @@ pub struct NFTListQuery {
     pub with_count: Option<bool>,
     #[serde(rename = "nftType")]
     pub nft_type: Option<String>,
+}
+
+#[derive(Clone, Deserialize, Serialize, Hash, ToSchema)]
+pub struct NFTType {
+    pub verified: Option<bool>,
 }
 
 #[derive(Clone, Deserialize, Serialize, Hash, ToSchema)]
