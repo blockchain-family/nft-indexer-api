@@ -197,7 +197,7 @@ pub struct Event {
     pub cat: EventCategory,
     pub address: String,
     pub ts: usize,
-    pub args: Option<serde_json::Value>,
+    pub args: Option<Value>,
 }
 
 #[derive(Debug, Clone, Serialize, ToSchema, Deserialize)]
@@ -271,7 +271,7 @@ pub struct DirectBuy {
 #[derive(Debug, Clone, Serialize)]
 pub struct CollectionAttributes {
     pub collection: Address,
-    pub attributes: HashMap<String, serde_json::Value>,
+    pub attributes: HashMap<String, Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
