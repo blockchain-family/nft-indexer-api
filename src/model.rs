@@ -7,6 +7,7 @@ use crate::{
     token::TokenDict,
 };
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::collections::HashMap;
 use std::fmt::Display;
 
@@ -67,7 +68,7 @@ pub struct NFTPrice {
 #[serde(rename_all = "camelCase")]
 pub struct NftTrait {
     pub trait_type: Option<String>,
-    pub trait_value: Option<String>,
+    pub trait_value: Option<Value>,
     pub cnt: i64,
 }
 
@@ -196,7 +197,7 @@ pub struct Event {
     pub cat: EventCategory,
     pub address: String,
     pub ts: usize,
-    pub args: Option<serde_json::Value>,
+    pub args: Option<Value>,
 }
 
 #[derive(Debug, Clone, Serialize, ToSchema, Deserialize)]
@@ -270,7 +271,7 @@ pub struct DirectBuy {
 #[derive(Debug, Clone, Serialize)]
 pub struct CollectionAttributes {
     pub collection: Address,
-    pub attributes: HashMap<String, serde_json::Value>,
+    pub attributes: HashMap<String, Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
