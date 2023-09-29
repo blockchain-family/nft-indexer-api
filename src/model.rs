@@ -7,6 +7,7 @@ use crate::{
     token::TokenDict,
 };
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::collections::HashMap;
 use std::fmt::Display;
 
@@ -67,7 +68,7 @@ pub struct NFTPrice {
 #[serde(rename_all = "camelCase")]
 pub struct NftTrait {
     pub trait_type: Option<String>,
-    pub trait_value: Option<String>,
+    pub trait_value: Option<Value>,
     pub cnt: i64,
 }
 

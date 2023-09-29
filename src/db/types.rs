@@ -2,6 +2,7 @@ use super::*;
 use chrono::NaiveDateTime;
 use log::error;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use sqlx::types::BigDecimal;
 use utoipa::ToSchema;
 pub type Address = String;
@@ -155,7 +156,7 @@ pub struct NftAuction {
 #[derive(Clone, Debug, sqlx::FromRow)]
 pub struct NftTraitRecord {
     pub trait_type: Option<String>,
-    pub trait_value: Option<String>,
+    pub trait_value: Option<Value>,
     pub cnt: i64,
 }
 

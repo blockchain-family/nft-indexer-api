@@ -555,28 +555,13 @@ impl Queries {
         sqlx::query_as!(
             NftTraitRecord,
             r#"
-            with nft_attributes as ( select jsonb_array_elements(nm.meta -> 'attributes') -> 'trait_type' as trait_type,
-                                            jsonb_array_elements(nm.meta -> 'attributes') -> 'value'      as trait_value,
-                                            nm.meta,
-                                            n.collection                                                  as nft_collection,
-                                            nm.nft
-                                     from nft_metadata nm
-                                              join nft n on n.address = nm.nft
-                                     where nm.meta -> 'attributes' is not null
-                                       and nm.nft = $1 ),
-                 nft_attributes_col as ( select jsonb_array_elements(nm.meta -> 'attributes') -> 'trait_type' as trait_type,
-                                                jsonb_array_elements(nm.meta -> 'attributes') -> 'value'      as trait_value,
-                                                nm.nft
-                                         from nft_metadata nm
-                                         where nm.nft in ( select n2.address
-                                                           from nft n2
-                                                                    join nft n3 on n3.address = $1 and n2.collection = n3.collection ) )
-            select (na.trait_type #>> '{}')::text  as trait_type,
-                   (na.trait_value #>> '{}')::text as trait_value,
-                   count(*)                        as "cnt!"
-            from nft_attributes na
-                     left join nft_attributes_col na2 on na.trait_type = na2.trait_type and na.trait_value = na2.trait_value
-            group by na.trait_type, na.trait_value
+            with traits as ( select trait_type, value as trait_value from nft_attributes where nft = $1 )
+            select traits.trait_type                                                             as "trait_type?",
+                   traits.trait_value                                                            as "trait_value?",
+                   ( select count(*)
+                     from nft_attributes na
+                     where traits.trait_type = na.trait_type and traits.trait_value = na.value ) as "cnt!"
+            from traits
             "#,
             nft
         )

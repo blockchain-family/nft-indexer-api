@@ -413,6 +413,38 @@
     },
     "query": "\n            select count(1)\n            from nft n\n                     join nft_collection c on n.collection = c.address\n                     join nft_direct_sell nds on nds.nft = n.address and nds.created <= now() and\n                                                 (now() <= nds.expired_at or nds.expired_at = to_timestamp(0)) and\n                                                 nds.state = 'active' and nds.price <= $1::int8\n                     join offers_whitelist ow on ow.address = nds.address\n            where n.burned is false\n              and c.verified is true\n           "
   },
+  "18f3457d9f0373a037f9aa2f5df8f5bfae76ed38a96aafd4e07a66ee00eff8b6": {
+    "describe": {
+      "columns": [
+        {
+          "name": "trait_type?",
+          "ordinal": 0,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "trait_value?",
+          "ordinal": 1,
+          "type_info": "Jsonb"
+        },
+        {
+          "name": "cnt!",
+          "ordinal": 2,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        false,
+        true,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "\n            with traits as ( select trait_type, value as trait_value from nft_attributes where nft = $1 )\n            select traits.trait_type                                                             as \"trait_type?\",\n                   traits.trait_value                                                            as \"trait_value?\",\n                   ( select count(*)\n                     from nft_attributes na\n                     where traits.trait_type = na.trait_type and traits.trait_value = na.value ) as \"cnt!\"\n            from traits\n            "
+  },
   "1b451fcbad66d11d33719334ff9b9cdd2f7863b26d6f2dcd52bbf4b005b14573": {
     "describe": {
       "columns": [
@@ -1445,38 +1477,6 @@
       }
     },
     "query": "with periods as ( select $1::timestamp as date_from, $2::timestamp as date_to, 'current' as period_type\n                  union all\n                  select $1::timestamp - ($2::timestamp - $1::timestamp)::interval as date_from,\n                         $1::timestamp - interval '1 seconds'                      as date_to,\n                         'previous'                                                as period_type )\nselect c.address                                       as \"collection!\",\n       c.name,\n       c.logo,\n       c.floor_price_usd                               as \"floor_price\",\n       coalesce(total_volume.cur, 0)                   as \"total_volume_usd_now!\",\n       coalesce(total_volume.prev, 0)                  as \"total_volume_usd_previous!\",\n       c.owners_count::int                             as \"owners_count!\",\n       c.nft_count::int                                as \"nfts_count!\",\n       (count(1) over ())::int                         as \"total_rows_count!\"\nfrom nft_collection_details c\n         left join lateral ( select sum(case when ag.period_type = 'current' then ag.price_usd else 0 end)  cur,\n                                    sum(case when ag.period_type = 'previous' then ag.price_usd else 0 end) prev\n                             from (select p.period_type,\n                                          case when n.address is not null then tup.usd_price * ndb.price else 0 end as price_usd\n                                   from periods p\n                                            left join nft_direct_buy ndb\n                                                      on ndb.updated between p.date_from and p.date_to and ndb.state = 'filled'\n                                            left join offers_whitelist r on r.address = ndb.address\n                                            left join token_usd_prices tup on tup.token = ndb.price_token\n                                            left join nft n on ndb.nft = n.address and n.collection = c.address and\n                                                               not n.burned and r.address is not null\n                                   union all\n                                   select p.period_type,\n                                          case when n.address is not null then tup.usd_price * nds.price else 0 end as price_usd\n                                   from periods p\n                                            left join nft_direct_sell nds\n                                                      on nds.state = 'filled' and nds.updated between p.date_from and p.date_to\n                                            left join token_usd_prices tup on tup.token = nds.price_token\n                                            left join offers_whitelist r on r.address = nds.address\n                                            left join nft n on nds.nft = n.address and n.collection = c.address and\n                                                               not n.burned and r.address is not null\n                                   union all\n                                   select p.period_type,\n                                          case\n                                              when n.address is not null then tup.usd_price * na.max_bid\n                                              else 0 end as price_usd\n                                   from periods p\n                                            left join public.nft_auction na on na.status = 'completed' and\n                                                                               na.finished_at between p.date_from and p.date_to\n                                            left join offers_whitelist r on r.address = na.address\n                                            left join nft n on na.nft = n.address and not n.burned and\n                                                               r.address is not null and n.collection = c.address\n                                            left join token_usd_prices tup on tup.token = na.price_token) as ag ) as total_volume\n                   on true\nwhere c.verified\norder by coalesce(total_volume.cur, 0) desc\nlimit $3 offset $4"
-  },
-  "5e36b96a70b59b1ead433b73ea16d933e7c306bf8b248c436ee26f2cbcb267e5": {
-    "describe": {
-      "columns": [
-        {
-          "name": "trait_type",
-          "ordinal": 0,
-          "type_info": "Text"
-        },
-        {
-          "name": "trait_value",
-          "ordinal": 1,
-          "type_info": "Text"
-        },
-        {
-          "name": "cnt!",
-          "ordinal": 2,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        null,
-        null,
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "Text"
-        ]
-      }
-    },
-    "query": "\n            with nft_attributes as ( select jsonb_array_elements(nm.meta -> 'attributes') -> 'trait_type' as trait_type,\n                                            jsonb_array_elements(nm.meta -> 'attributes') -> 'value'      as trait_value,\n                                            nm.meta,\n                                            n.collection                                                  as nft_collection,\n                                            nm.nft\n                                     from nft_metadata nm\n                                              join nft n on n.address = nm.nft\n                                     where nm.meta -> 'attributes' is not null\n                                       and nm.nft = $1 ),\n                 nft_attributes_col as ( select jsonb_array_elements(nm.meta -> 'attributes') -> 'trait_type' as trait_type,\n                                                jsonb_array_elements(nm.meta -> 'attributes') -> 'value'      as trait_value,\n                                                nm.nft\n                                         from nft_metadata nm\n                                         where nm.nft in ( select n2.address\n                                                           from nft n2\n                                                                    join nft n3 on n3.address = $1 and n2.collection = n3.collection ) )\n            select (na.trait_type #>> '{}')::text  as trait_type,\n                   (na.trait_value #>> '{}')::text as trait_value,\n                   count(*)                        as \"cnt!\"\n            from nft_attributes na\n                     left join nft_attributes_col na2 on na.trait_type = na2.trait_type and na.trait_value = na2.trait_value\n            group by na.trait_type, na.trait_value\n            "
   },
   "61fdd4406009440146a4e5c62d954e5a56e118741094850186368c25286ca49a": {
     "describe": {
