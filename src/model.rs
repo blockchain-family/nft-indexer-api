@@ -68,6 +68,7 @@ pub struct NFTPrice {
 #[serde(rename_all = "camelCase")]
 pub struct NftTrait {
     pub trait_type: Option<String>,
+    #[schema(value_type = String)]
     pub trait_value: Option<Value>,
     pub cnt: i64,
 }
