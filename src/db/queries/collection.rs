@@ -1,9 +1,6 @@
-use crate::db::queries::Queries;
-
 use super::*;
 
-use crate::handlers::collection::CollectionListOrder;
-use sqlx::{self};
+use crate::db::{queries::Queries, query_params::collection::CollectionsListParams};
 
 impl Queries {
     pub async fn get_collection(
@@ -109,23 +106,14 @@ impl Queries {
         .await
     }
 
-    #[allow(clippy::too_many_arguments)]
     pub async fn list_collections(
         &self,
-        name: Option<&String>,
-        owners: &[String],
-        verified: Option<&bool>,
-        collections: &[Address],
-        limit: usize,
-        offset: usize,
-        order: Option<CollectionListOrder>,
-        nft_type: Option<&String>,
+        params: &CollectionsListParams<'_>,
     ) -> sqlx::Result<Vec<NftCollectionDetails>> {
-        let order = match order {
+        let order = match &params.order {
             None => "c.owners_count desc".to_string(),
             Some(order) => {
-                let field = order.field.to_string();
-                format!("c.{field} {}", order.direction)
+                format!("c.{} {}", order.field, order.direction)
             }
         };
 
@@ -175,13 +163,13 @@ impl Queries {
         );
 
         sqlx::query_as(&query)
-            .bind(limit as i64)
-            .bind(offset as i64)
-            .bind(owners)
-            .bind(verified)
-            .bind(name)
-            .bind(collections)
-            .bind(nft_type)
+            .bind(params.limit as i64)
+            .bind(params.offset as i64)
+            .bind(params.owners)
+            .bind(params.verified)
+            .bind(params.name)
+            .bind(params.collections)
+            .bind(params.nft_type)
             .fetch_all(self.db.as_ref())
             .await
     }

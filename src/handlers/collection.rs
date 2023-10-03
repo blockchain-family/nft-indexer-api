@@ -1,6 +1,9 @@
 use crate::db::queries::Queries;
+use crate::db::query_params::collection::CollectionsListParams;
 use crate::db::Address;
-use crate::handlers::{calculate_hash, OrderDirection};
+use crate::handlers::{
+    calculate_hash, requests::collections::ListCollectionsParams, OrderDirection,
+};
 use crate::model::{Collection, CollectionDetails, CollectionSimple, VecWithTotal};
 use crate::schema::VecCollectionSimpleWithTotal;
 use crate::schema::VecCollectionsWithTotal;
@@ -14,6 +17,7 @@ use utoipa::OpenApi;
 use utoipa::ToSchema;
 use warp::http::StatusCode;
 use warp::Filter;
+
 #[derive(OpenApi)]
 #[openapi(
     paths(
@@ -61,19 +65,6 @@ pub struct CollectionListOrder {
     pub direction: OrderDirection,
 }
 
-#[derive(Clone, Deserialize, Hash, ToSchema)]
-pub struct ListCollectionsParams {
-    pub name: Option<String>,
-    pub owners: Option<Vec<String>>,
-    pub verified: Option<bool>,
-    pub collections: Option<Vec<String>>,
-    pub limit: Option<usize>,
-    pub offset: Option<usize>,
-    pub order: Option<CollectionListOrder>,
-    #[serde(rename = "nftType")]
-    pub nft_type: Option<String>,
-}
-
 #[utoipa::path(
     post,
     tag = "collection",
@@ -107,25 +98,18 @@ pub async fn list_collections_handler(
     let ret: VecWithTotal<CollectionDetails>;
     match cached_value {
         None => {
-            let owners = params.owners.as_deref().unwrap_or(&[]);
-            let verified = Some(params.verified.unwrap_or(true));
-            let name = params.name.as_ref();
-            let collections = params.collections.as_deref().unwrap_or(&[]);
-            let limit = params.limit.unwrap_or(100);
-            let offset = params.offset.unwrap_or_default();
-            let nft_type = params.nft_type.as_ref();
-            let list = db
-                .list_collections(
-                    name,
-                    owners,
-                    verified.as_ref(),
-                    collections,
-                    limit,
-                    offset,
-                    params.order,
-                    nft_type,
-                )
-                .await;
+            let params = CollectionsListParams {
+                name: params.name.as_ref(),
+                owners: params.owners.as_deref().unwrap_or(&[]),
+                verified: Some(params.verified.unwrap_or(true)),
+                collections: params.collections.as_deref().unwrap_or(&[]),
+                limit: params.limit.unwrap_or(100),
+                offset: params.offset.unwrap_or_default(),
+                order: params.order.map(|order| order.into()),
+                nft_type: params.nft_type.as_ref(),
+            };
+
+            let list = db.list_collections(&params).await;
 
             let list = catch_error_500!(list);
 
