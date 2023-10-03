@@ -157,7 +157,7 @@ impl Queries {
               and ($7::varchar is null or c.address in (select distinct nсt.collection_address from collection_type_mv nсt
                                 where nсt.mimetype = $7 and ($4::boolean is false or nсt.verified is true))
               )
-            order by {order}
+            order by {order} nulls last
             limit $1 offset $2
             "#
         );
