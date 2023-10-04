@@ -32,7 +32,7 @@ use utoipa::ToSchema;
 
 #[derive(OpenApi)]
 #[openapi(
-    paths(get_nft, get_nft_direct_buy, get_nft_price_history, get_nft_list, get_nft_top_list, get_nft_random_list, get_nft_types),
+    paths(get_nft, get_nft_direct_buy, get_nft_price_history, get_nft_list, get_nft_top_list, get_nft_random_list, get_nft_types, get_nft_for_banner),
     components(schemas(
         NFTParam,
         GetNFTResult,
