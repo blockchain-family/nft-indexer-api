@@ -655,10 +655,10 @@ pub struct NFTListQuery {
     pub owners: Option<Vec<String>>,
     pub collections: Option<Vec<String>>,
     #[serde(rename = "priceFrom")]
-    #[schema(value_type = String, format = "BigDecimal")]
+    #[schema(nullable, value_type = String)]
     pub price_from: Option<BigDecimal>,
     #[serde(rename = "priceTo")]
-    #[schema(value_type = String, format = "BigDecimal")]
+    #[schema(nullable, value_type = String)]
     pub price_to: Option<BigDecimal>,
     #[serde(rename = "priceToken")]
     pub price_token: Option<String>,
