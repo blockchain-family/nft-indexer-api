@@ -9,7 +9,7 @@ use crate::{api_doc_addon, catch_error_500};
 #[derive(OpenApi)]
 #[openapi(
     paths(
-
+        update_metadata
     ),
     components(schemas(
         UpdateMetadataParams
@@ -27,7 +27,7 @@ api_doc_addon!(ApiDoc);
     post,
     tag = "metadata",
     path = "/update-metadata",
-    request_body(content = UpdateMetadataParams, description = "List collections"),
+    request_body(content = UpdateMetadataParams, description = "Update metadata"),
     responses(
         (status = 200),
         (status = 500),

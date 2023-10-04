@@ -51,6 +51,7 @@ use handlers::auth::ApiDocAddon as AuthApiDocAddon;
 use handlers::collection::ApiDocAddon as CollectionApiDocAddon;
 use handlers::collection_custom::ApiDocAddon as CollectionCustomAddon;
 use handlers::events::ApiDocAddon as EventApiDocAddon;
+use handlers::metadata::ApiDocAddon as MetadataApiDocAddon;
 use handlers::metrics::ApiDocAddon as MetricsApiDocAddon;
 use handlers::nft::ApiDocAddon as NftApiDocAddon;
 use handlers::owner::ApiDocAddon as OwnerApiDocAddon;
@@ -93,7 +94,8 @@ use warp::{http::StatusCode, Filter};
         &OwnerApiDocAddon,
         &UserApiDocAddon,
         &ModuleApiDocAddon,
-        &CollectionCustomAddon
+        &CollectionCustomAddon,
+        &MetadataApiDocAddon
     )
 )]
 struct ApiDoc;
