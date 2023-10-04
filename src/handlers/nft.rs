@@ -48,7 +48,8 @@ use utoipa::ToSchema;
         NFTListOrderField,
         NFTTopListQuery,
         MetaRoyalty,
-        NFTListRandomBuyQuery
+        NFTListRandomBuyQuery,
+        NftForBanner
     )),
     tags(
         (name = "nft", description = "NFT handlers"),
