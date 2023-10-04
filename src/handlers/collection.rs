@@ -1,17 +1,14 @@
 use crate::db::queries::Queries;
 use crate::db::query_params::collection::CollectionsListParams;
 use crate::db::Address;
-use crate::handlers::{
-    calculate_hash, requests::collections::ListCollectionsParams, OrderDirection,
-};
+use crate::handlers::{calculate_hash, requests::collections::ListCollectionsParams};
 use crate::model::{Collection, CollectionDetails, CollectionSimple, VecWithTotal};
 use crate::schema::VecCollectionSimpleWithTotal;
 use crate::schema::VecCollectionsWithTotal;
 use crate::{api_doc_addon, catch_empty, catch_error_500, response};
 use moka::future::Cache;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use serde_json::Value;
-use std::fmt::Display;
 use std::{collections::HashMap, convert::Infallible};
 use utoipa::OpenApi;
 use utoipa::ToSchema;
@@ -27,8 +24,6 @@ use warp::Filter;
         get_collections_by_owner
     ),
     components(schemas(
-        CollectionListOrderField,
-        CollectionListOrder,
         VecCollectionsWithTotal,
         ListCollectionsParams,
         ListCollectionsSimpleParams,
@@ -44,26 +39,6 @@ use warp::Filter;
 )]
 struct ApiDoc;
 api_doc_addon!(ApiDoc);
-
-#[derive(Clone, Deserialize, Serialize, Hash, ToSchema)]
-pub enum CollectionListOrderField {
-    #[serde(rename = "firstMint")]
-    FirstMint,
-}
-
-impl Display for CollectionListOrderField {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            CollectionListOrderField::FirstMint => write!(f, "first_mint"),
-        }
-    }
-}
-
-#[derive(Clone, Deserialize, Serialize, Hash, ToSchema)]
-pub struct CollectionListOrder {
-    pub field: CollectionListOrderField,
-    pub direction: OrderDirection,
-}
 
 #[utoipa::path(
     post,

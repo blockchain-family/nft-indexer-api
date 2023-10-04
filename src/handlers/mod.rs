@@ -5,6 +5,7 @@ pub mod auth;
 pub mod collection;
 pub mod collection_custom;
 pub mod events;
+pub mod metadata;
 pub mod metrics;
 pub mod owner;
 pub mod requests;

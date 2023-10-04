@@ -1,4 +1,5 @@
 pub mod collections;
+pub mod metadata;
 
 use serde::Deserialize;
 use utoipa::ToSchema;
