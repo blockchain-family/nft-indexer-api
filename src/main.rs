@@ -28,6 +28,7 @@ use api::handlers::collection::{
 };
 use api::handlers::collection_custom::upsert_collection_custom;
 use api::handlers::events::{get_events, search_all};
+use api::handlers::metadata::update_metadata;
 use api::handlers::metrics::get_metrics_summary;
 use api::handlers::nft::{
     get_nft, get_nft_direct_buy, get_nft_for_banner, get_nft_list, get_nft_price_history,
@@ -50,6 +51,7 @@ use handlers::auth::ApiDocAddon as AuthApiDocAddon;
 use handlers::collection::ApiDocAddon as CollectionApiDocAddon;
 use handlers::collection_custom::ApiDocAddon as CollectionCustomAddon;
 use handlers::events::ApiDocAddon as EventApiDocAddon;
+use handlers::metadata::ApiDocAddon as MetadataApiDocAddon;
 use handlers::metrics::ApiDocAddon as MetricsApiDocAddon;
 use handlers::nft::ApiDocAddon as NftApiDocAddon;
 use handlers::owner::ApiDocAddon as OwnerApiDocAddon;
@@ -92,7 +94,8 @@ use warp::{http::StatusCode, Filter};
         &OwnerApiDocAddon,
         &UserApiDocAddon,
         &ModuleApiDocAddon,
-        &CollectionCustomAddon
+        &CollectionCustomAddon,
+        &MetadataApiDocAddon
     )
 )]
 struct ApiDoc;
@@ -208,6 +211,7 @@ async fn main() {
                     db_service.clone(),
                     auth_service.clone(),
                 ))
+                .or(update_metadata(cfg.indexer_api_url))
                 .or(sign_in(auth_service.clone())),
         )
         .with(cors);
