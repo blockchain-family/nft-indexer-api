@@ -3,7 +3,6 @@ use crate::db::Address;
 use chrono::NaiveDateTime;
 
 impl Queries {
-    // TODO: дернуть апдейт обновления строки в nft_collection_details таблице
     #[allow(clippy::too_many_arguments)]
     pub async fn upsert_collection_custom(
         &self,
@@ -16,7 +15,6 @@ impl Queries {
         logo: Option<String>,
         social: serde_json::Value,
     ) -> sqlx::Result<()> {
-        // TODO: аналогично, оврнер в таблице неактуальный может быть
         sqlx::query!(
             r#"
                 insert into nft_collection_custom(address, updated, name, description, wallpaper, logo, social)
@@ -44,10 +42,18 @@ impl Queries {
         .execute(self.db.as_ref())
         .await?;
 
+        sqlx::query!(
+            r#"
+                call update_collections_details($1, false)
+            "#,
+            [address.as_str()] as _,
+        )
+        .execute(self.db.as_ref())
+        .await?;
+
         Ok(())
     }
 
-    // TODO: неправильно сделано, надо через метод контракта
     pub async fn validate_owner_of_collection(
         &self,
         address: &String,
