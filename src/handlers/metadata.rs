@@ -52,9 +52,6 @@ pub async fn update_metadata_handler(
     let url = format!("{indexer_api_url}/metadata/refresh/");
 
     log::info!("Requesting meta update (url = {url}");
-    let req = client.post(url.clone()).json(&params).build();
-
-    log::info!("Result request: {:#?}", req);
 
     let response = catch_error_500!(client.post(url).json(&params).send().await);
 
