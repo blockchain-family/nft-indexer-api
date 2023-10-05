@@ -179,11 +179,11 @@ impl Queries {
         .await
     }
 
-    pub async fn nft_get_for_banner(&self) -> sqlx::Result<Option<NftForBanner>> {
+    pub async fn nft_get_for_banner(&self) -> sqlx::Result<Vec<NftForBanner>> {
         sqlx::query_as!(
             NftForBanner,
             r#"
-            select
+            select distinct on (result.collection_address)
                 result.name as "name!",
                 result.collection_address as "collection_address!",
                 result.nft_address as "nft_address!",
@@ -202,18 +202,14 @@ impl Queries {
                      join nft_metadata nmd on nmd.nft = n.address
                 where
                      nmd.meta -> 'preview' ->> 'source' is not null
-                     and nc.address = (
+                     and nc.address in (
                          select nc.address from nft_collection nc where nc.for_banner
-                         ORDER BY RANDOM()
-                         LIMIT 1
                      )
-                     limit 50
             ) result
-            ORDER BY RANDOM()
-            LIMIT 1
+            order by result.collection_address, random()
             "#
         )
-        .fetch_optional(self.db.as_ref())
+        .fetch_all(self.db.as_ref())
         .await
     }
 

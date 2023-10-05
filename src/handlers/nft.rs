@@ -492,7 +492,7 @@ pub async fn get_nft_sell_count_handler(
     tag = "nft",
     path = "/nft/banner",
     responses(
-        (status = 200, body = NftForBanner),
+        (status = 200, body = Vec<NftForBanner>),
         (status = 500),
     ),
 )]
@@ -514,7 +514,7 @@ pub async fn get_nft_for_banner_handler(
     let hash = calculate_hash(&"nft/banner".to_string());
     let cached_value = cache.get(&hash);
 
-    let nft_for_banner: Option<NftForBanner>;
+    let nft_for_banner: Vec<NftForBanner>;
     match cached_value {
         None => {
             nft_for_banner = catch_error_500!(db.nft_get_for_banner().await);
