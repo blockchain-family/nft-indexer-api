@@ -1,6 +1,8 @@
 use crate::db::queries::Queries;
 use crate::db::query_params::collection::CollectionsListParams;
 use crate::db::Address;
+use crate::handlers::requests::collections::CollectionOrderingFields;
+use crate::handlers::requests::CollectionListOrder;
 use crate::handlers::{calculate_hash, requests::collections::ListCollectionsParams};
 use crate::model::{Collection, CollectionDetails, CollectionSimple, VecWithTotal};
 use crate::schema::VecCollectionSimpleWithTotal;
@@ -26,6 +28,8 @@ use warp::Filter;
     components(schemas(
         VecCollectionsWithTotal,
         ListCollectionsParams,
+        CollectionListOrder,
+        CollectionOrderingFields,
         ListCollectionsSimpleParams,
         VecCollectionSimpleWithTotal,
         CollectionParam,

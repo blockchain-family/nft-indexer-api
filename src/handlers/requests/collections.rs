@@ -1,4 +1,4 @@
-use crate::handlers::requests::Ordering;
+use crate::handlers::requests::CollectionListOrder;
 use serde::Deserialize;
 use utoipa::ToSchema;
 
@@ -20,7 +20,7 @@ pub struct ListCollectionsParams {
     pub collections: Option<Vec<String>>,
     pub limit: Option<usize>,
     pub offset: Option<usize>,
-    pub order: Option<Ordering<CollectionOrderingFields>>,
+    pub order: Option<CollectionListOrder>,
     #[serde(rename = "nftType")]
     pub nft_type: Option<String>,
 }

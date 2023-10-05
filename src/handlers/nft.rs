@@ -18,6 +18,7 @@ use std::collections::HashMap;
 use std::convert::Infallible;
 use std::fmt::{Display, Formatter};
 use std::hash::Hash;
+use std::str::FromStr;
 use tokio::join;
 use warp::http::StatusCode;
 use warp::Filter;
@@ -317,13 +318,23 @@ pub async fn get_nft_list_handler(
                 false => limit + 1,
             };
 
+            let price_from = catch_error_500!(params
+                .price_from
+                .map(|p| BigDecimal::from_str(&p))
+                .transpose());
+
+            let price_to = catch_error_500!(params
+                .price_to
+                .map(|p| BigDecimal::from_str(&p))
+                .transpose());
+
             let search_params = &NftSearchParams {
                 owners: params.owners.as_deref().unwrap_or(&[]),
                 collections: params.collections.as_deref().unwrap_or(&[]),
                 forsale: params.forsale,
                 auction: params.auction,
-                price_from: params.price_from.as_ref(),
-                price_to: params.price_to.as_ref(),
+                price_from: price_from.as_ref(),
+                price_to: price_to.as_ref(),
                 verified: Some(params.verified.unwrap_or(true)),
                 limit,
                 offset: params.offset.unwrap_or_default(),
@@ -656,11 +667,9 @@ pub struct NFTListQuery {
     pub owners: Option<Vec<String>>,
     pub collections: Option<Vec<String>>,
     #[serde(rename = "priceFrom")]
-    #[schema(nullable, value_type = String)]
-    pub price_from: Option<BigDecimal>,
+    pub price_from: Option<String>,
     #[serde(rename = "priceTo")]
-    #[schema(nullable, value_type = String)]
-    pub price_to: Option<BigDecimal>,
+    pub price_to: Option<String>,
     #[serde(rename = "priceToken")]
     pub price_token: Option<String>,
     pub forsale: Option<bool>,
