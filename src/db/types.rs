@@ -84,6 +84,7 @@ pub struct NftCollection {
     pub cnt: i64,
     pub first_mint: NaiveDateTime,
     pub social: Option<serde_json::Value>,
+    pub royalty: Option<serde_json::Value>,
 }
 
 #[derive(Clone, Debug)]
@@ -125,6 +126,7 @@ pub struct NftCollectionDetails {
     pub previews: serde_json::Value,
     pub first_mint: Option<NaiveDateTime>,
     pub social: Option<serde_json::Value>,
+    pub royalty: Option<serde_json::Value>,
 }
 
 #[derive(Clone, Debug, sqlx::FromRow)]

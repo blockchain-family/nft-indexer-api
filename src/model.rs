@@ -120,6 +120,7 @@ pub struct Collection {
     pub total_price: Option<String>,
     pub first_mint: i64,
     pub social: Option<Social>,
+    pub royalty: Option<serde_json::Value>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
@@ -380,6 +381,7 @@ impl Collection {
             lowest_price: None,
             first_mint: db.first_mint.timestamp(),
             social: serde_json::from_value(db.social.unwrap_or_default()).unwrap_or_default(),
+            royalty: serde_json::from_value(db.royalty.unwrap_or_default()).unwrap_or_default(),
         }
     }
 }
@@ -410,6 +412,7 @@ impl CollectionDetails {
                 lowest_price: None,
                 first_mint: db.first_mint.expect("NFT without collection").timestamp(),
                 social: serde_json::from_value(db.social.unwrap_or_default())?,
+                royalty: serde_json::from_value(db.royalty.unwrap_or_default())?,
             },
             floor_price_usd: db.floor_price_usd.map(|x| x.to_string()),
             total_volume_usd: db.total_volume_usd.map(|x| x.to_string()),
