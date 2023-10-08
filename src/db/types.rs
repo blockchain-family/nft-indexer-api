@@ -410,3 +410,9 @@ pub struct Social {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub medium: Option<String>,
 }
+
+#[derive(Debug, Deserialize, Serialize, sqlx::FromRow)]
+pub struct NftsPriceRangeRecord {
+    pub from: BigDecimal,
+    pub to: BigDecimal,
+}

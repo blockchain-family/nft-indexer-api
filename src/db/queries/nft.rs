@@ -1,10 +1,11 @@
 use crate::db::queries::Queries;
 use crate::db::{NftDetails, NftMimetype};
+use anyhow::{anyhow, bail};
 use chrono::NaiveDateTime;
 
 use super::*;
 
-use crate::handlers::nft::NFTListOrderField;
+use crate::handlers::nft::{AttributeFilter, NFTListOrderField};
 
 use crate::db::query_params::nft::NftSearchParams;
 use crate::model::OrderDirection;
@@ -738,4 +739,132 @@ impl Queries {
         .await
         .map(|x| x.iter().map(|y| y.nft.clone()).collect())
     }
+
+    pub async fn nft_price_range_verified(
+        &self,
+        collections: &[Address],
+        attributes: &[AttributeFilter],
+        owners: &[Address],
+        verified: bool,
+    ) -> anyhow::Result<Option<NftsPriceRangeRecord>> {
+        let (attributes_filter, bind_params) = build_attributes_filter(2, attributes)?;
+
+        if verified && !owners.is_empty() {
+            bail!("Filter by owners must use unverified instead verified");
+        }
+
+        if !verified {
+            if collections.is_empty() && owners.is_empty() {
+                bail!("Need additional filters for unverified");
+            }
+
+            let query = format!(
+                r#"
+                select min(min_floor_price) as "from", max(min_floor_price) as "to"
+                    from (
+                             SELECT least(MIN(CASE WHEN ow.address IS NOT NULL THEN s.price * tup.usd_price END), MIN(
+                                            CASE WHEN ow2.address IS NOT NULL THEN a.min_bid * tup2.usd_price END)) min_floor_price
+
+
+                             FROM nft n
+                                      LEFT JOIN nft_auction a ON a.nft = n.address AND a.status = 'active' AND
+                                                                 (a.finished_at = to_timestamp(0) OR a.finished_at > NOW())
+                                      LEFT JOIN offers_whitelist ow2 ON ow2.address = a.address
+                                      LEFT JOIN token_usd_prices tup2 ON tup2.token = a.price_token
+                                      LEFT JOIN nft_direct_sell s ON s.nft = n.address AND s.state = 'active' AND
+                                                                     (s.expired_at = to_timestamp(0) OR s.expired_at > NOW())
+                                      LEFT JOIN offers_whitelist ow ON ow.address = s.address
+                                      LEFT JOIN token_usd_prices tup ON tup.token = s.price_token
+                             WHERE NOT n.burned
+                               and (n.owner = any($1::text[]) or $2 = '{{}}')
+                               and (n.collection = any($2::text[]) or $2 = '{{}}')
+                               {attributes_filter}
+                             group by n.address
+                         ) ag
+            "#,
+                attributes_filter = attributes_filter
+            );
+
+            let mut db_query = sqlx::query_as(&query);
+            db_query = db_query.bind(owners);
+            db_query = db_query.bind(collections);
+            for (param1, param2) in bind_params {
+                db_query = db_query.bind(param1).bind(param2);
+            }
+            println!("{query}");
+
+            db_query
+                .fetch_optional(self.db.as_ref())
+                .await
+                .map_err(|e| anyhow!(e))
+        } else {
+            let query = format!(
+                r#"
+                SELECT
+                    MIN(LEAST(n.floor_price_auc_usd, n.floor_price_sell_usd)) as "from",
+                    MAX(LEAST(n.floor_price_auc_usd, n.floor_price_sell_usd)) as "to"
+                FROM
+                    nft_verified_extended n
+                WHERE
+                    (n.collection = ANY ($1) OR $1 = '{{}}')
+                    {attributes_filter}
+                HAVING
+                    COALESCE(MIN(LEAST(n.floor_price_auc_usd, n.floor_price_sell_usd)), MAX(LEAST(n.floor_price_auc_usd, n.floor_price_sell_usd))) IS NOT NULL
+            "#,
+                attributes_filter = attributes_filter
+            );
+
+            let mut db_query = sqlx::query_as(&query);
+            db_query = db_query.bind(collections);
+
+            for (param1, param2) in bind_params {
+                db_query = db_query.bind(param1).bind(param2);
+            }
+
+            println!("{query}");
+
+            db_query
+                .fetch_optional(self.db.as_ref())
+                .await
+                .map_err(|e| anyhow!(e))
+        }
+    }
+}
+
+fn build_attributes_filter(
+    mut index_from: usize,
+    attributes: &[AttributeFilter],
+) -> Result<(String, Vec<(String, String)>), sqlx::Error> {
+    let mut attributes_filter = String::default();
+    let mut bind_params = Vec::new();
+
+    for attribute in attributes.iter() {
+        let index1 = index_from;
+        let index2 = index_from + 1;
+        index_from += 2; // Update this line to ensure unique placeholders
+
+        attributes_filter.push_str(&format!(
+            r#" AND EXISTS(
+            SELECT 1 FROM nft_attributes na
+            WHERE
+                na.nft = n.address AND (LOWER(na.trait_type) = LOWER(${}) AND LOWER(TRIM(na.value #>> '{{}}')) = any(${}::text[]))
+            )
+        "#,
+            index1, index2
+        ));
+
+        let values_as_text_array = format!(
+            "{{{}}}",
+            attribute
+                .trait_values
+                .iter()
+                .map(|v| v.to_lowercase())
+                .collect::<Vec<_>>()
+                .join(",")
+        );
+
+        bind_params.push((attribute.trait_type.clone(), values_as_text_array));
+    }
+
+    Ok((attributes_filter, bind_params))
 }

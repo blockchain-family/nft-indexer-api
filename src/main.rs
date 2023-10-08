@@ -32,7 +32,7 @@ use api::handlers::metadata::update_metadata;
 use api::handlers::metrics::get_metrics_summary;
 use api::handlers::nft::{
     get_nft, get_nft_direct_buy, get_nft_for_banner, get_nft_list, get_nft_price_history,
-    get_nft_random_list, get_nft_sell_count, get_nft_top_list, get_nft_types,
+    get_nft_random_list, get_nft_sell_count, get_nft_top_list, get_nft_types, get_nfts_price_range,
 };
 use api::handlers::owner::{
     get_fee, get_owner_bids_in, get_owner_bids_out, get_owner_direct_buy, get_owner_direct_buy_in,
@@ -45,6 +45,7 @@ use api::model::*;
 use api::schema::Address;
 use api::services::auth::AuthService;
 use api::token::TokenDict;
+
 use api::usd_price::CurrencyClient;
 use handlers::auction::ApiDocAddon as AuctionApiDocAddon;
 use handlers::auth::ApiDocAddon as AuthApiDocAddon;
@@ -212,7 +213,8 @@ async fn main() {
                     auth_service.clone(),
                 ))
                 .or(update_metadata(cfg.indexer_api_url))
-                .or(sign_in(auth_service.clone())),
+                .or(sign_in(auth_service.clone()))
+                .or(get_nfts_price_range(db_service.clone())),
         )
         .with(cors);
 

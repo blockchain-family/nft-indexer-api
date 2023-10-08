@@ -15,9 +15,7 @@ use crate::{api_doc_addon, catch_error_500};
         UpdateMetadataParams
     )),
     tags(
-        (name = "collection", description = "Update collection meta"),
-        (name = "nft", description = "Update nft meta"),
-        (name = "metadata")
+        (name = "metadata", description = "Refresh metadata")
     ),
 )]
 struct ApiDoc;
