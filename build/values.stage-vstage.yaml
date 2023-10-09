@@ -10,6 +10,7 @@ env:
   indexer_api__base_url: oasis.gallery
   indexer_api__prices_url: https://testnetapi.web3.world/v1/currencies/
   indexer_api__main_token: 0:2c3a2ff6443af741ce653ae4ef2c85c2d52a9df84944bbe14d702c3131da3f14
+  indexer_api__indexer_api_url: https://indexer-venom-stg2.bf.works
 
 controller: statefulset
 

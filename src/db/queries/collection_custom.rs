@@ -42,6 +42,15 @@ impl Queries {
         .execute(self.db.as_ref())
         .await?;
 
+        sqlx::query!(
+            r#"
+                call update_collections_details($1, false)
+            "#,
+            [address.as_str()] as _,
+        )
+        .execute(self.db.as_ref())
+        .await?;
+
         Ok(())
     }
 

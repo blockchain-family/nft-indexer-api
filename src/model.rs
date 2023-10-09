@@ -1,11 +1,12 @@
 use crate::db::{
-    MetaRoyalty, MetricsSummaryRecord, NftEventType, NftTraitRecord, OwnerFeeRecord, RootRecord,
-    Social, UserRecord,
+    MetaRoyalty, MetricsSummaryRecord, NftEventType, NftTraitRecord, NftsPriceRangeRecord,
+    OwnerFeeRecord, RootRecord, Social, UserRecord,
 };
 use crate::{
     db::{Address, AuctionStatus, DirectBuyState, DirectSellState, EventCategory, EventType},
     token::TokenDict,
 };
+use bigdecimal::BigDecimal;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
@@ -68,6 +69,7 @@ pub struct NFTPrice {
 #[serde(rename_all = "camelCase")]
 pub struct NftTrait {
     pub trait_type: Option<String>,
+    #[schema(value_type = String)]
     pub trait_value: Option<Value>,
     pub cnt: i64,
 }
@@ -825,6 +827,23 @@ impl Display for OrderDirection {
         match self {
             OrderDirection::Asc => write!(f, "asc"),
             OrderDirection::Desc => write!(f, "desc"),
+        }
+    }
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct NftsPriceRange {
+    #[schema(value_type = String, format = "BigDecimal")]
+    pub from: BigDecimal,
+    #[schema(value_type = String, format = "BigDecimal")]
+    pub to: BigDecimal,
+}
+
+impl From<NftsPriceRangeRecord> for NftsPriceRange {
+    fn from(value: NftsPriceRangeRecord) -> Self {
+        Self {
+            from: value.from,
+            to: value.to,
         }
     }
 }

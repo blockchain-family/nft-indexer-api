@@ -55,6 +55,7 @@ pub struct ApiConfig {
     pub base_url: String,
     pub prices_url: String,
     pub main_token: String,
+    pub indexer_api_url: String,
 }
 
 impl ApiConfig {
@@ -77,6 +78,7 @@ impl Default for ApiConfig {
             base_url: String::default(),
             prices_url: "".to_string(),
             main_token: "".to_string(),
+            indexer_api_url: "https://indexer-venom-stg2.bf.works/".to_string(),
         }
     }
 }

@@ -1164,6 +1164,32 @@
     },
     "query": "\n            select s.address             as \"address!\",\n                   s.created             as \"created!\",\n                   s.updated             as \"updated!\",\n                   s.tx_lt               as \"tx_lt!\",\n                   s.nft                 as \"nft!\",\n                   s.collection          as \"collection?\",\n                   s.seller              as \"seller?\",\n                   s.price_token         as \"price_token!\",\n                   s.price               as \"price!\",\n                   s.price * p.usd_price as \"usd_price?\",\n                   s.finished_at         as \"finished_at?\",\n                   s.expired_at          as \"expired_at?\",\n                   case when s.state = 'active'::direct_sell_state and to_timestamp(0) < s.expired_at and s.expired_at < now()::timestamp\n                            then 'expired'::direct_sell_state\n                        else s.state end as \"state!: _\",\n                   count(1) over ()      as \"cnt!\",\n                   fee_numerator,\n                   fee_denominator\n            from nft_direct_sell s\n                     join offers_whitelist ow on ow.address = s.address\n                     left join token_usd_prices p on s.price_token = p.token\n                     left join lateral ( select (ne.args -> 'fee' -> 'numerator')::int   as fee_numerator,\n                                                (ne.args -> 'fee' -> 'denominator')::int as fee_denominator\n                                         from nft_events ne\n                                         where ne.event_type = 'market_fee_changed'\n                                           and ne.args ->> 'auction' = s.address ) as ev on true\n            where s.nft = $1\n              and s.state in ('active', 'expired')\n            order by s.created desc\n            limit 1\n            "
   },
+  "434f18c466deeb4aeb5785d53902cd491cd1d8eff9682d4aad5bb4c7c5890999": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          {
+            "Custom": {
+              "kind": {
+                "Array": {
+                  "Custom": {
+                    "kind": {
+                      "Domain": "Varchar"
+                    },
+                    "name": "t_address"
+                  }
+                }
+              },
+              "name": "_t_address"
+            }
+          }
+        ]
+      }
+    },
+    "query": "\n                call update_collections_details($1, false)\n            "
+  },
   "44e7caa4f8faf581f7c9ad1852e0eea6f7022e26f5abe519bbf708e278647e28": {
     "describe": {
       "columns": [
