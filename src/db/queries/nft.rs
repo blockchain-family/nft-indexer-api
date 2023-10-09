@@ -14,61 +14,61 @@ impl Queries {
     pub async fn search_all(&self, search_str: &String) -> sqlx::Result<Vec<SearchResult>> {
         sqlx::query_as!(
             SearchResult,
-                        r#"
-                        with nft_top as (
-                select n.address,
-                       n.name                                                                           nft_name,
-                       nc.name                                                                          collection_name,
-                       'nft'                                                                         as object_type,
-                       case when m.meta is not null then m.meta::jsonb -> 'preview' ->> 'source' end as "image",
-                       case
-                           when lower(n.address) = lower($1) then 10
-                           when lower(n.name) = lower($1) then 9
-                           when n.name like '' || $1 || ' %' then 7.9
-                           when n.name like '% ' || $1 || '' then 7.86
-                           when n.name like '%' || $1 || '' then 7.855
-                           when n.name like '' || $1 || '%' then 7.85
-                           when n.name like '% ' || $1 || ' %' then 7.7
-                           when n.name like '%' || $1 || '%' then 7
-                           when n.address ilike '%' || $1 || '%' then 5
-                           else 1 end                                                                   priority
-                from nft_verified_mv n
-                         left join nft_metadata m on n.address = m.nft
-                         join nft_collection nc on n.collection = nc.address
-                where (n.name ilike '%' || $1 || '%' or n.description ilike '%' || $1 || '%' or n.address ilike '%' || $1 || '%')
-                  and not n.burned
-                order by priority desc
+                   r#"
+                                  with nft_top as (
+                    select n.address,
+                           n.name                                                                           nft_name,
+                           nc.name                                                                          collection_name,
+                           'nft'                                                                         as object_type,
+                           case when m.meta is not null then m.meta::jsonb -> 'preview' ->> 'source' end as "image",
+                           case
+                               when lower(n.address) = lower($1) then 10
+                               when lower(n.name) = lower($1) then 9
+                               when n.name like '' || $1 || ' %' then 7.9
+                               when n.name like '% ' || $1 || '' then 7.86
+                               when n.name like '%' || $1 || '' then 7.855
+                               when n.name like '' || $1 || '%' then 7.85
+                               when n.name like '% ' || $1 || ' %' then 7.7
+                               when n.name like '%' || $1 || '%' then 7
+                               when n.address ilike '%' || $1 || '%' then 5
+                               else 1 end                                                                   priority
+                    from nft_verified_extended n
+                             left join nft_metadata m on n.address = m.nft
+                             join nft_collection nc on n.collection = nc.address
+                    where n.name ilike '%' || $1 || '%'
+                       or lower(n.address) = lower($1)
+                    order by priority desc
+                    limit 20
+                )
+
+                select ag.address as "address!", nft_name, collection_name, object_type as "object_type!", image
+                from (
+                         select *
+                         from nft_top
+                         union all
+
+                         select c.address,
+                                null            nft_name,
+                                c.name          collection_name,
+                                'collection' as object_type,
+                                c.logo          "image",
+                                case
+                                    when lower(c.address) = lower($1) then 20
+                                    when lower(c.name) = lower($1) then 19
+                                    when c.name like '' || $1 || ' %' then 8.9
+                                    when c.name like '% ' || $1 || '' then 8.86
+                                    when c.name like '%' || $1 || '' then 8.855
+                                    when c.name like '' || $1 || '%' then 8.85
+
+                                    when c.name like '% ' || $1 || ' %' then 8.7
+                                    when c.address ilike '%' || $1 || '%' then 6
+                                    else 2 end  priority
+                         from nft_collection c
+                         where (c.name ilike '%' || $1 || '%' or c.description ilike '%' || $1 || '%' or
+                                c.address ilike '%' || $1 || '%')
+                           and c.verified) ag
+                order by ag.priority desc
                 limit 20
-            )
-
-            select ag.address as "address!", nft_name, collection_name, object_type as "object_type!", image
-            from (
-                     select *
-                     from nft_top
-                     union all
-
-                     select c.address,
-                            null            nft_name,
-                            c.name          collection_name,
-                            'collection' as object_type,
-                            c.logo          "image",
-                            case
-                                when lower(c.address) = lower($1) then 20
-                                when lower(c.name) = lower($1) then 19
-                                when c.name like '' || $1 || ' %' then 8.9
-                                when c.name like '% ' || $1 || '' then 8.86
-                                when c.name like '%' || $1 || '' then 8.855
-                                when c.name like '' || $1 || '%' then 8.85
-
-                                when c.name like '% ' || $1 || ' %' then 8.7
-                                when c.address ilike '%' || $1 || '%' then 6
-                                else 2 end  priority
-                     from nft_collection c
-                     where (c.name ilike '%' || $1 || '%' or c.description ilike '%' || $1 || '%' or
-                            c.address ilike '%' || $1 || '%')
-                       and c.verified) ag
-            order by ag.priority desc
-            limit 20
             "#,
             search_str
         )
@@ -379,7 +379,7 @@ impl Queries {
                            else null::character varying end as "floor_price_token?",
                        n.id::text                           as "nft_id?",
                        count(1) over ()                          as "total_count!"
-                from nft_verified_mv n
+                from nft_verified_extended n
                          join nfts
                               on nfts.address = n.address
                          left join lateral ( select nph.price * tup.usd_price as last_price
@@ -604,14 +604,14 @@ impl Queries {
                 with deals as (
                     select n.address,
                            n.collection,
-                           n.owner,
-                           n.manager,
+                           n2.owner,
+                           n2.manager,
                            n.name,
-                           n.description,
-                           n.burned,
+                           n2.description,
+                           n2.burned,
                            n.updated,
-                           n.owner_update_lt,
-                           n.id,
+                           n2.owner_update_lt,
+                           n2.id,
                            tup.token               as floor_price_token,
                            s.price                 as floor_price,
                            s.price * tup.usd_price as floor_price_usd,
@@ -621,8 +621,10 @@ impl Queries {
                            s.state                 as forsale_status
 
                     from nft_direct_sell s
-                             join nft_verified_mv n
+                             join nft_verified_extended n
                                   on n.address = s.nft
+                             join nft n2
+                                on n2.address = n.address
                              join offers_whitelist ow on ow.address = s.address
                              left join token_usd_prices tup on tup.token = s.price_token
                     where s.price <= $1
@@ -673,8 +675,6 @@ impl Queries {
                                              where nph.nft = n.address
                                              order by nph.ts desc
                                              limit 1 ) last_deal on true
-
-
             "#
         ).bind(max_price).bind(limit)
             .fetch_all(self.db.as_ref())
