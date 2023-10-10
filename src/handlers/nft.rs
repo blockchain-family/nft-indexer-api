@@ -346,7 +346,11 @@ pub async fn get_nft_list_handler(
                 nft_type: params.nft_type.as_ref(),
             };
 
-            let list = catch_error_500!(db.nft_search(search_params,).await);
+            let list = if search_params.verified {
+                catch_error_500!(db.nft_search_verified(search_params,).await)
+            } else {
+                catch_error_500!(db.nft_search(search_params,).await)
+            };
 
             let mut r = catch_error_500!(make_nfts_response(list, db).await);
             if !with_count {

@@ -61,9 +61,5 @@ where (n.owner = any ($1) or $1 = '{}')
     )
   #ATTRIBUTES#
   and (floor_price_usd.val between coalesce($8, floor_price_usd.val) and coalesce($9, floor_price_usd.val) or coalesce($8, $9) is null)
---   and ($8::varchar is null or n.address in (select nct.nft_address
---                                              from nft_type_mv nct
---                                              where nct.mimetype ilike $8
---                                                and ($9::boolean is false or nct.verified is true)))
 #ORDER#
 limit $5 offset $6

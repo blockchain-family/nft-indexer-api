@@ -1,4 +1,4 @@
- explain analyse select n.address,
+select n.address,
        n.collection,
        n.owner,
        n.manager,
@@ -20,7 +20,7 @@
        n.id::text                             as      nft_id,
        case when $7 then count(1) over () else 0 end total_count
 from nft_verified_extended nve
-     join nft n on nve.address = n.address
+     LEFT JOIN LATERAL (SELECT * FROM nft where nve.address = nft.address) n on true
          left join nft_metadata m on m.nft = n.address
          left join lateral ( select s.address
                              from nft_direct_buy s

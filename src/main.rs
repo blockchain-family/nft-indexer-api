@@ -118,11 +118,11 @@ async fn main() {
         cfg.base_url,
     ));
 
-    // CurrencyClient::new(db_service.clone(), cfg.main_token, cfg.prices_url)
-    //     .expect("err initialize currency client")
-    //     .start(Duration::from_secs(5 * 60)) // 5 minutes
-    //     .await
-    //     .expect("err start currency client");
+    CurrencyClient::new(db_service.clone(), cfg.main_token, cfg.prices_url)
+        .expect("err initialize currency client")
+        .start(Duration::from_secs(5 * 60)) // 5 minutes
+        .await
+        .expect("err start currency client");
 
     let cors = warp::cors()
         .allow_any_origin()
