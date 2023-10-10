@@ -11,5 +11,5 @@ pub struct UpdateMetadataParams {
 pub struct UpdateMetadataParamsExt {
     pub nft: Option<String>,
     pub collection: String,
-    pub only_collection_info: bool
+    pub only_collection_info: bool,
 }

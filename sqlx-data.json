@@ -445,116 +445,6 @@
     },
     "query": "\n            with traits as ( select trait_type, value as trait_value from nft_attributes where nft = $1 )\n            select traits.trait_type                                                             as \"trait_type?\",\n                   traits.trait_value                                                            as \"trait_value?\",\n                   ( select count(*)\n                     from nft_attributes na\n                     where traits.trait_type = na.trait_type and traits.trait_value = na.value ) as \"cnt!\"\n            from traits\n            "
   },
-  "1b451fcbad66d11d33719334ff9b9cdd2f7863b26d6f2dcd52bbf4b005b14573": {
-    "describe": {
-      "columns": [
-        {
-          "name": "address!",
-          "ordinal": 0,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "owner!",
-          "ordinal": 1,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "name",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "description",
-          "ordinal": 3,
-          "type_info": "Text"
-        },
-        {
-          "name": "updated!",
-          "ordinal": 4,
-          "type_info": "Timestamp"
-        },
-        {
-          "name": "wallpaper",
-          "ordinal": 5,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "logo",
-          "ordinal": 6,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "total_price",
-          "ordinal": 7,
-          "type_info": "Numeric"
-        },
-        {
-          "name": "max_price",
-          "ordinal": 8,
-          "type_info": "Numeric"
-        },
-        {
-          "name": "owners_count",
-          "ordinal": 9,
-          "type_info": "Int4"
-        },
-        {
-          "name": "verified!",
-          "ordinal": 10,
-          "type_info": "Bool"
-        },
-        {
-          "name": "created!",
-          "ordinal": 11,
-          "type_info": "Timestamp"
-        },
-        {
-          "name": "first_mint!",
-          "ordinal": 12,
-          "type_info": "Timestamp"
-        },
-        {
-          "name": "nft_count!",
-          "ordinal": 13,
-          "type_info": "Int8"
-        },
-        {
-          "name": "cnt!",
-          "ordinal": 14,
-          "type_info": "Int8"
-        },
-        {
-          "name": "social",
-          "ordinal": 15,
-          "type_info": "Jsonb"
-        }
-      ],
-      "nullable": [
-        true,
-        null,
-        true,
-        true,
-        true,
-        true,
-        true,
-        null,
-        null,
-        null,
-        true,
-        true,
-        true,
-        true,
-        true,
-        true
-      ],
-      "parameters": {
-        "Left": [
-          "TextArray"
-        ]
-      }
-    },
-    "query": "\n            select c.address     as \"address!\",\n                   coalesce(c.owner, '0:0000000000000000000000000000000000000000000000000000000000000000')       as \"owner!\",\n                   c.name        as \"name\",\n                   c.description as \"description\",\n                   c.updated     as \"updated!\",\n                   c.wallpaper   as \"wallpaper\",\n                   c.logo        as \"logo\",\n                   null::numeric as total_price,\n                   null::numeric as max_price,\n                   c.owners_count::int,\n                   c.verified    as \"verified!\",\n                   c.created     as \"created!\",\n                   c.first_mint  as \"first_mint!\",\n                   c.nft_count   as \"nft_count!\",\n                   c.total_count as \"cnt!\",\n                   c.social      as \"social\"\n            from nft_collection_details c\n            where c.address = any ($1)\n              --and owner is not null\n            "
-  },
   "1f1f8196528dc4157c746098f130fd5fa2c950e2b89d02dd2eae4e539c90d889": {
     "describe": {
       "columns": [
@@ -1334,6 +1224,116 @@
       }
     },
     "query": "with periods as ( select $1::timestamp as date_from, $2::timestamp as date_to, 'current' as period_type\n                  union all\n                  select $1::timestamp - ($2::timestamp - $1::timestamp)::interval as date_from,\n                         $1::timestamp - interval '1 seconds'                      as date_to,\n                         'previous'                                                as period_type )\nselect c.address                                       as \"collection!\",\n       c.name,\n       c.logo,\n       c.floor_price_usd                               as \"floor_price\",\n       coalesce(total_volume.cur, 0)                   as \"total_volume_usd_now!\",\n       coalesce(total_volume.prev, 0)                  as \"total_volume_usd_previous!\",\n       c.owners_count::int                             as \"owners_count!\",\n       c.nft_count::int                                as \"nfts_count!\",\n       (count(1) over ())::int                         as \"total_rows_count!\"\nfrom nft_collection_details c\n         left join lateral ( select sum(case when ag.period_type = 'current' then ag.price_usd else 0 end)  cur,\n                                    sum(case when ag.period_type = 'previous' then ag.price_usd else 0 end) prev\n                             from (select p.period_type,\n                                          case when n.address is not null then tup.usd_price * ndb.price else 0 end as price_usd\n                                   from periods p\n                                            left join nft_direct_buy ndb\n                                                      on ndb.updated between p.date_from and p.date_to and ndb.state = 'filled'\n                                            left join offers_whitelist r on r.address = ndb.address\n                                            left join token_usd_prices tup on tup.token = ndb.price_token\n                                            left join nft n on ndb.nft = n.address and n.collection = c.address and\n                                                               not n.burned and r.address is not null\n                                   union all\n                                   select p.period_type,\n                                          case when n.address is not null then tup.usd_price * nds.price else 0 end as price_usd\n                                   from periods p\n                                            left join nft_direct_sell nds\n                                                      on nds.state = 'filled' and nds.updated between p.date_from and p.date_to\n                                            left join token_usd_prices tup on tup.token = nds.price_token\n                                            left join offers_whitelist r on r.address = nds.address\n                                            left join nft n on nds.nft = n.address and n.collection = c.address and\n                                                               not n.burned and r.address is not null\n                                   union all\n                                   select p.period_type,\n                                          case\n                                              when n.address is not null then tup.usd_price * na.max_bid\n                                              else 0 end as price_usd\n                                   from periods p\n                                            left join public.nft_auction na on na.status = 'completed' and\n                                                                               na.finished_at between p.date_from and p.date_to\n                                            left join offers_whitelist r on r.address = na.address\n                                            left join nft n on na.nft = n.address and not n.burned and\n                                                               r.address is not null and n.collection = c.address\n                                            left join token_usd_prices tup on tup.token = na.price_token) as ag ) as total_volume\n                   on true\nwhere c.verified\norder by coalesce(total_volume.cur, 0) desc\nlimit $3 offset $4"
+  },
+  "5cfe658f221f742a5cd668fdbf51137e1d07f00d49c43de9f18fccbbb0900e10": {
+    "describe": {
+      "columns": [
+        {
+          "name": "address!",
+          "ordinal": 0,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "owner!",
+          "ordinal": 1,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "name",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "description",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "updated!",
+          "ordinal": 4,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "wallpaper",
+          "ordinal": 5,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "logo",
+          "ordinal": 6,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "total_price",
+          "ordinal": 7,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "max_price",
+          "ordinal": 8,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "owners_count",
+          "ordinal": 9,
+          "type_info": "Int4"
+        },
+        {
+          "name": "verified!",
+          "ordinal": 10,
+          "type_info": "Bool"
+        },
+        {
+          "name": "created!",
+          "ordinal": 11,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "first_mint!",
+          "ordinal": 12,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "nft_count!",
+          "ordinal": 13,
+          "type_info": "Int8"
+        },
+        {
+          "name": "cnt!",
+          "ordinal": 14,
+          "type_info": "Int8"
+        },
+        {
+          "name": "social",
+          "ordinal": 15,
+          "type_info": "Jsonb"
+        }
+      ],
+      "nullable": [
+        true,
+        null,
+        true,
+        true,
+        true,
+        true,
+        true,
+        null,
+        null,
+        null,
+        true,
+        true,
+        true,
+        null,
+        true,
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "TextArray"
+        ]
+      }
+    },
+    "query": "\n            select c.address     as \"address!\",\n                   coalesce(c.owner, '0:0000000000000000000000000000000000000000000000000000000000000000')       as \"owner!\",\n                   c.name        as \"name\",\n                   c.description as \"description\",\n                   c.updated     as \"updated!\",\n                   c.wallpaper   as \"wallpaper\",\n                   c.logo        as \"logo\",\n                   null::numeric as total_price,\n                   null::numeric as max_price,\n                   c.owners_count::int,\n                   c.verified    as \"verified!\",\n                   c.created     as \"created!\",\n                   c.first_mint  as \"first_mint!\",\n                   coalesce(c.nft_count,0)   as \"nft_count!\",\n                   c.total_count as \"cnt!\",\n                   c.social      as \"social\"\n            from nft_collection_details c\n            where c.address = any ($1)\n              --and owner is not null\n            "
   },
   "61fdd4406009440146a4e5c62d954e5a56e118741094850186368c25286ca49a": {
     "describe": {

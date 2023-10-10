@@ -41,7 +41,6 @@ pub fn update_metadata(
         .and_then(update_metadata_handler)
 }
 
-
 pub async fn update_metadata_handler(
     params: UpdateMetadataParams,
     indexer_api_url: String,
