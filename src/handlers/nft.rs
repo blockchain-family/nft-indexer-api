@@ -338,7 +338,7 @@ pub async fn get_nft_list_handler(
                 price_from: price_from.as_ref(),
                 price_to: price_to.as_ref(),
                 verified: params.verified.unwrap_or(true),
-                limit,
+                limit: final_limit,
                 offset: params.offset.unwrap_or_default(),
                 attributes: params.attributes.as_deref().unwrap_or_default(),
                 order: params.order,
