@@ -2248,6 +2248,48 @@
     },
     "query": "\n                                  with nft_top as (\n                    select n.address,\n                           n.name                                                                           nft_name,\n                           nc.name                                                                          collection_name,\n                           'nft'                                                                         as object_type,\n                           case when m.meta is not null then m.meta::jsonb -> 'preview' ->> 'source' end as \"image\",\n                           case\n                               when lower(n.address) = lower($1) then 10\n                               when lower(n.name) = lower($1) then 9\n                               when n.name like '' || $1 || ' %' then 7.9\n                               when n.name like '% ' || $1 || '' then 7.86\n                               when n.name like '%' || $1 || '' then 7.855\n                               when n.name like '' || $1 || '%' then 7.85\n                               when n.name like '% ' || $1 || ' %' then 7.7\n                               when n.name like '%' || $1 || '%' then 7\n                               when n.address ilike '%' || $1 || '%' then 5\n                               else 1 end                                                                   priority\n                    from nft_verified_extended n\n                             left join nft_metadata m on n.address = m.nft\n                             join nft_collection nc on n.collection = nc.address\n                    where n.name ilike '%' || $1 || '%'\n                       or lower(n.address) = lower($1)\n                    order by priority desc\n                    limit 20\n                )\n\n                select ag.address as \"address!\", nft_name, collection_name, object_type as \"object_type!\", image\n                from (\n                         select *\n                         from nft_top\n                         union all\n\n                         select c.address,\n                                null            nft_name,\n                                c.name          collection_name,\n                                'collection' as object_type,\n                                c.logo          \"image\",\n                                case\n                                    when lower(c.address) = lower($1) then 20\n                                    when lower(c.name) = lower($1) then 19\n                                    when c.name like '' || $1 || ' %' then 8.9\n                                    when c.name like '% ' || $1 || '' then 8.86\n                                    when c.name like '%' || $1 || '' then 8.855\n                                    when c.name like '' || $1 || '%' then 8.85\n\n                                    when c.name like '% ' || $1 || ' %' then 8.7\n                                    when c.address ilike '%' || $1 || '%' then 6\n                                    else 2 end  priority\n                         from nft_collection c\n                         where (c.name ilike '%' || $1 || '%' or c.description ilike '%' || $1 || '%' or\n                                c.address ilike '%' || $1 || '%')\n                           and c.verified) ag\n                order by ag.priority desc\n                limit 20\n            "
   },
+  "a62682f8c50b965bbb02eed17579975447aef6aa288136ed4e2822a32c01577b": {
+    "describe": {
+      "columns": [
+        {
+          "name": "name!",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "collection_address!",
+          "ordinal": 1,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "nft_address!",
+          "ordinal": 2,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "picture!",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "mimetype!",
+          "ordinal": 4,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        true,
+        false,
+        false,
+        null,
+        null
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "\n            select distinct on (result.collection_address)\n                result.name as \"name!\",\n                result.collection_address as \"collection_address!\",\n                result.nft_address as \"nft_address!\",\n                result.picture as \"picture!\",\n                result.mimetype \"mimetype!\"\n            from (\n                select\n                     nc.\"name\",\n                     nc.address as \"collection_address\",\n                     n.address as \"nft_address\",\n                     nmd.meta -> 'preview' ->> 'source' as \"picture\",\n                     nmd.meta -> 'preview' ->> 'mimetype' as \"mimetype\"\n                from\n                     nft_collection nc\n                     join nft n on nc.address = n.collection\n                     join nft_metadata nmd on nmd.nft = n.address\n                where\n                     nmd.meta -> 'preview' ->> 'source' is not null\n                     and nc.address in (\n                         select nc.address from nft_collection nc where nc.for_banner\n                     )\n            ) result\n            order by result.collection_address, random()\n            "
+  },
   "a825be428aabdf0c2dcda85690a51fb35ce1f1a642c83c5e72c21daea5097fae": {
     "describe": {
       "columns": [
@@ -3069,48 +3111,6 @@
       }
     },
     "query": "\n            select case when fee.fee_numerator is not null and fee.fee_denominator is not null then fee.fee_numerator\n                        else (ne.args -> 'fee' -> 'numerator')::int end   \"fee_numerator!\",\n                   case when fee.fee_numerator is not null and fee.fee_denominator is not null then fee.fee_denominator\n                        else (ne.args -> 'fee' -> 'denominator')::int end \"fee_denominator!\",\n                   fee.collection,\n                   fee.nft\n            from nft_events ne\n                     join roots r on ne.address = r.address and r.code = $2::t_root_types\n                     left join lateral ( select nc.fee_numerator,\n                                                nc.fee_denominator,\n                                                max(n.collection) collection,\n                                                max(n.id)::text   nft\n                                         from nft n\n                                                  join nft_collection nc\n                                                       on n.collection = nc.address and nc.fee_numerator is not null and\n                                                          nc.fee_denominator is not null\n                                         where n.owner = $1\n                                         group by nc.fee_numerator, nc.fee_denominator\n                                         order by min(nc.fee_numerator / nc.fee_denominator)\n                                         limit 1 ) as fee on true\n            where ne.event_type = 'market_fee_default_changed'\n            order by created_at desc, created_lt desc, id desc\n            limit 1\n            "
-  },
-  "e627252154e34bfa258ddd5ea62d14eea19af0c6f50d73ca149ab1f279fddbbf": {
-    "describe": {
-      "columns": [
-        {
-          "name": "name!",
-          "ordinal": 0,
-          "type_info": "Text"
-        },
-        {
-          "name": "collection_address!",
-          "ordinal": 1,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "nft_address!",
-          "ordinal": 2,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "picture!",
-          "ordinal": 3,
-          "type_info": "Text"
-        },
-        {
-          "name": "mimetype!",
-          "ordinal": 4,
-          "type_info": "Text"
-        }
-      ],
-      "nullable": [
-        true,
-        false,
-        false,
-        null,
-        null
-      ],
-      "parameters": {
-        "Left": []
-      }
-    },
-    "query": "\n            select\n                result.name as \"name!\",\n                result.collection_address as \"collection_address!\",\n                result.nft_address as \"nft_address!\",\n                result.picture as \"picture!\",\n                result.mimetype \"mimetype!\"\n            from (\n                select\n                     nc.\"name\",\n                     nc.address as \"collection_address\",\n                     n.address as \"nft_address\",\n                     nmd.meta -> 'preview' ->> 'source' as \"picture\",\n                     nmd.meta -> 'preview' ->> 'mimetype' as \"mimetype\"\n                from\n                     nft_collection nc\n                     join nft n on nc.address = n.collection\n                     join nft_metadata nmd on nmd.nft = n.address\n                where\n                     nmd.meta -> 'preview' ->> 'source' is not null\n                     and nc.address = (\n                         select nc.address from nft_collection nc where nc.for_banner\n                         ORDER BY RANDOM()\n                         LIMIT 1\n                     )\n                     limit 50\n            ) result\n            ORDER BY RANDOM()\n            LIMIT 1\n            "
   },
   "e84788ccf8061a9452dfacb46ae563d00fa53837a58f87dab63acb4154728afd": {
     "describe": {
