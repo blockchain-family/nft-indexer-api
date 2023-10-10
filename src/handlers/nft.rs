@@ -333,20 +333,24 @@ pub async fn get_nft_list_handler(
             let search_params = &NftSearchParams {
                 owners: params.owners.as_deref().unwrap_or(&[]),
                 collections: params.collections.as_deref().unwrap_or(&[]),
-                forsale: params.forsale,
-                auction: params.auction,
+                forsale: params.forsale.unwrap_or(false),
+                auction: params.auction.unwrap_or(false),
                 price_from: price_from.as_ref(),
                 price_to: price_to.as_ref(),
-                verified: Some(params.verified.unwrap_or(true)),
+                verified: params.verified.unwrap_or(true),
                 limit,
                 offset: params.offset.unwrap_or_default(),
-                _attributes: &[],
-                order: None,
+                attributes: params.attributes.as_deref().unwrap_or_default(),
+                order: params.order,
                 with_count,
                 nft_type: params.nft_type.as_ref(),
             };
 
-            let list = catch_error_500!(db.nft_search(search_params,).await);
+            let list = if search_params.verified {
+                catch_error_500!(db.nft_search_verified(search_params,).await)
+            } else {
+                catch_error_500!(db.nft_search(search_params,).await)
+            };
 
             let mut r = catch_error_500!(make_nfts_response(list, db).await);
             if !with_count {

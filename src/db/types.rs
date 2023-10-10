@@ -20,7 +20,7 @@ pub struct SearchResult {
 pub struct NftDetails {
     pub address: Option<String>,
     pub collection: Option<Address>,
-    pub meta: Option<serde_json::Value>,
+    pub meta: Option<Value>,
     pub owner: Option<Address>,
     pub manager: Option<Address>,
     pub name: Option<String>,

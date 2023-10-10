@@ -5,7 +5,7 @@ use chrono::NaiveDateTime;
 
 use super::*;
 
-use crate::handlers::nft::{AttributeFilter, NFTListOrderField};
+use crate::handlers::nft::{AttributeFilter, NFTListOrder, NFTListOrderField};
 
 use crate::db::query_params::nft::NftSearchParams;
 use crate::model::OrderDirection;
@@ -15,61 +15,61 @@ impl Queries {
     pub async fn search_all(&self, search_str: &String) -> sqlx::Result<Vec<SearchResult>> {
         sqlx::query_as!(
             SearchResult,
-                        r#"
-                        with nft_top as (
-                select n.address,
-                       n.name                                                                           nft_name,
-                       nc.name                                                                          collection_name,
-                       'nft'                                                                         as object_type,
-                       case when m.meta is not null then m.meta::jsonb -> 'preview' ->> 'source' end as "image",
-                       case
-                           when lower(n.address) = lower($1) then 10
-                           when lower(n.name) = lower($1) then 9
-                           when n.name like '' || $1 || ' %' then 7.9
-                           when n.name like '% ' || $1 || '' then 7.86
-                           when n.name like '%' || $1 || '' then 7.855
-                           when n.name like '' || $1 || '%' then 7.85
-                           when n.name like '% ' || $1 || ' %' then 7.7
-                           when n.name like '%' || $1 || '%' then 7
-                           when n.address ilike '%' || $1 || '%' then 5
-                           else 1 end                                                                   priority
-                from nft_verified_mv n
-                         left join nft_metadata m on n.address = m.nft
-                         join nft_collection nc on n.collection = nc.address
-                where (n.name ilike '%' || $1 || '%' or n.description ilike '%' || $1 || '%' or n.address ilike '%' || $1 || '%')
-                  and not n.burned
-                order by priority desc
+                   r#"
+                                  with nft_top as (
+                    select n.address,
+                           n.name                                                                           nft_name,
+                           nc.name                                                                          collection_name,
+                           'nft'                                                                         as object_type,
+                           case when m.meta is not null then m.meta::jsonb -> 'preview' ->> 'source' end as "image",
+                           case
+                               when lower(n.address) = lower($1) then 10
+                               when lower(n.name) = lower($1) then 9
+                               when n.name like '' || $1 || ' %' then 7.9
+                               when n.name like '% ' || $1 || '' then 7.86
+                               when n.name like '%' || $1 || '' then 7.855
+                               when n.name like '' || $1 || '%' then 7.85
+                               when n.name like '% ' || $1 || ' %' then 7.7
+                               when n.name like '%' || $1 || '%' then 7
+                               when n.address ilike '%' || $1 || '%' then 5
+                               else 1 end                                                                   priority
+                    from nft_verified_extended n
+                             left join nft_metadata m on n.address = m.nft
+                             join nft_collection nc on n.collection = nc.address
+                    where n.name ilike '%' || $1 || '%'
+                       or lower(n.address) = lower($1)
+                    order by priority desc
+                    limit 20
+                )
+
+                select ag.address as "address!", nft_name, collection_name, object_type as "object_type!", image
+                from (
+                         select *
+                         from nft_top
+                         union all
+
+                         select c.address,
+                                null            nft_name,
+                                c.name          collection_name,
+                                'collection' as object_type,
+                                c.logo          "image",
+                                case
+                                    when lower(c.address) = lower($1) then 20
+                                    when lower(c.name) = lower($1) then 19
+                                    when c.name like '' || $1 || ' %' then 8.9
+                                    when c.name like '% ' || $1 || '' then 8.86
+                                    when c.name like '%' || $1 || '' then 8.855
+                                    when c.name like '' || $1 || '%' then 8.85
+
+                                    when c.name like '% ' || $1 || ' %' then 8.7
+                                    when c.address ilike '%' || $1 || '%' then 6
+                                    else 2 end  priority
+                         from nft_collection c
+                         where (c.name ilike '%' || $1 || '%' or c.description ilike '%' || $1 || '%' or
+                                c.address ilike '%' || $1 || '%')
+                           and c.verified) ag
+                order by ag.priority desc
                 limit 20
-            )
-
-            select ag.address as "address!", nft_name, collection_name, object_type as "object_type!", image
-            from (
-                     select *
-                     from nft_top
-                     union all
-
-                     select c.address,
-                            null            nft_name,
-                            c.name          collection_name,
-                            'collection' as object_type,
-                            c.logo          "image",
-                            case
-                                when lower(c.address) = lower($1) then 20
-                                when lower(c.name) = lower($1) then 19
-                                when c.name like '' || $1 || ' %' then 8.9
-                                when c.name like '% ' || $1 || '' then 8.86
-                                when c.name like '%' || $1 || '' then 8.855
-                                when c.name like '' || $1 || '%' then 8.85
-
-                                when c.name like '% ' || $1 || ' %' then 8.7
-                                when c.address ilike '%' || $1 || '%' then 6
-                                else 2 end  priority
-                     from nft_collection c
-                     where (c.name ilike '%' || $1 || '%' or c.description ilike '%' || $1 || '%' or
-                            c.address ilike '%' || $1 || '%')
-                       and c.verified) ag
-            order by ag.priority desc
-            limit 20
             "#,
             search_str
         )
@@ -332,7 +332,7 @@ impl Queries {
             r#"
                 with nfts as (
                     select nvm.address, count(1) as subcnt, nvm.updated
-                    from nft_verified_mv nvm
+                    from nft_verified_extended nvm
                              left join nft_price_history nph
                                        on nvm.address = nph.nft
                                            and nph.ts >= $1
@@ -351,9 +351,9 @@ impl Queries {
                        n.manager as "manager?",
                        n.name::text                         as "name?",
                        n.description as "description?",
-                       n.burned,
-                       n.updated,
-                       n.owner_update_lt                    as tx_lt,
+                       n.burned as "burned?",
+                       n.updated as "updated?",
+                       n.owner_update_lt                    as "tx_lt?",
                        m.meta as "meta?",
                        auc.auction as "auction?",
                        auc."auction_status: _",
@@ -380,7 +380,7 @@ impl Queries {
                            else null::character varying end as "floor_price_token?",
                        n.id::text                           as "nft_id?",
                        count(1) over ()                          as "total_count!"
-                from nft_verified_mv n
+                from nft n
                          join nfts
                               on nfts.address = n.address
                          left join lateral ( select nph.price * tup.usd_price as last_price
@@ -448,108 +448,108 @@ impl Queries {
     }
 
     pub async fn nft_search(&self, params: &NftSearchParams<'_>) -> sqlx::Result<Vec<NftDetails>> {
-        let sql: &str = include_str!("../sql/nfts.sql");
-        let forsale = params.forsale.unwrap_or(false);
-        let auction = params.auction.unwrap_or(false);
+        let sql: &str = include_str!("../sql/nfts_full.sql");
 
-        let mut order_direction_result = "asc".to_string();
-        let mut deals_order_field = "ag.name";
-        let mut enable_sales_query = false;
-        let mut order_result = "".to_string();
-        let mut nfts_direction_default = "asc".to_string();
+        let (attributes_filter, bind_params) = build_attributes_filter(10, params.attributes, "n")?;
 
-        if let Some(order) = params.order {
-            order_direction_result = order.direction.to_string();
-            enable_sales_query = true;
-            deals_order_field = match order.field {
-                NFTListOrderField::FloorPriceUsd => {
-                    match order.direction {
-                        OrderDirection::Asc => order_result = "order by coalesce(n.floor_price_usd, least(auc.price_usd, sale.price_usd)) asc, n.name asc, n.address asc".to_string(),
-                        OrderDirection::Desc => order_result = "order by coalesce(n.floor_price_usd, coalesce(least(auc.price_usd, sale.price_usd)), 0) desc, n.name asc, n.address asc".to_string()
-                    };
+        let order = params.order.clone().unwrap_or(NFTListOrder {
+            field: NFTListOrderField::Name,
+            direction: OrderDirection::Asc,
+        });
 
-                    "coalesce(ag.price_usd, 0)"
-                }
-                NFTListOrderField::DealPriceUsd => {
-                    match order.direction {
-                        OrderDirection::Asc => order_result = "order by coalesce(n.floor_price_usd, least(auc.price_usd, sale.price_usd)) asc, n.name asc, n.address asc".to_string(),
-                        OrderDirection::Desc => order_result = "order by coalesce(n.floor_price_usd, coalesce(least(auc.price_usd, sale.price_usd)), 0) desc, n.name asc, n.address asc".to_string()
-                    };
-                    "coalesce(ag.price_usd, 0)"
-                }
-                NFTListOrderField::Name => {
-                    enable_sales_query = false;
-                    nfts_direction_default = order_direction_result.clone();
-                    "ag.name"
+        let order = match order.field {
+            NFTListOrderField::FloorPriceUsd => {
+                match order.direction {
+                    OrderDirection::Asc => "order by floor_price_usd.val asc, n.name COLLATE numeric asc, n.address asc",
+                    OrderDirection::Desc => "order by coalesce(floor_price_usd.val, 0) desc, n.name COLLATE numeric asc, n.address asc"
                 }
             }
-        }
-
-        if forsale || auction {
-            enable_sales_query = false;
-        }
-
-        let with_optimized: bool = if enable_sales_query {
-            sqlx::query_scalar!("select case
-                               when not $3::bool then false
-                               when $1::text[] = '{}'::text[] and $2::text[] = '{}'::text[] then true
-                               when coalesce(array_length($2::text[], 1), 0) > 0 and
-                                    coalesce(array_length($1::text[], 1), 0) > 0 and (select count(1)
-                                                                                          from nft n
-                                                                                          where n.owner = any ($1::text[])
-                                                                                            and n.collection = any ($2::text[])
-                                                                                      ) > 1000 then true
-                               when coalesce(array_length($2::text[], 1), 0) > 0 and $1::text[] = '{}'::text[] and (select sum(nft_count)
-                                                                                                      from nft_collection_details ncd
-                                                                                                      where ncd.address = any ($2::text[])
-                                                                                                     ) > 1000 then true
-                               when $2::text[] = '{}'::text[] and coalesce(array_length($1::text[], 1), 0) > 0 and (
-                                                                                                         select count(1)
-                                                                                                         from nft_verified_mv n
-                                                                                                         where n.owner = any ($1::text[])
-                                                                                                     ) > 1000 then true
-                               else false
-                               end is_enabled",
-            params.owners,
-            params.collections,
-            enable_sales_query
-        ).fetch_one(self.db.as_ref())
-                .await?.expect("failed to get value")
-        } else {
-            false
+            NFTListOrderField::DealPriceUsd => {
+                match order.direction {
+                    OrderDirection::Asc => "order by floor_price_usd.val asc, n.name COLLATE numeric asc, n.address asc",
+                    OrderDirection::Desc => "order by coalesce(floor_price_usd.val, 0) desc, n.name COLLATE numeric asc, n.address asc"
+                }
+            }
+            NFTListOrderField::Name => {
+                match order.direction {
+                    OrderDirection::Asc => "order by n.name COLLATE numeric asc, n.address asc",
+                    OrderDirection::Desc => "order by n.name COLLATE numeric desc, n.address asc"
+                }
+            }
         };
-
-        let sql = sql.replace("#ORDER_DIRECTION#", &order_direction_result);
-        let sql = sql.replace("#DEALS_ORDER_FIELD#", deals_order_field);
-        let sql = sql.replace("#NFTS_DIRECTION_BASE#", &nfts_direction_default);
-
-        let sql = if !params.verified.unwrap_or(true) {
-            sql.replace("nft_verified_mv", "nft")
-        } else {
-            sql
-        };
-
-        let sql = if !with_optimized {
-            sql.replace("#ORDER_RESULT#", &order_result)
-        } else {
-            sql.replace("#ORDER_RESULT#", "")
-        };
-
-        sqlx::query_as(&sql)
+        let sql = sql.replace("#ORDER#", order);
+        let sql = sql.replace("#ATTRIBUTES#", &attributes_filter);
+        let mut db_query = sqlx::query_as(&sql)
             .bind(params.owners)
             .bind(params.collections)
-            .bind(auction)
-            .bind(forsale)
+            .bind(params.auction)
+            .bind(params.forsale)
             .bind(params.limit as i64)
             .bind(params.offset as i64)
             .bind(params.with_count)
-            .bind(with_optimized)
-            .bind(params.nft_type)
-            .bind(params.verified.unwrap_or(true))
             .bind(params.price_from)
-            .bind(params.price_to)
-            .fetch_all(self.db.as_ref())
-            .await
+            .bind(params.price_to);
+
+        for (param1, param2) in bind_params {
+            db_query = db_query.bind(param1).bind(param2);
+        }
+
+        db_query.fetch_all(self.db.as_ref()).await
+    }
+
+    pub async fn nft_search_verified(
+        &self,
+        params: &NftSearchParams<'_>,
+    ) -> sqlx::Result<Vec<NftDetails>> {
+        let sql: &str = include_str!("../sql/nfts_verified.sql");
+
+        let (attributes_filter, bind_params) =
+            build_attributes_filter(10, params.attributes, "nve")?;
+
+        let order = params.order.clone().unwrap_or(NFTListOrder {
+            field: NFTListOrderField::Name,
+            direction: OrderDirection::Asc,
+        });
+
+        let order = match order.field {
+                NFTListOrderField::FloorPriceUsd => {
+                    match order.direction {
+                        OrderDirection::Asc =>  "order by LEAST(nve.floor_price_auc_usd, nve.floor_price_sell_usd) asc, nve.name  COLLATE numeric asc, nve.address asc",
+                        OrderDirection::Desc => "order by coalesce(LEAST(nve.floor_price_auc_usd, nve.floor_price_sell_usd), 0) desc, nve.name COLLATE numeric asc, nve.address asc"
+                    }
+                }
+                NFTListOrderField::DealPriceUsd => {
+                    match order.direction {
+                        OrderDirection::Asc =>  "order by LEAST(nve.floor_price_auc_usd, nve.floor_price_sell_usd) asc, nve.name COLLATE numeric asc, nve.address asc",
+                        OrderDirection::Desc =>  "order by coalesce(LEAST(nve.floor_price_auc_usd, nve.floor_price_sell_usd) desc, nve.name COLLATE numeric asc, nve.address asc"
+                    }
+                }
+                NFTListOrderField::Name => {
+                    match order.direction {
+                        OrderDirection::Asc => "order by nve.name COLLATE numeric asc, nve.address asc",
+                        OrderDirection::Desc =>  "order by nve.name COLLATE numeric desc, nve.address asc"
+                    }
+            }
+        };
+
+        let sql = sql.replace("#ORDER#", order);
+        let sql = sql.replace("#ATTRIBUTES#", &attributes_filter);
+        let mut db_query = sqlx::query_as(&sql)
+            .bind(params.owners)
+            .bind(params.collections)
+            .bind(params.auction)
+            .bind(params.forsale)
+            .bind(params.limit as i64)
+            .bind(params.offset as i64)
+            .bind(params.with_count)
+            .bind(params.price_from)
+            .bind(params.price_to);
+
+        for (param1, param2) in bind_params {
+            db_query = db_query.bind(param1).bind(param2);
+        }
+
+        db_query.fetch_all(self.db.as_ref()).await
     }
 
     pub async fn get_traits(&self, nft: &Address) -> sqlx::Result<Vec<NftTraitRecord>> {
@@ -605,14 +605,14 @@ impl Queries {
                 with deals as (
                     select n.address,
                            n.collection,
-                           n.owner,
-                           n.manager,
+                           n2.owner,
+                           n2.manager,
                            n.name,
-                           n.description,
-                           n.burned,
+                           n2.description,
+                           n2.burned,
                            n.updated,
-                           n.owner_update_lt,
-                           n.id,
+                           n2.owner_update_lt,
+                           n2.id,
                            tup.token               as floor_price_token,
                            s.price                 as floor_price,
                            s.price * tup.usd_price as floor_price_usd,
@@ -622,8 +622,10 @@ impl Queries {
                            s.state                 as forsale_status
 
                     from nft_direct_sell s
-                             join nft_verified_mv n
+                             join nft_verified_extended n
                                   on n.address = s.nft
+                             join nft n2
+                                on n2.address = n.address
                              join offers_whitelist ow on ow.address = s.address
                              left join token_usd_prices tup on tup.token = s.price_token
                     where s.price <= $1
@@ -674,8 +676,6 @@ impl Queries {
                                              where nph.nft = n.address
                                              order by nph.ts desc
                                              limit 1 ) last_deal on true
-
-
             "#
         ).bind(max_price).bind(limit)
             .fetch_all(self.db.as_ref())
@@ -747,17 +747,13 @@ impl Queries {
         owners: &[Address],
         verified: bool,
     ) -> anyhow::Result<Option<NftsPriceRangeRecord>> {
-        let (attributes_filter, bind_params) = build_attributes_filter(2, attributes)?;
+        let (attributes_filter, bind_params) = build_attributes_filter(2, attributes, "n")?;
 
         if verified && !owners.is_empty() {
             bail!("Filter by owners must use unverified instead verified");
         }
 
         if !verified {
-            if collections.is_empty() && owners.is_empty() {
-                bail!("Need additional filters for unverified");
-            }
-
             let query = format!(
                 r#"
                 select min(min_floor_price) as "from", max(min_floor_price) as "to"
@@ -791,7 +787,6 @@ impl Queries {
             for (param1, param2) in bind_params {
                 db_query = db_query.bind(param1).bind(param2);
             }
-            println!("{query}");
 
             db_query
                 .fetch_optional(self.db.as_ref())
@@ -821,8 +816,6 @@ impl Queries {
                 db_query = db_query.bind(param1).bind(param2);
             }
 
-            println!("{query}");
-
             db_query
                 .fetch_optional(self.db.as_ref())
                 .await
@@ -834,6 +827,7 @@ impl Queries {
 fn build_attributes_filter(
     mut index_from: usize,
     attributes: &[AttributeFilter],
+    nft_table_alias: &str,
 ) -> Result<(String, Vec<(String, String)>), sqlx::Error> {
     let mut attributes_filter = String::default();
     let mut bind_params = Vec::new();
@@ -841,16 +835,15 @@ fn build_attributes_filter(
     for attribute in attributes.iter() {
         let index1 = index_from;
         let index2 = index_from + 1;
-        index_from += 2; // Update this line to ensure unique placeholders
+        index_from += 2;
 
         attributes_filter.push_str(&format!(
             r#" AND EXISTS(
             SELECT 1 FROM nft_attributes na
             WHERE
-                na.nft = n.address AND (LOWER(na.trait_type) = LOWER(${}) AND LOWER(TRIM(na.value #>> '{{}}')) = any(${}::text[]))
+                na.nft = {nft_table_alias}.address AND (LOWER(na.trait_type) = LOWER(${index1}) AND LOWER(TRIM(na.value #>> '{{}}')::text ) = any(${index2}::text[]))
             )
-        "#,
-            index1, index2
+        "#
         ));
 
         let values_as_text_array = format!(
