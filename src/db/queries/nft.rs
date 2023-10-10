@@ -5,7 +5,7 @@ use chrono::NaiveDateTime;
 
 use super::*;
 
-use crate::handlers::nft::{AttributeFilter, NFTListOrderField};
+use crate::handlers::nft::{AttributeFilter, NFTListOrder, NFTListOrderField};
 
 use crate::db::query_params::nft::NftSearchParams;
 use crate::model::OrderDirection;
@@ -332,7 +332,7 @@ impl Queries {
             r#"
                 with nfts as (
                     select nvm.address, count(1) as subcnt, nvm.updated
-                    from nft_verified_mv nvm
+                    from nft_verified_extended nvm
                              left join nft_price_history nph
                                        on nvm.address = nph.nft
                                            and nph.ts >= $1
@@ -351,9 +351,9 @@ impl Queries {
                        n.manager as "manager?",
                        n.name::text                         as "name?",
                        n.description as "description?",
-                       n.burned,
-                       n.updated,
-                       n.owner_update_lt                    as tx_lt,
+                       n.burned as "burned?",
+                       n.updated as "updated?",
+                       n.owner_update_lt                    as "tx_lt?",
                        m.meta as "meta?",
                        auc.auction as "auction?",
                        auc."auction_status: _",
@@ -380,7 +380,7 @@ impl Queries {
                            else null::character varying end as "floor_price_token?",
                        n.id::text                           as "nft_id?",
                        count(1) over ()                          as "total_count!"
-                from nft_verified_extended n
+                from nft n
                          join nfts
                               on nfts.address = n.address
                          left join lateral ( select nph.price * tup.usd_price as last_price
@@ -448,109 +448,98 @@ impl Queries {
     }
 
     pub async fn nft_search(&self, params: &NftSearchParams<'_>) -> sqlx::Result<Vec<NftDetails>> {
-        let sql: &str = include_str!("../sql/nfts.sql");
-        let forsale = params.forsale.unwrap_or(false);
-        let auction = params.auction.unwrap_or(false);
+        let sql: &str = include_str!("../sql/nfts_full.sql");
 
-        let mut order_direction_result = "asc".to_string();
-        let mut deals_order_field = "ag.name";
-        let mut enable_sales_query = false;
-        let mut order_result = "".to_string();
-        let mut nfts_direction_default = "asc".to_string();
+        let (attributes_filter, bind_params) = build_attributes_filter(9, params.attributes)?;
 
-        if let Some(order) = params.order {
-            order_direction_result = order.direction.to_string();
-            enable_sales_query = true;
-            deals_order_field = match order.field {
+        let order = params.order.clone().unwrap_or(NFTListOrder{ field: NFTListOrderField::Name, direction: OrderDirection::Asc });
+
+        let order = match order.field {
                 NFTListOrderField::FloorPriceUsd => {
                     match order.direction {
-                        OrderDirection::Asc => order_result = "order by coalesce(n.floor_price_usd, least(auc.price_usd, sale.price_usd)) asc, n.name asc, n.address asc".to_string(),
-                        OrderDirection::Desc => order_result = "order by coalesce(n.floor_price_usd, coalesce(least(auc.price_usd, sale.price_usd)), 0) desc, n.name asc, n.address asc".to_string()
-                    };
-
-                    "coalesce(ag.price_usd, 0)"
+                        OrderDirection::Asc =>  "order by floor_price_usd.val asc, n.name asc, n.address asc",
+                        OrderDirection::Desc => "order by coalesce(floor_price_usd.val, 0) desc, n.name asc, n.address asc"
+                    }
                 }
                 NFTListOrderField::DealPriceUsd => {
                     match order.direction {
-                        OrderDirection::Asc => order_result = "order by coalesce(n.floor_price_usd, least(auc.price_usd, sale.price_usd)) asc, n.name asc, n.address asc".to_string(),
-                        OrderDirection::Desc => order_result = "order by coalesce(n.floor_price_usd, coalesce(least(auc.price_usd, sale.price_usd)), 0) desc, n.name asc, n.address asc".to_string()
-                    };
-                    "coalesce(ag.price_usd, 0)"
+                        OrderDirection::Asc =>  "order by floor_price_usd.val asc, n.name asc, n.address asc",
+                        OrderDirection::Desc =>  "order by coalesce(floor_price_usd.val, 0) desc, n.name asc, n.address asc"
+                    }
                 }
                 NFTListOrderField::Name => {
-                    enable_sales_query = false;
-                    nfts_direction_default = order_direction_result.clone();
-                    "ag.name"
-                }
+                    match order.direction {
+                        OrderDirection::Asc => "order by n.name asc, n.address asc",
+                        OrderDirection::Desc =>  "order by n.name desc, n.address asc"
+                    }
             }
-        }
-
-        if forsale || auction {
-            enable_sales_query = false;
-        }
-
-        let with_optimized: bool = if enable_sales_query {
-            sqlx::query_scalar!("select case
-                               when not $3::bool then false
-                               when $1::text[] = '{}'::text[] and $2::text[] = '{}'::text[] then true
-                               when coalesce(array_length($2::text[], 1), 0) > 0 and
-                                    coalesce(array_length($1::text[], 1), 0) > 0 and (select count(1)
-                                                                                          from nft n
-                                                                                          where n.owner = any ($1::text[])
-                                                                                            and n.collection = any ($2::text[])
-                                                                                      ) > 1000 then true
-                               when coalesce(array_length($2::text[], 1), 0) > 0 and $1::text[] = '{}'::text[] and (select sum(nft_count)
-                                                                                                      from nft_collection_details ncd
-                                                                                                      where ncd.address = any ($2::text[])
-                                                                                                     ) > 1000 then true
-                               when $2::text[] = '{}'::text[] and coalesce(array_length($1::text[], 1), 0) > 0 and (
-                                                                                                         select count(1)
-                                                                                                         from nft_verified_mv n
-                                                                                                         where n.owner = any ($1::text[])
-                                                                                                     ) > 1000 then true
-                               else false
-                               end is_enabled",
-            params.owners,
-            params.collections,
-            enable_sales_query
-        ).fetch_one(self.db.as_ref())
-                .await?.expect("failed to get value")
-        } else {
-            false
         };
 
-        let sql = sql.replace("#ORDER_DIRECTION#", &order_direction_result);
-        let sql = sql.replace("#DEALS_ORDER_FIELD#", deals_order_field);
-        let sql = sql.replace("#NFTS_DIRECTION_BASE#", &nfts_direction_default);
+        let sql = sql.replace("#ORDER#", order);
+        let sql = sql.replace("#ATTRIBUTES#", &attributes_filter);
 
-        let sql = if !params.verified.unwrap_or(true) {
-            sql.replace("nft_verified_mv", "nft")
-        } else {
-            sql
-        };
-
-        let sql = if !with_optimized {
-            sql.replace("#ORDER_RESULT#", &order_result)
-        } else {
-            sql.replace("#ORDER_RESULT#", "")
-        };
-
-        sqlx::query_as(&sql)
+        println!("{sql}");
+        let mut db_query = sqlx::query_as(&sql)
             .bind(params.owners)
             .bind(params.collections)
-            .bind(auction)
-            .bind(forsale)
+            .bind(params.auction)
+            .bind(params.forsale)
             .bind(params.limit as i64)
             .bind(params.offset as i64)
             .bind(params.with_count)
-            .bind(with_optimized)
-            .bind(params.nft_type)
-            .bind(params.verified.unwrap_or(true))
             .bind(params.price_from)
-            .bind(params.price_to)
-            .fetch_all(self.db.as_ref())
-            .await
+            .bind(params.price_to);
+
+        for (param1, param2) in bind_params {
+            db_query = db_query.bind(param1).bind(param2);
+        }
+
+        db_query.fetch_all(self.db.as_ref()).await
     }
+
+    // pub async fn nft_search_verified(&self, params: &NftSearchParams<'_>) -> sqlx::Result<Vec<NftDetails>> {
+    //     let sql: &str = include_str!("../sql/nfts_verified.sql");
+    //     let forsale = params.forsale.unwrap_or(false);
+    //     let auction = params.auction.unwrap_or(false);
+    //
+    //     let order = params.order.unwrap_or(NFTListOrder{ field: NFTListOrderField::Name, direction: OrderDirection::Asc });
+    //     let order = match order.field {
+    //             NFTListOrderField::FloorPriceUsd => {
+    //                 match order.direction {
+    //                     OrderDirection::Asc =>  "order by LEAST(nve.floor_price_auc_usd, nve.floor_price_sell_usd) asc, nve.name asc, nve.address asc",
+    //                     OrderDirection::Desc => "order by coalesce(LEAST(nve.floor_price_auc_usd, nve.floor_price_sell_usd), 0) desc, nve.name asc, nve.address asc"
+    //                 }
+    //             }
+    //             NFTListOrderField::DealPriceUsd => {
+    //                 match order.direction {
+    //                     OrderDirection::Asc =>  "order by LEAST(nve.floor_price_auc_usd, nve.floor_price_sell_usd) asc, nve.name asc, nve.address asc",
+    //                     OrderDirection::Desc =>  "order by coalesce(LEAST(nve.floor_price_auc_usd, nve.floor_price_sell_usd) desc, nve.name asc, nve.address asc"
+    //                 }
+    //             }
+    //             NFTListOrderField::Name => {
+    //                 match order.direction {
+    //                     OrderDirection::Asc => "order by nve.name asc, nve.address asc",
+    //                     OrderDirection::Desc =>  "order by nve.name desc, nve.address asc"
+    //                 }
+    //         }
+    //     };
+    //
+    //     let sql = sql.replace("#ORDER#", order);
+    //
+    //
+    //     sqlx::query_as(&sql)
+    //         .bind(params.owners)
+    //         .bind(params.collections)
+    //         .bind(auction)
+    //         .bind(forsale)
+    //         .bind(params.limit as i64)
+    //         .bind(params.offset as i64)
+    //         .bind(params.with_count)
+    //         .bind(params.price_from)
+    //         .bind(params.price_to)
+    //         .fetch_all(self.db.as_ref())
+    //         .await
+    // }
 
     pub async fn get_traits(&self, nft: &Address) -> sqlx::Result<Vec<NftTraitRecord>> {
         sqlx::query_as!(
@@ -847,7 +836,7 @@ fn build_attributes_filter(
             r#" AND EXISTS(
             SELECT 1 FROM nft_attributes na
             WHERE
-                na.nft = n.address AND (LOWER(na.trait_type) = LOWER(${}) AND LOWER(TRIM(na.value #>> '{{}}')) = any(${}::text[]))
+                na.nft = n.address AND (LOWER(na.trait_type) = LOWER(${}) AND LOWER(TRIM(na.value #>> '{{}}')::text ) = any(${}::text[]))
             )
         "#,
             index1, index2

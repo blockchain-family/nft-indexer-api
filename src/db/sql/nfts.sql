@@ -156,7 +156,7 @@ select n.address,
                                           else null::character varying end) as floor_price_token,
        n.id::text                                                           as nft_id,
        case when $7 then count(1) over () else 0 end                           total_count
-from res n
+from res n1
          left join nft_metadata m on m.nft = n.address
          left join lateral ( select s.address
                              from nft_direct_buy s
@@ -203,5 +203,5 @@ from res n
                              where nph.nft = n.address
                              order by nph.ts desc
                              limit 1 ) last_deal on true
-#ORDER_RESULT#
-limit $5 offset $6
+--#ORDER_RESULT#
+limit :p5 offset :p6
