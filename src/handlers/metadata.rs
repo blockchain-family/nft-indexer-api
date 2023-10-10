@@ -3,7 +3,7 @@ use std::convert::Infallible;
 use utoipa::OpenApi;
 use warp::{http::StatusCode, Filter};
 
-use crate::handlers::requests::metadata::UpdateMetadataParams;
+use crate::handlers::requests::metadata::{UpdateMetadataParams, UpdateMetadataParamsExt};
 use crate::{api_doc_addon, catch_error_500};
 
 #[derive(OpenApi)]
@@ -41,6 +41,7 @@ pub fn update_metadata(
         .and_then(update_metadata_handler)
 }
 
+
 pub async fn update_metadata_handler(
     params: UpdateMetadataParams,
     indexer_api_url: String,
@@ -50,6 +51,12 @@ pub async fn update_metadata_handler(
     let url = format!("{indexer_api_url}/metadata/refresh/");
 
     log::info!("Requesting meta update (url = {url}");
+
+    let params = UpdateMetadataParamsExt {
+        nft: params.nft,
+        collection: params.collection,
+        only_collection_info: true,
+    };
 
     let response = catch_error_500!(client.post(url).json(&params).send().await);
 
