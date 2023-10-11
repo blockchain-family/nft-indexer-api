@@ -26,6 +26,7 @@ impl Queries {
                    c.attributes,
                    c.first_mint,
                    c.social,
+                   c.royalty,
                    null::numeric as max_price,
                    null::numeric as total_price,
                    1::bigint     as "cnt!",
@@ -58,7 +59,8 @@ impl Queries {
                    c.first_mint  as "first_mint!",
                    coalesce(c.nft_count,0)   as "nft_count!",
                    c.total_count as "cnt!",
-                   c.social      as "social"
+                   c.social      as "social",
+                   c.royalty     as "royalty"
             from nft_collection_details c
             where c.address = any ($1)
               --and owner is not null
@@ -93,7 +95,8 @@ impl Queries {
                    c.first_mint  as "first_mint!",
                    c.nft_count   as "nft_count!",
                    c.total_count as "cnt!",
-                   c.social      as "social"
+                   c.social      as "social",
+                   c.royalty     as "royalty"
             from nft_collection_details c
             where c.owner = $1
             limit $2 offset $3
@@ -138,7 +141,8 @@ impl Queries {
                    coalesce(previews.previews, '[]'::json)                                     as "previews",
                    null::numeric                                                               as max_price,
                    null::numeric                                                               as total_price,
-                   c.social                                                                    as "social"
+                   c.social                                                                    as "social",
+                   c.royalty                                                                   as "royalty"
             from nft_collection_details c
                      left join lateral ( select json_agg(ag2.preview_url) as previews
                                          from ( select ag.preview_url
