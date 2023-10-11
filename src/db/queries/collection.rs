@@ -57,7 +57,7 @@ impl Queries {
                    c.verified    as "verified!",
                    c.created     as "created!",
                    c.first_mint  as "first_mint!",
-                   c.nft_count   as "nft_count!",
+                   coalesce(c.nft_count,0)   as "nft_count!",
                    c.total_count as "cnt!",
                    c.social      as "social",
                    c.royalty     as "royalty"

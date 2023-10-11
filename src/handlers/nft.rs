@@ -1,7 +1,7 @@
 use crate::db::queries::Queries;
 use crate::db::{MetaRoyalty, NftDetails, NftForBanner};
 use crate::handlers::calculate_hash;
-use crate::model::{DirectBuy, NFTPrice, NftTrait, OrderDirection, VecWith, NFT};
+use crate::model::{DirectBuy, NFTPrice, NftTrait, NftsPriceRange, OrderDirection, VecWith, NFT};
 use crate::{
     api_doc_addon, catch_empty, catch_error_500,
     db::{Address, DirectBuyState},
@@ -33,7 +33,7 @@ use utoipa::ToSchema;
 
 #[derive(OpenApi)]
 #[openapi(
-    paths(get_nft, get_nft_direct_buy, get_nft_price_history, get_nft_list, get_nft_top_list, get_nft_random_list, get_nft_types, get_nft_for_banner),
+    paths(get_nft, get_nft_direct_buy, get_nft_price_history, get_nft_list, get_nft_top_list, get_nft_random_list, get_nft_types, get_nft_for_banner, get_nfts_price_range),
     components(schemas(
         NFTParam,
         GetNFTResult,
@@ -50,7 +50,9 @@ use utoipa::ToSchema;
         NFTTopListQuery,
         MetaRoyalty,
         NFTListRandomBuyQuery,
-        NftForBanner
+        NftForBanner,
+        NftPriceRangeParams,
+        NftsPriceRange
     )),
     tags(
         (name = "nft", description = "NFT handlers"),
@@ -331,20 +333,24 @@ pub async fn get_nft_list_handler(
             let search_params = &NftSearchParams {
                 owners: params.owners.as_deref().unwrap_or(&[]),
                 collections: params.collections.as_deref().unwrap_or(&[]),
-                forsale: params.forsale,
-                auction: params.auction,
+                forsale: params.forsale.unwrap_or(false),
+                auction: params.auction.unwrap_or(false),
                 price_from: price_from.as_ref(),
                 price_to: price_to.as_ref(),
-                verified: Some(params.verified.unwrap_or(true)),
-                limit,
+                verified: params.verified.unwrap_or(true),
+                limit: final_limit,
                 offset: params.offset.unwrap_or_default(),
-                _attributes: &[],
-                order: None,
+                attributes: params.attributes.as_deref().unwrap_or_default(),
+                order: params.order,
                 with_count,
                 nft_type: params.nft_type.as_ref(),
             };
 
-            let list = catch_error_500!(db.nft_search(search_params,).await);
+            let list = if search_params.verified {
+                catch_error_500!(db.nft_search_verified(search_params,).await)
+            } else {
+                catch_error_500!(db.nft_search(search_params,).await)
+            };
 
             let mut r = catch_error_500!(make_nfts_response(list, db).await);
             if !with_count {
@@ -492,7 +498,7 @@ pub async fn get_nft_sell_count_handler(
     tag = "nft",
     path = "/nft/banner",
     responses(
-        (status = 200, body = NftForBanner),
+        (status = 200, body = Vec<NftForBanner>),
         (status = 500),
     ),
 )]
@@ -514,7 +520,7 @@ pub async fn get_nft_for_banner_handler(
     let hash = calculate_hash(&"nft/banner".to_string());
     let cached_value = cache.get(&hash);
 
-    let nft_for_banner: Option<NftForBanner>;
+    let nft_for_banner: Vec<NftForBanner>;
     match cached_value {
         None => {
             nft_for_banner = catch_error_500!(db.nft_get_for_banner().await);
@@ -794,4 +800,53 @@ pub async fn collect_direct_buy(
         map.insert(item.address.clone(), item.clone());
     }
     Ok(map)
+}
+
+#[derive(Clone, Deserialize, Serialize, Hash, ToSchema)]
+pub struct NftPriceRangeParams {
+    pub owners: Vec<Address>,
+    pub collections: Vec<Address>,
+    pub verified: Option<bool>,
+    pub attributes: Vec<AttributeFilter>,
+}
+
+#[utoipa::path(
+    post,
+    tag = "nft",
+    path = "/nfts/price-range",
+        responses(
+            (status = 200, body =  NftsPriceRange),
+            (status = 500),
+        ),
+)]
+pub fn get_nfts_price_range(
+    db: Queries,
+) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
+    warp::path!("nfts" / "price-range")
+        .and(warp::post())
+        .and(warp::body::json::<NftPriceRangeParams>())
+        .and(warp::any().map(move || db.clone()))
+        .and_then(get_nfts_price_range_handler)
+}
+
+pub async fn get_nfts_price_range_handler(
+    query: NftPriceRangeParams,
+    db: Queries,
+) -> Result<Box<dyn warp::Reply>, Infallible> {
+    let prices = catch_error_500!(
+        db.nft_price_range_verified(
+            &query.collections,
+            &query.attributes,
+            &query.owners,
+            query.verified.unwrap_or(true)
+        )
+        .await
+    );
+
+    if let Some(prices) = prices {
+        let response: NftsPriceRange = prices.into();
+        return response!(&response);
+    }
+
+    response!(None::<Option<NftsPriceRange>>)
 }
