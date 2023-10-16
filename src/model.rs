@@ -121,7 +121,7 @@ pub struct Collection {
     pub total_price: Option<String>,
     pub first_mint: i64,
     pub social: Option<Social>,
-    pub royalty: Option<serde_json::Value>,
+    pub royalty: Option<MetaRoyalty>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, ToSchema)]
