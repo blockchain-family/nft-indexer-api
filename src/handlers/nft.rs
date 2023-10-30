@@ -19,6 +19,7 @@ use std::convert::Infallible;
 use std::fmt::{Display, Formatter};
 use std::hash::Hash;
 use std::str::FromStr;
+use anyhow::Context;
 use tokio::join;
 use warp::http::StatusCode;
 use warp::Filter;
@@ -361,6 +362,7 @@ pub async fn get_nft_list_handler(
                     r.count = (r.items.len() + search_params.offset + 1) as i64;
                 }
             }
+
             response = r;
             let value_for_cache =
                 serde_json::to_value(response.clone()).expect("Failed serializing cached value");
@@ -652,11 +654,11 @@ async fn make_nfts_response(list: Vec<NftDetails>, db: Queries) -> anyhow::Resul
     Ok(VecWith {
         count,
         items: ret,
-        collection: Some(collection_result?),
+        collection: Some(collection_result.context("Failed to get collection_result")?),
         nft: None,
-        auction: Some(auction_result?),
-        direct_buy: Some(direct_buy_result?),
-        direct_sell: Some(direct_sell_result?),
+        auction: Some(auction_result.context("Failed to get auction_result")?),
+        direct_buy: Some(direct_buy_result.context("Failed to get direct_buy_result")?),
+        direct_sell: Some(direct_sell_result.context("Failed to get direct_sell_result")?),
     })
 }
 
