@@ -1,7 +1,7 @@
 env:
   RUST_LOG: info
   RUST_BACKTRACE: 1
-  indexer_api__database__url: postgresql://$(BACKEND_API_USER):$(BACKEND_API_PASSWORD)@cloudsqlproxy.default:5432/indexator
+  indexer_api__database__url: postgresql://$(STAGE_PG_USER):$(STAGE_PG_PASSWORD)@postgresql-bf.europe-west1-c.c.broxus.internal:5432/nft-indexer-stage
   indexer_api__http_address: 0.0.0.0:8080
   indexer_api__database__max_connections: 3
   indexer_api__base_url: tokstock.io
@@ -38,3 +38,6 @@ readinessProbe:
     port: 8080
   initialDelaySeconds: 5
   periodSeconds: 10
+
+sharedSecrets:
+  - nftIndexer

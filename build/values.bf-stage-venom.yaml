@@ -1,8 +1,8 @@
 env:
   RUST_LOG: info
   RUST_BACKTRACE: 1
-  DATABASE_URL: postgresql://$(BACKEND_DEV_USER):$(BACKEND_DEV_PASSWORD)@$(BACKEND_DEV_HOST):5432/indexator-2
-  INDEXER_API__DATABASE__URL: postgresql://$(BACKEND_DEV_USER):$(BACKEND_DEV_PASSWORD)@$(BACKEND_DEV_HOST):5432/indexator-2
+  DATABASE_URL: postgresql://$(STAGE_VENOM_PG_USER):$(STAGE_VENOM_PG_PASSWORD)@postgresql-bf.europe-west1-c.c.broxus.internal:5432/nft-indexer-stage-venom
+  INDEXER_API__DATABASE__URL: postgresql://$(STAGE_VENOM_PG_USER):$(STAGE_VENOM_PG_PASSWORD)@postgresql-bf.europe-west1-c.c.broxus.internal:5432/nft-indexer-stage-venom
   indexer_api__http_address: 0.0.0.0:8080
   indexer_api__database__max_connections: 50
   indexer_api__jwt_secret: $(VENOM_API_JWT_SECRET)
@@ -45,3 +45,6 @@ readinessProbe:
     port: 8080
   initialDelaySeconds: 5
   periodSeconds: 10
+
+sharedSecrets:
+  - nftIndexer
