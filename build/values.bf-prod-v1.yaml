@@ -4,7 +4,8 @@ env:
   indexer_api_database_url: postgresql://$(PROD_V1_PG_USER):$(PROD_V1_PG_PASSWORD)@postgresql-bf.europe-west1-c.c.broxus.internal:5432/nft-indexer-prod-v1
   indexer_api_http_address: 0.0.0.0:8080
   indexer_api_database_max_connections: "3"
-   indexer_api__prices_url: https://qube.faltqube.io/v1/currencies/
+  indexer_api__prices_url: https://qube.faltqube.io/v1/currencies/
+  indexer_api__main_token: 0:2c3a2ff6443af741ce653ae4ef2c85c2d52a9df84944bbe14d702c3131da3f14
 
 controller: statefulset
 
