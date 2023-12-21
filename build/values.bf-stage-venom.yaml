@@ -1,8 +1,8 @@
 env:
   RUST_LOG: info
   RUST_BACKTRACE: 1
-  DATABASE_URL: postgresql://$(STAGE_VENOM_PG_USER):$(STAGE_VENOM_PG_PASSWORD)@postgresql-bf.europe-west1-c.c.broxus.internal:5432/nft-indexer-stage-venom
-  INDEXER_API__DATABASE__URL: postgresql://$(STAGE_VENOM_PG_USER):$(STAGE_VENOM_PG_PASSWORD)@postgresql-bf.europe-west1-c.c.broxus.internal:5432/nft-indexer-stage-venom
+  DATABASE_URL: postgresql://$(PROD_VENOM_PG_USER):$(PROD_VENOM_PG_PASSWORD)@postgresql-bf.europe-west1-c.c.broxus.internal:5432/nft-indexer-prod-venom
+  INDEXER_API__DATABASE__URL: postgresql://$(PROD_VENOM_PG_USER):$(PROD_VENOM_PG_PASSWORD)@postgresql-bf.europe-west1-c.c.broxus.internal:5432/nft-indexer-prod-venom
   indexer_api__http_address: 0.0.0.0:8080
   indexer_api__database__max_connections: 50
   indexer_api__jwt_secret: $(VENOM_API_JWT_SECRET)
