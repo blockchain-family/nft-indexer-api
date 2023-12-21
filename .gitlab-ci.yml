@@ -57,7 +57,7 @@ stop:venom-stage:
 
 deploy:v1-prod:
   only:
-    - tokstok-prod
+    - tokstock-prod
   extends: .deploy
   variables:
     APP_CONFIG: prod-v1
@@ -68,7 +68,7 @@ deploy:v1-prod:
 
 stop:v1-prod:
   only:
-    - tokstok-prod
+    - tokstock-prod
   extends: .stop
   variables:
     APP_CONFIG: prod-v1
@@ -97,14 +97,14 @@ stop:prod-reindex:
 
 cloudbuild:image:prod:
   only:
-    - tokstok-prod
+    - tokstock-prod
   except:
     - tags
   extends: .cloudbuild:common
 
 deploy:prod:
   only:
-    - tokstok-prod
+    - tokstock-prod
   except:
     - tags
   variables:
@@ -117,7 +117,7 @@ deploy:prod:
 
 stop:prod:
   only:
-    - tokstok-prod
+    - tokstock-prod
   except:
     - tags
   variables:
