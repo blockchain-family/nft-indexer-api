@@ -55,7 +55,7 @@ stop:venom-stage:
   environment:
     name: stage
 
-deploy:v1-prod:
+deploy:tokstock-prod-v1:
   only:
     - tokstock-prod
   extends: .deploy
@@ -64,9 +64,9 @@ deploy:v1-prod:
     K8S_NAMESPACE: ${CI_PROJECT_ROOT_NAMESPACE}-prod
   environment:
     name: bf
-    on_stop: stop:v1-prod
+    on_stop: stop:tokstock-prod-v1
 
-stop:v1-prod:
+stop:tokstock-prod-v1:
   only:
     - tokstock-prod
   extends: .stop
@@ -95,14 +95,14 @@ stop:prod-reindex:
   environment:
     name: prod
 
-cloudbuild:image:prod:
+cloudbuild:image:tokstock-prod:
   only:
     - tokstock-prod
   except:
     - tags
   extends: .cloudbuild:common
 
-deploy:prod:
+deploy:tokstock-prod:
   only:
     - tokstock-prod
   except:
@@ -113,9 +113,9 @@ deploy:prod:
   extends: .deploy
   environment:
     name: bf
-    on_stop: stop:prod
+    on_stop: stop:tokstock-prod
 
-stop:prod:
+stop:tokstock-prod:
   only:
     - tokstock-prod
   except:
