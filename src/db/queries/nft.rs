@@ -100,7 +100,7 @@ impl Queries {
                                                 left join token_usd_prices tup on tup.token = s.price_token
                                        where state = 'active'
                                          and nft = n.address
-                                       order by s.price * tup.usd_price desc
+                                       order by s.price * tup.usd_price desc nulls last
                                        limit 1 )                           as best_offer,
                                      least(auc.price_usd, sale.price_usd)  as floor_price_usd,
                                      last_deal.last_price                  as deal_price_usd,

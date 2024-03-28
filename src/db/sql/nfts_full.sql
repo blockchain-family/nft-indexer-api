@@ -26,7 +26,7 @@ from nft n
                                                                             left join token_usd_prices tup on tup.token = s.price_token
                                                                    where state = 'active'
                                                                      and nft = n.address
-                                                                   order by s.price * tup.usd_price desc
+                                                                   order by s.price * tup.usd_price desc nulls last
                                                                    limit 1 ) best_offer on true
          LEFT JOIN nft_auction a ON a.nft = n.address AND a.status = 'active' AND
                                     (a.finished_at = to_timestamp(0) OR a.finished_at > NOW())
