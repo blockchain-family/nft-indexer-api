@@ -22,14 +22,12 @@ select n.address,
 from nft n
          left join nft_metadata m on m.nft = n.address
          left join lateral ( select s.address
-                             from nft_direct_buy s
-                                      join offers_whitelist ow on ow.address = s.address
-                                      join token_usd_prices tup on tup.token = s.price_token
-                             where s.state = 'active'
-                               and s.nft = n.address
-                             group by s.address, (s.price * tup.usd_price)
-                             having (s.price * tup.usd_price) = max(s.price * tup.usd_price)
-                             limit 1 ) best_offer on true
+                                                                   from nft_direct_buy s
+                                                                            left join token_usd_prices tup on tup.token = s.price_token
+                                                                   where state = 'active'
+                                                                     and nft = n.address
+                                                                   order by s.price * tup.usd_price desc
+                                                                   limit 1 ) best_offer on true
          LEFT JOIN nft_auction a ON a.nft = n.address AND a.status = 'active' AND
                                     (a.finished_at = to_timestamp(0) OR a.finished_at > NOW())
          LEFT JOIN offers_whitelist ow2 ON ow2.address = a.address

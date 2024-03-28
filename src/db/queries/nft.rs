@@ -95,12 +95,12 @@ impl Queries {
                                      auc."auction_status: _",
                                      sale.forsale,
                                      sale."forsale_status: _",
-                                     ( select distinct on (s.address) first_value(s.address) over w
+                                     ( select s.address
                                        from nft_direct_buy s
                                                 left join token_usd_prices tup on tup.token = s.price_token
                                        where state = 'active'
                                          and nft = n.address
-                                       window w as (partition by nft order by s.price * tup.usd_price desc)
+                                       order by s.price * tup.usd_price desc
                                        limit 1 )                           as best_offer,
                                      least(auc.price_usd, sale.price_usd)  as floor_price_usd,
                                      last_deal.last_price                  as deal_price_usd,
@@ -557,7 +557,9 @@ impl Queries {
                    traits.trait_value                                                            as "trait_value?",
                    ( select count(*)
                      from nft_attributes na
-                     where traits.trait_type = na.trait_type and traits.trait_value = na.value ) as "cnt!"
+                     where traits.trait_type = na.trait_type and traits.trait_value = na.value
+                     and na.collection = (select collection from nft nn where nn.address = $1)
+                      ) as "cnt!"
             from traits
             "#,
             nft
