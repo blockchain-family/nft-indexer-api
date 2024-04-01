@@ -781,6 +781,77 @@
     },
     "query": "\n            select distinct mimetype as \"mimetype!\"\n            from collection_type_mv\n            where $1::boolean is false or verified is true\n            group by mimetype\n            "
   },
+  "2aaed5e0cb04570175a1a5f3a3f5549489d485becda8c76f98130b7171369aab": {
+    "describe": {
+      "columns": [
+        {
+          "name": "collection!",
+          "ordinal": 0,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "logo",
+          "ordinal": 2,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "floor_price",
+          "ordinal": 3,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "total_volume_usd_now!",
+          "ordinal": 4,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "total_volume_usd_previous!",
+          "ordinal": 5,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "owners_count!",
+          "ordinal": 6,
+          "type_info": "Int4"
+        },
+        {
+          "name": "nfts_count!",
+          "ordinal": 7,
+          "type_info": "Int4"
+        },
+        {
+          "name": "total_rows_count!",
+          "ordinal": 8,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        true,
+        true,
+        true,
+        true,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Timestamp",
+          "Timestamp",
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "WITH periods AS (\n    SELECT\n        $1::timestamp AS date_from,\n        $2::timestamp AS date_to,\n        'current' AS period_type\n    UNION ALL\n    SELECT\n        $1::timestamp - ($2 - $1)::interval AS date_from,\n        $1::timestamp - INTERVAL '1 second' AS date_to,\n        'previous' AS period_type\n),\ntotal_volume AS (\n    SELECT\n        nph.collection AS address,\n        p.period_type,\n        SUM(nph.price * tup.usd_price) AS price_usd\n    FROM periods p\n    JOIN nft_price_history nph ON nph.ts BETWEEN p.date_from AND p.date_to\n    JOIN token_usd_prices tup ON tup.token = nph.price_token\n    GROUP BY nph.collection, p.period_type\n),\naggregated_volumes AS (\n    SELECT\n        tv.address,\n        SUM(CASE WHEN tv.period_type = 'current' THEN tv.price_usd ELSE 0 END) AS total_volume_usd_now,\n        SUM(CASE WHEN tv.period_type = 'previous' THEN tv.price_usd ELSE 0 END) AS total_volume_usd_previous\n    FROM total_volume tv\n    GROUP BY tv.address\n)\nSELECT\n    c.address AS \"collection!\",\n    c.name,\n    c.logo,\n    c.floor_price_usd AS \"floor_price\",\n    COALESCE(av.total_volume_usd_now, 0) AS \"total_volume_usd_now!\",\n    COALESCE(av.total_volume_usd_previous, 0) AS \"total_volume_usd_previous!\",\n    c.owners_count::int AS \"owners_count!\",\n    c.nft_count::int AS \"nfts_count!\",\n    (SELECT COUNT(*) FROM nft_collection)::int AS \"total_rows_count!\"\nFROM nft_collection_details c\nLEFT JOIN aggregated_volumes av ON av.address = c.address\nWHERE c.verified\nORDER BY COALESCE(av.total_volume_usd_now, 0) DESC\nLIMIT $3 OFFSET $4"
+  },
   "31cda0f66c946f4f5eb14a35b6b6affbb09be90824cfb01d9d8be53445301b89": {
     "describe": {
       "columns": [
@@ -1237,77 +1308,6 @@
       }
     },
     "query": "\n               select u.address,\n               u.logo_nft,\n               u.username,\n               u.bio,\n               u.twitter,\n               u.instagram,\n               u.facebook,\n               u.link,\n               u.email,\n               nm.meta -> 'preview' ->> 'source' as avatar_url\n                from users u\n                         left join nft n on n.address = u.logo_nft and n.owner = u.address\n                         left join nft_metadata nm on n.address = nm.nft\n                where u.address = $1\n            "
-  },
-  "4deb71b9aaec707d58a879c17f3c8ce43a28cf1dbcaaf4697c97aa588d3ce478": {
-    "describe": {
-      "columns": [
-        {
-          "name": "collection!",
-          "ordinal": 0,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "name",
-          "ordinal": 1,
-          "type_info": "Text"
-        },
-        {
-          "name": "logo",
-          "ordinal": 2,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "floor_price",
-          "ordinal": 3,
-          "type_info": "Numeric"
-        },
-        {
-          "name": "total_volume_usd_now!",
-          "ordinal": 4,
-          "type_info": "Numeric"
-        },
-        {
-          "name": "total_volume_usd_previous!",
-          "ordinal": 5,
-          "type_info": "Numeric"
-        },
-        {
-          "name": "owners_count!",
-          "ordinal": 6,
-          "type_info": "Int4"
-        },
-        {
-          "name": "nfts_count!",
-          "ordinal": 7,
-          "type_info": "Int4"
-        },
-        {
-          "name": "total_rows_count!",
-          "ordinal": 8,
-          "type_info": "Int4"
-        }
-      ],
-      "nullable": [
-        true,
-        true,
-        true,
-        true,
-        null,
-        null,
-        null,
-        null,
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "Timestamp",
-          "Timestamp",
-          "Int8",
-          "Int8"
-        ]
-      }
-    },
-    "query": "with periods as ( select $1::timestamp as date_from, $2::timestamp as date_to, 'current' as period_type\n                  union all\n                  select $1::timestamp - ($2::timestamp - $1::timestamp)::interval as date_from,\n                         $1::timestamp - interval '1 seconds'                      as date_to,\n                         'previous'                                                as period_type )\nselect c.address                                       as \"collection!\",\n       c.name,\n       c.logo,\n       c.floor_price_usd                               as \"floor_price\",\n       coalesce(total_volume.cur, 0)                   as \"total_volume_usd_now!\",\n       coalesce(total_volume.prev, 0)                  as \"total_volume_usd_previous!\",\n       c.owners_count::int                             as \"owners_count!\",\n       c.nft_count::int                                as \"nfts_count!\",\n       (count(1) over ())::int                         as \"total_rows_count!\"\nfrom nft_collection_details c\n         left join lateral ( select sum(case when ag.period_type = 'current' then ag.price_usd else 0 end)  cur,\n                                    sum(case when ag.period_type = 'previous' then ag.price_usd else 0 end) prev\n                             from (select p.period_type,\n                                          case when n.address is not null then tup.usd_price * ndb.price else 0 end as price_usd\n                                   from periods p\n                                            left join nft_direct_buy ndb\n                                                      on ndb.updated between p.date_from and p.date_to and ndb.state = 'filled'\n                                            left join offers_whitelist r on r.address = ndb.address\n                                            left join token_usd_prices tup on tup.token = ndb.price_token\n                                            left join nft n on ndb.nft = n.address and n.collection = c.address and\n                                                               not n.burned and r.address is not null\n                                   union all\n                                   select p.period_type,\n                                          case when n.address is not null then tup.usd_price * nds.price else 0 end as price_usd\n                                   from periods p\n                                            left join nft_direct_sell nds\n                                                      on nds.state = 'filled' and nds.updated between p.date_from and p.date_to\n                                            left join token_usd_prices tup on tup.token = nds.price_token\n                                            left join offers_whitelist r on r.address = nds.address\n                                            left join nft n on nds.nft = n.address and n.collection = c.address and\n                                                               not n.burned and r.address is not null\n                                   union all\n                                   select p.period_type,\n                                          case\n                                              when n.address is not null then tup.usd_price * na.max_bid\n                                              else 0 end as price_usd\n                                   from periods p\n                                            left join public.nft_auction na on na.status = 'completed' and\n                                                                               na.finished_at between p.date_from and p.date_to\n                                            left join offers_whitelist r on r.address = na.address\n                                            left join nft n on na.nft = n.address and not n.burned and\n                                                               r.address is not null and n.collection = c.address\n                                            left join token_usd_prices tup on tup.token = na.price_token) as ag ) as total_volume\n                   on true\nwhere c.verified\norder by coalesce(total_volume.cur, 0) desc\nlimit $3 offset $4"
   },
   "61fdd4406009440146a4e5c62d954e5a56e118741094850186368c25286ca49a": {
     "describe": {
