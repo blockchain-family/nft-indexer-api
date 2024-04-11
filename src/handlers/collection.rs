@@ -2,12 +2,16 @@ use crate::db::queries::Queries;
 use crate::db::query_params::collection::CollectionsListParams;
 use crate::db::Address;
 use crate::handlers::requests::collections::CollectionOrderingFields;
-use crate::handlers::requests::CollectionListOrder;
+use crate::handlers::requests::{CollectionListOrder, Period};
 use crate::handlers::{calculate_hash, requests::collections::ListCollectionsParams};
-use crate::model::{Collection, CollectionDetails, CollectionSimple, VecWithTotal};
+use crate::model::{
+    Collection, CollectionDetails, CollectionEvaluation, CollectionEvaluationList,
+    CollectionSimple, VecWithTotal,
+};
 use crate::schema::VecCollectionSimpleWithTotal;
 use crate::schema::VecCollectionsWithTotal;
 use crate::{api_doc_addon, catch_empty, catch_error_500, response};
+use chrono::NaiveDateTime;
 use moka::future::Cache;
 use serde::Deserialize;
 use serde_json::Value;
@@ -22,6 +26,7 @@ use warp::Filter;
     paths(
         list_collections,
         list_collections_simple,
+        list_collections_evaluation,
         get_collection,
         get_collections_by_owner
     ),
@@ -31,6 +36,7 @@ use warp::Filter;
         CollectionListOrder,
         CollectionOrderingFields,
         ListCollectionsSimpleParams,
+        ListCollectionsEvaluationParams,
         VecCollectionSimpleWithTotal,
         CollectionParam,
         CollectionSimple,
@@ -282,4 +288,74 @@ pub async fn collect_collections(
         map.insert(item.contract.address.clone(), item.clone());
     }
     Ok(map)
+}
+
+#[derive(Debug, Clone, Deserialize, Hash, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ListCollectionsEvaluationParams {
+    pub addresses: Vec<String>,
+    pub period: Option<Period>,
+}
+
+#[utoipa::path(
+    post,
+    tag = "collection",
+    path = "/collections/evaluation",
+    request_body(content = ListCollectionsEvaluationParams, description = "List collections evaluation"),
+    responses(
+        (status = 200, body = CollectionEvaluationList),
+        (status = 500),
+    ),
+)]
+pub fn list_collections_evaluation(
+    db: Queries,
+    cache: Cache<u64, Value>,
+) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
+    warp::path!("collections" / "evaluation")
+        .and(warp::post())
+        .and(warp::body::json::<ListCollectionsEvaluationParams>())
+        .and(warp::any().map(move || db.clone()))
+        .and(warp::any().map(move || cache.clone()))
+        .and_then(list_collections_evaluation_handler)
+}
+
+pub async fn list_collections_evaluation_handler(
+    params: ListCollectionsEvaluationParams,
+    db: Queries,
+    cache: Cache<u64, Value>,
+) -> Result<Box<dyn warp::Reply>, Infallible> {
+    let hash = calculate_hash(&params);
+    let cached_value = cache.get(&hash);
+    let ret: CollectionEvaluationList;
+
+    match cached_value {
+        None => {
+            let addresses = params.addresses.as_ref();
+            let from = params
+                .period
+                .clone()
+                .and_then(|p| p.from)
+                .and_then(|t| NaiveDateTime::from_timestamp_opt(t, 0));
+            let to = params
+                .period
+                .and_then(|p| p.to)
+                .and_then(|t| NaiveDateTime::from_timestamp_opt(t, 0));
+            let list = catch_error_500!(db.collection_evaluation(addresses, from, to).await);
+            ret = CollectionEvaluationList {
+                evaluations: list
+                    .into_iter()
+                    .map(CollectionEvaluation::from_db)
+                    .collect(),
+            };
+
+            let value_for_cache =
+                serde_json::to_value(ret.clone()).expect("Failed serializing cached value");
+            cache.insert(hash, value_for_cache).await;
+        }
+        Some(cached_value) => {
+            ret = serde_json::from_value(cached_value).expect("Failed parsing cached value")
+        }
+    }
+
+    response!(&ret)
 }

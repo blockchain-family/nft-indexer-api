@@ -223,4 +223,67 @@ impl Queries {
         .fetch_all(self.db.as_ref())
         .await
     }
+
+    pub async fn collection_evaluation(
+        &self,
+        collections: &[String],
+        start_timestamp: Option<NaiveDateTime>,
+        cutoff_timestamp: Option<NaiveDateTime>,
+    ) -> sqlx::Result<Vec<NftCollectionEvaluation>> {
+        sqlx::query_as!(
+            NftCollectionEvaluation,
+            r#"
+            with trades as (
+                select collection, nft, max_bid as token_amount, price_token as token_root, finished_at as timestamp
+                from nft_auction
+                where status = 'completed'
+
+                union all
+
+                select collection, nft, price as token_amount, price_token as token_root, finished_at as timestamp
+                from nft_direct_buy
+                where state = 'filled'
+
+                union all
+
+                select collection, nft, price as token_amount, price_token as token_root, finished_at as timestamp
+                from nft_direct_sell
+                where state = 'filled'
+            ), ranked_trades as (
+                select *, row_number() over (partition by nft order by timestamp desc) as row_num
+                from trades
+                where (timestamp > $2 or $2 is null)
+                  and timestamp < coalesce($3, now()::timestamp with time zone)
+            ), nft_valuation as (
+                select rt.collection,
+                       nft,
+                       timestamp,
+                       token_amount,
+                       token_root,
+                       tup.usd_price,
+                       row_num = 1 as latest
+                from nft n
+                         join ranked_trades rt on rt.nft = n.address
+                         left join token_usd_prices tup on tup.token = rt.token_root
+                where not n.burned
+            )
+            select c.address,
+                   coalesce(sum(coalesce(token_amount * usd_price, 0)) filter (where latest), 0) as "usd_value!",
+                   coalesce(max(coalesce(token_amount * usd_price, 0)) filter (where latest), 0) as "most_expensive_item!",
+                   sum(coalesce(token_amount * usd_price, 0)) as "usd_turnover!",
+                   ncd.nft_count as "nft_count!"
+            from nft_collection c
+                     left join nft_valuation nv on nv.collection = c.address
+                     left join nft_collection_details ncd on ncd.address = c.address
+            where collection = any($1)
+            group by c.address, ncd.nft_count
+            order by 2 desc
+            "#,
+            collections,
+            start_timestamp as _,
+            cutoff_timestamp as _,
+        )
+            .fetch_all(self.db.as_ref())
+            .await
+    }
 }

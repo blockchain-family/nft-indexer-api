@@ -159,6 +159,34 @@ pub struct CollectionSimple {
     pub nft_count: i64,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct CollectionEvaluation {
+    pub address: Address,
+    pub usd_value: BigDecimal,
+    pub most_expensive_item: BigDecimal,
+    pub usd_turnover: BigDecimal,
+    pub nft_count: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct CollectionEvaluationList {
+    pub evaluations: Vec<CollectionEvaluation>,
+}
+
+impl CollectionEvaluation {
+    pub fn from_db(db: crate::db::NftCollectionEvaluation) -> Self {
+        Self {
+            address: db.address,
+            usd_value: db.usd_value,
+            most_expensive_item: db.most_expensive_item,
+            usd_turnover: db.usd_turnover,
+            nft_count: db.nft_count,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, ToSchema)]
 pub struct Root {
     pub address: Address,

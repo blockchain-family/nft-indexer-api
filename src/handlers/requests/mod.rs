@@ -20,3 +20,11 @@ pub struct Ordering<T> {
     pub direction: OrderDirection,
     pub field: T,
 }
+
+#[derive(Default, Debug, Clone, Hash, PartialEq, Eq, Deserialize, ToSchema)]
+#[aliases(Period = FromTo<i64>)]
+#[serde(rename_all = "camelCase")]
+pub struct FromTo<T> {
+    pub from: Option<T>,
+    pub to: Option<T>,
+}
