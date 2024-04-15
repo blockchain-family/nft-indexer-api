@@ -24,7 +24,8 @@ use api::handlers;
 use api::handlers::auction::{get_auction, get_auction_bids, get_auctions};
 use api::handlers::auth::sign_in;
 use api::handlers::collection::{
-    get_collection, get_collections_by_owner, list_collections, list_collections_simple,
+    get_collection, get_collections_by_owner, list_collections, list_collections_evaluation,
+    list_collections_simple,
 };
 use api::handlers::collection_custom::upsert_collection_custom;
 use api::handlers::events::{get_events, search_all};
@@ -39,7 +40,7 @@ use api::handlers::owner::{
     get_owner_direct_sell,
 };
 use api::handlers::user::{get_user_by_address, upsert_user};
-use api::handlers::*;
+use api::handlers::{requests::Period, *};
 use api::model::OrderDirection;
 use api::model::*;
 use api::schema::Address;
@@ -82,7 +83,9 @@ use warp::{http::StatusCode, Filter};
         AuctionStatus,
         OrderDirection,
         CollectionDetails,
-        CollectionDetailsPreviewMeta, NftEventType, Attribute
+        CollectionDetailsPreviewMeta, NftEventType, Attribute,
+        CollectionEvaluationList,
+        Period,
     )),
     info(title="Marketplace API"),
     modifiers(
@@ -182,19 +185,26 @@ async fn main() {
                 .or(get_nft_for_banner(db_service.clone(), cache_minute.clone()))
                 .or(get_nft_direct_buy(db_service.clone()))
                 .or(get_nft_price_history(db_service.clone()))
+                .boxed()
                 .or(list_collections(db_service.clone(), cache_minute.clone()))
                 .or(list_collections_simple(
                     db_service.clone(),
                     cache_minute.clone(),
                 ))
+                .or(list_collections_evaluation(
+                    db_service.clone(),
+                    cache_5_minutes.clone(),
+                ))
                 .or(get_collection(db_service.clone(), cache_1_sec.clone()))
                 .or(get_collections_by_owner(db_service.clone()))
+                .boxed()
                 .or(get_nft_types(db_service.clone(), cache_5_minutes.clone()))
                 .or(get_owner_bids_out(db_service.clone()))
                 .or(get_owner_bids_in(db_service.clone()))
                 .or(get_owner_direct_buy_in(db_service.clone()))
                 .or(get_owner_direct_buy(db_service.clone()))
                 .or(get_owner_direct_sell(db_service.clone()))
+                .boxed()
                 .or(get_auctions(db_service.clone()))
                 .or(get_auction(db_service.clone()))
                 .or(get_auction_bids(db_service.clone()))
@@ -203,6 +213,7 @@ async fn main() {
                     db_service.clone(),
                     cache_minute.clone(),
                 ))
+                .boxed()
                 .or(list_roots(db_service.clone()))
                 .or(search_all(db_service.clone()))
                 .or(get_fee(db_service.clone()))

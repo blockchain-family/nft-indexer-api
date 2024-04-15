@@ -99,6 +99,15 @@ pub struct NftCollectionSimple {
 }
 
 #[derive(Clone, Debug)]
+pub struct NftCollectionEvaluation {
+    pub address: Address,
+    pub usd_value: BigDecimal,
+    pub most_expensive_item: BigDecimal,
+    pub usd_turnover: BigDecimal,
+    pub nft_count: i64,
+}
+
+#[derive(Clone, Debug)]
 pub struct RootRecord {
     pub address: Address,
     pub code: String,
