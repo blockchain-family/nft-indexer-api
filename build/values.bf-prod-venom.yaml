@@ -8,7 +8,7 @@ env:
   indexer_api_database_max_connections: "3"
   indexer_api__jwt_secret: $(VENOM_MAINNET_API_JWT_SECRET)
   indexer_api__auth_token_lifetime: "31536000"
-  indexer_api__prices_url: https://qube.faltqube.io/v1/currencies/
+  indexer_api__prices_url: https://api.web3.world/v1/currencies/
   indexer_api__main_token: 0:2c3a2ff6443af741ce653ae4ef2c85c2d52a9df84944bbe14d702c3131da3f14
 
 controller: statefulset
