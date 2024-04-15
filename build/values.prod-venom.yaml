@@ -1,0 +1,46 @@
+env:
+  RUST_LOG: info
+  RUST_BACKTRACE: 1
+  DATABASE_URL: postgresql://$(PROD_MAINNET_VENOM_PG_USER):$(PROD_MAINNET_VENOM_PG_PASSWORD)@postgresql-bf.europe-west1-c.c.broxus.internal:5432/nft-indexer-prod-mainnet-venom
+  INDEXER_API__DATABASE__URL: postgresql://$(PROD_MAINNET_VENOM_PG_USER):$(PROD_MAINNET_VENOM_PG_PASSWORD)@postgresql-bf.europe-west1-c.c.broxus.internal:5432/nft-indexer-prod-mainnet-venom
+  indexer_api_database_url: postgresql://$(PROD_MAINNET_VENOM_PG_USER):$(PROD_MAINNET_VENOM_PG_PASSWORD)@postgresql-bf.europe-west1-c.c.broxus.internal:5432/nft-indexer-prod-mainnet-venom
+  indexer_api_http_address: 0.0.0.0:8080
+  indexer_api_database_max_connections: "3"
+  indexer_api__jwt_secret: $(VENOM_MAINNET_API_JWT_SECRET)
+  indexer_api__auth_token_lifetime: "31536000"
+  indexer_api__prices_url: https://api.web3.world/v1/currencies/
+  indexer_api__main_token: 0:77d36848bb159fa485628bc38dc37eadb74befa514395e09910f601b841f749e
+
+controller: statefulset
+
+service:
+  port: 8080
+
+ingress:
+  enabled: true
+  hosts:
+    - host: api-venom.tokstock.io
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls:
+    - secretName: indexer-api-venom-tls
+      hosts:
+        - api-venom.tokstock.io
+
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: 8080
+  initialDelaySeconds: 5
+  periodSeconds: 10
+
+readinessProbe:
+  httpGet:
+    path: /healthz
+    port: 8080
+  initialDelaySeconds: 5
+  periodSeconds: 10
+
+sharedSecrets:
+  - nftIndexer

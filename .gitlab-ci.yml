@@ -99,3 +99,29 @@ stop:prod:
   extends: .stop
   environment:
     name: prod
+
+deploy:prod-venom:
+  only:
+    - main
+  except:
+    - tags
+  extends: .deploy
+  environment:
+    name: bf
+    on_stop: stop:prod-venom
+  variables:
+    K8S_NAMESPACE: ${CI_PROJECT_ROOT_NAMESPACE}-prod
+    APP_CONFIG: prod-venom
+
+stop:prod-venom:
+  only:
+    - main
+  except:
+    - tags
+  extends: .stop
+  environment:
+    name: bf
+  variables:
+    K8S_NAMESPACE: ${CI_PROJECT_ROOT_NAMESPACE}-prod
+    APP_CONFIG: prod-venom
+
