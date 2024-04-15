@@ -271,7 +271,7 @@ impl Queries {
                    coalesce(sum(coalesce(token_amount * usd_price, 0)) filter (where latest), 0) as "usd_value!",
                    coalesce(max(coalesce(token_amount * usd_price, 0)) filter (where latest), 0) as "most_expensive_item!",
                    sum(coalesce(token_amount * usd_price, 0)) as "usd_turnover!",
-                   ncd.nft_count as "nft_count!"
+                   coalesce(ncd.nft_count, 0) as "nft_count!"
             from nft_collection c
                      left join nft_valuation nv on nv.collection = c.address
                      left join nft_collection_details ncd on ncd.address = c.address

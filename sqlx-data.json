@@ -1309,6 +1309,52 @@
     },
     "query": "\n               select u.address,\n               u.logo_nft,\n               u.username,\n               u.bio,\n               u.twitter,\n               u.instagram,\n               u.facebook,\n               u.link,\n               u.email,\n               nm.meta -> 'preview' ->> 'source' as avatar_url\n                from users u\n                         left join nft n on n.address = u.logo_nft and n.owner = u.address\n                         left join nft_metadata nm on n.address = nm.nft\n                where u.address = $1\n            "
   },
+  "60628d23fc7579b7be4e2b5feebacd04d119f68862ed1981c5ecb469fb5c0280": {
+    "describe": {
+      "columns": [
+        {
+          "name": "address",
+          "ordinal": 0,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "usd_value!",
+          "ordinal": 1,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "most_expensive_item!",
+          "ordinal": 2,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "usd_turnover!",
+          "ordinal": 3,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "nft_count!",
+          "ordinal": 4,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        false,
+        null,
+        null,
+        null,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "TextArray",
+          "Timestamp",
+          "Timestamptz"
+        ]
+      }
+    },
+    "query": "\n            with trades as (\n                select collection, nft, max_bid as token_amount, price_token as token_root, finished_at as timestamp\n                from nft_auction\n                where status = 'completed'\n\n                union all\n\n                select collection, nft, price as token_amount, price_token as token_root, finished_at as timestamp\n                from nft_direct_buy\n                where state = 'filled'\n\n                union all\n\n                select collection, nft, price as token_amount, price_token as token_root, finished_at as timestamp\n                from nft_direct_sell\n                where state = 'filled'\n            ), ranked_trades as (\n                select *, row_number() over (partition by nft order by timestamp desc) as row_num\n                from trades\n                where (timestamp > $2 or $2 is null)\n                  and timestamp < coalesce($3, now()::timestamp with time zone)\n            ), nft_valuation as (\n                select rt.collection,\n                       nft,\n                       timestamp,\n                       token_amount,\n                       token_root,\n                       tup.usd_price,\n                       row_num = 1 as latest\n                from nft n\n                         join ranked_trades rt on rt.nft = n.address\n                         left join token_usd_prices tup on tup.token = rt.token_root\n                where not n.burned\n            )\n            select c.address,\n                   coalesce(sum(coalesce(token_amount * usd_price, 0)) filter (where latest), 0) as \"usd_value!\",\n                   coalesce(max(coalesce(token_amount * usd_price, 0)) filter (where latest), 0) as \"most_expensive_item!\",\n                   sum(coalesce(token_amount * usd_price, 0)) as \"usd_turnover!\",\n                   coalesce(ncd.nft_count, 0) as \"nft_count!\"\n            from nft_collection c\n                     left join nft_valuation nv on nv.collection = c.address\n                     left join nft_collection_details ncd on ncd.address = c.address\n            where collection = any($1)\n            group by c.address, ncd.nft_count\n            order by 2 desc\n            "
+  },
   "61fdd4406009440146a4e5c62d954e5a56e118741094850186368c25286ca49a": {
     "describe": {
       "columns": [],
@@ -1522,52 +1568,6 @@
       }
     },
     "query": "\n            select distinct a.nft\n            from nft_attributes a\n            where a.collection = $1\n              and a.trait_type = $2\n              and a.value = any ($3::jsonb[])\n            order by 1 asc\n            "
-  },
-  "86eaf49572f0d7353ec67f59c3a57260dbbcc5ef3b1fcff7037d9d4eb81a1dc5": {
-    "describe": {
-      "columns": [
-        {
-          "name": "address",
-          "ordinal": 0,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "usd_value!",
-          "ordinal": 1,
-          "type_info": "Numeric"
-        },
-        {
-          "name": "most_expensive_item!",
-          "ordinal": 2,
-          "type_info": "Numeric"
-        },
-        {
-          "name": "usd_turnover!",
-          "ordinal": 3,
-          "type_info": "Numeric"
-        },
-        {
-          "name": "nft_count!",
-          "ordinal": 4,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        false,
-        null,
-        null,
-        null,
-        true
-      ],
-      "parameters": {
-        "Left": [
-          "TextArray",
-          "Timestamp",
-          "Timestamptz"
-        ]
-      }
-    },
-    "query": "\n            with trades as (\n                select collection, nft, max_bid as token_amount, price_token as token_root, finished_at as timestamp\n                from nft_auction\n                where status = 'completed'\n\n                union all\n\n                select collection, nft, price as token_amount, price_token as token_root, finished_at as timestamp\n                from nft_direct_buy\n                where state = 'filled'\n\n                union all\n\n                select collection, nft, price as token_amount, price_token as token_root, finished_at as timestamp\n                from nft_direct_sell\n                where state = 'filled'\n            ), ranked_trades as (\n                select *, row_number() over (partition by nft order by timestamp desc) as row_num\n                from trades\n                where (timestamp > $2 or $2 is null)\n                  and timestamp < coalesce($3, now()::timestamp with time zone)\n            ), nft_valuation as (\n                select rt.collection,\n                       nft,\n                       timestamp,\n                       token_amount,\n                       token_root,\n                       tup.usd_price,\n                       row_num = 1 as latest\n                from nft n\n                         join ranked_trades rt on rt.nft = n.address\n                         left join token_usd_prices tup on tup.token = rt.token_root\n                where not n.burned\n            )\n            select c.address,\n                   coalesce(sum(coalesce(token_amount * usd_price, 0)) filter (where latest), 0) as \"usd_value!\",\n                   coalesce(max(coalesce(token_amount * usd_price, 0)) filter (where latest), 0) as \"most_expensive_item!\",\n                   sum(coalesce(token_amount * usd_price, 0)) as \"usd_turnover!\",\n                   ncd.nft_count as \"nft_count!\"\n            from nft_collection c\n                     left join nft_valuation nv on nv.collection = c.address\n                     left join nft_collection_details ncd on ncd.address = c.address\n            where collection = any($1)\n            group by c.address, ncd.nft_count\n            order by 2 desc\n            "
   },
   "88abf29912d963900e4a54d28f51f0b445b5b82afbf1f64d758ceb0c11142835": {
     "describe": {
