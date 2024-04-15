@@ -6,6 +6,8 @@ env:
   indexer_api_database_url: postgresql://$(PROD_MAINNET_VENOM_PG_USER):$(PROD_MAINNET_VENOM_PG_PASSWORD)@postgresql-bf.europe-west1-c.c.broxus.internal:5432/nft-indexer-prod-mainnet-venom
   indexer_api_http_address: 0.0.0.0:8080
   indexer_api_database_max_connections: "3"
+  indexer_api__jwt_secret: $(VENOM_MAINNET_API_JWT_SECRET)
+  indexer_api__auth_token_lifetime: "31536000"
 
 controller: statefulset
 
