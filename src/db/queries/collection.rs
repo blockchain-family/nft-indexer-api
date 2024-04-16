@@ -275,7 +275,7 @@ impl Queries {
             from nft_collection c
                      left join nft_valuation nv on nv.collection = c.address
                      left join nft_collection_details ncd on ncd.address = c.address
-            where collection = any($1)
+            where c.address = any($1)
             group by c.address, ncd.nft_count
             order by 2 desc
             "#,
