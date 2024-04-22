@@ -35,13 +35,11 @@ impl TokenDict {
         TokenDict(Arc::new(map))
     }
 
-    pub async fn load() -> anyhow::Result<Self> {
-        let resp = reqwest::get(
-            "https://raw.githubusercontent.com/broxus/ton-assets/master/manifest.json",
-        )
-        .await?
-        .json::<Manifest>()
-        .await?;
+    pub async fn load(manifest_path: &str) -> anyhow::Result<Self> {
+        let resp = reqwest::get(manifest_path)
+            .await?
+            .json::<Manifest>()
+            .await?;
         Ok(Self::new(resp.tokens))
     }
 

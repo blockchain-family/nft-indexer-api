@@ -9,9 +9,10 @@ env:
   indexer_api__jwt_secret: $(VENOM_MAINNET_API_JWT_SECRET)
   indexer_api__auth_token_lifetime: "31536000"
   indexer_api__base_url: tokstock.io
-  indexer_api__prices_url: https://api.web3.world/v1/currencies/
+  indexer_api__dex_url: https://api.web3.world
   indexer_api__main_token: 0:77d36848bb159fa485628bc38dc37eadb74befa514395e09910f601b841f749e
   indexer_api__indexer_api_url: http://nft-nft-indexer-prod-mainnet-venom:3001
+  indexer_api__token_manifest_path: https://static.web3.world/assets/manifest.json
 
 controller: statefulset
 

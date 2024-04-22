@@ -110,7 +110,7 @@ async fn main() {
     stackdriver_logger::init_with_cargo!();
     log::info!("INDEXER-API SERVICE");
     let cfg = ApiConfig::new().expect("Failed to load config");
-    let tokens = TokenDict::load()
+    let tokens = TokenDict::load(&cfg.token_manifest_path)
         .await
         .expect("error loading tokens dictionary");
     let db_pool = cfg.database.init().await.expect("err init database");
@@ -121,7 +121,7 @@ async fn main() {
         cfg.base_url,
     ));
 
-    CurrencyClient::new(db_service.clone(), cfg.main_token, cfg.prices_url)
+    CurrencyClient::new(db_service.clone(), cfg.main_token, cfg.dex_url)
         .expect("err initialize currency client")
         .start(Duration::from_secs(5 * 60)) // 5 minutes
         .await

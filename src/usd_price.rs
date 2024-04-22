@@ -13,7 +13,7 @@ pub struct CurrencyClient {
     http_client: reqwest::Client,
     db: Queries,
     main_token: String,
-    prices_url: String,
+    dex_url: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -24,19 +24,19 @@ pub struct TokenUsdPricesRequest {
 pub type TokenUsdPricesResponse = HashMap<String, String>;
 
 impl CurrencyClient {
-    pub fn new(db: Queries, main_token: String, prices_url: String) -> reqwest::Result<Self> {
+    pub fn new(db: Queries, main_token: String, dex_url: String) -> reqwest::Result<Self> {
         let http_client = reqwest::Client::builder().build()?;
         Ok(CurrencyClient {
             http_client,
             db,
             main_token,
-            prices_url,
+            dex_url,
         })
     }
 
     pub async fn get_prices(&self) -> reqwest::Result<TokenUsdPricesResponse> {
         self.http_client
-            .post("https://api.flatqube.io/v1/currencies_usdt_prices")
+            .post(format!("{}/v1/currencies_usdt_prices", self.dex_url))
             .json(&TokenUsdPricesRequest {
                 currency_addresses: self.db.tokens.addresses(),
             })
@@ -94,7 +94,7 @@ impl CurrencyClient {
     }
 
     async fn get_prices_venom_dex(&self, token: &str) -> reqwest::Result<VenomDexPriceResponse> {
-        let url = format!("{}{token}", self.prices_url);
+        let url = format!("{}/v1/currencies/{token}", self.dex_url);
         self.http_client
             .post(url)
             .send()

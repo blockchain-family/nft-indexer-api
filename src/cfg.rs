@@ -53,9 +53,10 @@ pub struct ApiConfig {
     pub auth_token_lifetime: u32,
     pub jwt_secret: String,
     pub base_url: String,
-    pub prices_url: String,
+    pub dex_url: String,
     pub main_token: String,
     pub indexer_api_url: String,
+    pub token_manifest_path: String,
 }
 
 impl ApiConfig {
@@ -76,9 +77,10 @@ impl Default for ApiConfig {
             auth_token_lifetime: 999999999,
             jwt_secret: "jwtsecret".to_string(),
             base_url: String::default(),
-            prices_url: "".to_string(),
+            dex_url: "".to_string(),
             main_token: "".to_string(),
             indexer_api_url: "https://indexer-venom-stg2.bf.works/".to_string(),
+            token_manifest_path: "https://static.web3.world/assets/manifest.json".to_string(),
         }
     }
 }
