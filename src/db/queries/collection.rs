@@ -1,4 +1,6 @@
 use super::*;
+use bigdecimal::BigDecimal;
+use std::collections::HashMap;
 
 use crate::db::{queries::Queries, query_params::collection::CollectionsListParams};
 
@@ -227,13 +229,21 @@ impl Queries {
     pub async fn collection_evaluation(
         &self,
         collections: &[String],
+        mint_prices: HashMap<String, BigDecimal>,
         start_timestamp: Option<NaiveDateTime>,
         cutoff_timestamp: Option<NaiveDateTime>,
     ) -> sqlx::Result<Vec<NftCollectionEvaluation>> {
+        let public_mint_collections: Vec<String> = mint_prices.keys().cloned().collect::<Vec<_>>();
+        let public_mint_prices: Vec<BigDecimal> = mint_prices.values().cloned().collect();
+        let wrapped_coin = self.get_wrapped_coin();
+
         sqlx::query_as!(
             NftCollectionEvaluation,
             r#"
-            with trades as (
+            with collection_mint_prices (collection, mint_price) as (
+                select *, $6::numeric as decimals, $7 as token_root from
+                    unnest($4::varchar[], $5::numeric[]) token_prices(collection, mint_price)
+            ), trades as (
                 select collection, nft, max_bid as token_amount, price_token as token_root, finished_at as timestamp
                 from nft_auction
                 where status = 'completed'
@@ -249,6 +259,13 @@ impl Queries {
                 select collection, nft, price as token_amount, price_token as token_root, finished_at as timestamp
                 from nft_direct_sell
                 where state = 'filled'
+
+                union all
+
+                select ne.collection, ne.nft, cmp.mint_price * 10^decimals as token_amount, token_root, to_timestamp(created_at) timestamp
+                from nft_events ne
+                         join collection_mint_prices cmp on ne.collection = cmp.collection
+                where computed_event_kind = 'mint'
             ), ranked_trades as (
                 select *, row_number() over (partition by nft order by timestamp desc) as row_num
                 from trades
@@ -282,6 +299,10 @@ impl Queries {
             collections,
             start_timestamp as _,
             cutoff_timestamp as _,
+            public_mint_collections.as_slice(),
+            public_mint_prices as _,
+            wrapped_coin.decimals as i32,
+            wrapped_coin.address as _
         )
             .fetch_all(self.db.as_ref())
             .await

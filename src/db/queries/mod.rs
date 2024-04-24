@@ -9,7 +9,7 @@ mod user;
 
 use super::*;
 
-use crate::token::TokenDict;
+use crate::token::{Token, TokenDict};
 use chrono::NaiveDateTime;
 use sqlx::{self, postgres::PgPool};
 
@@ -18,12 +18,24 @@ use std::sync::Arc;
 #[derive(Debug, Clone)]
 pub struct Queries {
     db: Arc<PgPool>,
+    wrapped_coin_address: String,
     pub tokens: TokenDict,
 }
 
 impl Queries {
-    pub fn new(db: Arc<PgPool>, tokens: TokenDict) -> Self {
-        Self { db, tokens }
+    pub fn new(db: Arc<PgPool>, wrapped_coin_address: String, tokens: TokenDict) -> Self {
+        Self {
+            db,
+            wrapped_coin_address,
+            tokens,
+        }
+    }
+
+    fn get_wrapped_coin(&self) -> Token {
+        self.tokens
+            .get(&self.wrapped_coin_address)
+            .expect("missing main token")
+            .clone()
     }
 
     pub async fn update_token_usd_prices(

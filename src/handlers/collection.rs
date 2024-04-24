@@ -11,10 +11,12 @@ use crate::model::{
 use crate::schema::VecCollectionSimpleWithTotal;
 use crate::schema::VecCollectionsWithTotal;
 use crate::{api_doc_addon, catch_empty, catch_error_500, response};
+use bigdecimal::BigDecimal;
 use chrono::NaiveDateTime;
 use moka::future::Cache;
 use serde::Deserialize;
 use serde_json::Value;
+use std::hash::{Hash, Hasher};
 use std::{collections::HashMap, convert::Infallible};
 use utoipa::OpenApi;
 use utoipa::ToSchema;
@@ -290,11 +292,24 @@ pub async fn collect_collections(
     Ok(map)
 }
 
-#[derive(Debug, Clone, Deserialize, Hash, ToSchema)]
+#[derive(Debug, Clone, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ListCollectionsEvaluationParams {
     pub addresses: Vec<String>,
+    #[schema(additional_properties)]
+    pub mint_prices: Option<HashMap<String, Option<BigDecimal>>>,
     pub period: Option<Period>,
+}
+
+impl Hash for ListCollectionsEvaluationParams {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.addresses.hash(state);
+        if let Some(mint_prices) = &self.mint_prices {
+            mint_prices.keys().collect::<Vec<_>>().hash(state);
+            mint_prices.values().collect::<Vec<_>>().hash(state);
+        }
+        self.period.hash(state);
+    }
 }
 
 #[utoipa::path(
@@ -340,7 +355,16 @@ pub async fn list_collections_evaluation_handler(
                 .period
                 .and_then(|p| p.to)
                 .and_then(|t| NaiveDateTime::from_timestamp_opt(t, 0));
-            let list = catch_error_500!(db.collection_evaluation(addresses, from, to).await);
+            let mint_prices = params
+                .mint_prices
+                .unwrap_or_default()
+                .into_iter()
+                .map(|(a, p)| (a, p.unwrap_or_default()))
+                .collect::<HashMap<_, _>>();
+            let list = catch_error_500!(
+                db.collection_evaluation(addresses, mint_prices, from, to)
+                    .await
+            );
             ret = CollectionEvaluationList {
                 evaluations: list
                     .into_iter()

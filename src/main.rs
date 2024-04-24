@@ -114,7 +114,7 @@ async fn main() {
         .await
         .expect("error loading tokens dictionary");
     let db_pool = cfg.database.init().await.expect("err init database");
-    let db_service = Queries::new(Arc::new(db_pool), tokens);
+    let db_service = Queries::new(Arc::new(db_pool), cfg.main_token.clone(), tokens);
     let auth_service = Arc::new(AuthService::new(
         cfg.auth_token_lifetime,
         cfg.jwt_secret,
