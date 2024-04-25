@@ -237,10 +237,19 @@ impl Queries {
         let public_mint_prices: Vec<BigDecimal> = mint_prices.values().cloned().collect();
         let wrapped_coin = self.get_wrapped_coin();
 
+        //TODO get rid of hardcode
         sqlx::query_as!(
             NftCollectionEvaluation,
             r#"
-            with collection_mint_prices (collection, mint_price) as (
+            with final_prices (token, usd_price) as (
+                select '0:77d36848bb159fa485628bc38dc37eadb74befa514395e09910f601b841f749e' as token, 0.000000000384277347387 as usd_price
+                union all
+                select '0:cda5e8d5953e1a09ffeb9f62316f2994019f10abe83c8f1b0aadfbc997bd79e6' as token, 0.000001 as usd_price
+                union all
+                select '0:8a4ed4483500caf2d4bb4b56c84df41009cc3d0ed6a9de05d853e26a30faeced' as token, 0.000001 as usd_price
+                union all
+                select '0:0447c738d8549c5ea92f1c945628367db4adcc706685f760c93f8b236bf8e7e4' as token, 0.000000000000000000999280251036 as usd_price
+            ), collection_mint_prices (collection, mint_price) as (
                 select *, $6::numeric as decimals, $7 as token_root from
                     unnest($4::varchar[], $5::numeric[]) token_prices(collection, mint_price)
             ), trades as (
@@ -281,7 +290,8 @@ impl Queries {
                        row_num = 1 as latest
                 from nft n
                          join ranked_trades rt on rt.nft = n.address
-                         left join token_usd_prices tup on tup.token = rt.token_root
+                         --left join token_usd_prices tup on tup.token = rt.token_root
+                         left join final_prices tup on tup.token = rt.token_root
                 where not n.burned
             )
             select c.address,

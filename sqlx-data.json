@@ -1523,56 +1523,6 @@
     },
     "query": "\n            select distinct a.nft\n            from nft_attributes a\n            where a.collection = $1\n              and a.trait_type = $2\n              and a.value = any ($3::jsonb[])\n            order by 1 asc\n            "
   },
-  "73af6c51b57fd9e28280a722eb65b95d07b8d6065d816b9e443c0f0502e7d129": {
-    "describe": {
-      "columns": [
-        {
-          "name": "address",
-          "ordinal": 0,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "usd_value!",
-          "ordinal": 1,
-          "type_info": "Numeric"
-        },
-        {
-          "name": "most_expensive_item!",
-          "ordinal": 2,
-          "type_info": "Numeric"
-        },
-        {
-          "name": "usd_turnover!",
-          "ordinal": 3,
-          "type_info": "Numeric"
-        },
-        {
-          "name": "nft_count!",
-          "ordinal": 4,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        false,
-        null,
-        null,
-        null,
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "TextArray",
-          "Timestamptz",
-          "Timestamptz",
-          "VarcharArray",
-          "NumericArray",
-          "Numeric",
-          "Text"
-        ]
-      }
-    },
-    "query": "\n            with collection_mint_prices (collection, mint_price) as (\n                select *, $6::numeric as decimals, $7 as token_root from\n                    unnest($4::varchar[], $5::numeric[]) token_prices(collection, mint_price)\n            ), trades as (\n                select collection, nft, max_bid as token_amount, price_token as token_root, finished_at as timestamp\n                from nft_auction\n                where status = 'completed'\n\n                union all\n\n                select collection, nft, price as token_amount, price_token as token_root, finished_at as timestamp\n                from nft_direct_buy\n                where state = 'filled'\n\n                union all\n\n                select collection, nft, price as token_amount, price_token as token_root, finished_at as timestamp\n                from nft_direct_sell\n                where state = 'filled'\n\n                union all\n\n                select ne.collection, ne.nft, cmp.mint_price * 10^decimals as token_amount, token_root, to_timestamp(created_at) timestamp\n                from nft_events ne\n                         join collection_mint_prices cmp on ne.collection = cmp.collection\n                where computed_event_kind = 'mint'\n            ), ranked_trades as (\n                select *, row_number() over (partition by nft order by timestamp desc) as row_num\n                from trades\n                where (timestamp > $2 or $2 is null)\n                  and timestamp < coalesce($3, now()::timestamp with time zone)\n            ), nft_valuation as (\n                select rt.collection,\n                       nft,\n                       timestamp,\n                       token_amount,\n                       token_root,\n                       tup.usd_price,\n                       row_num = 1 as latest\n                from nft n\n                         join ranked_trades rt on rt.nft = n.address\n                         left join token_usd_prices tup on tup.token = rt.token_root\n                where not n.burned\n            )\n            select c.address,\n                   coalesce(sum(coalesce(token_amount * usd_price, 0)) filter (where latest), 0) as \"usd_value!\",\n                   coalesce(max(coalesce(token_amount * usd_price, 0)) filter (where latest), 0) as \"most_expensive_item!\",\n                   sum(coalesce(token_amount * usd_price, 0)) as \"usd_turnover!\",\n                   coalesce(ncd.nft_count, 0) as \"nft_count!\"\n            from nft_collection c\n                     left join nft_valuation nv on nv.collection = c.address\n                     left join nft_collection_details ncd on ncd.address = c.address\n            where c.address = any($1)\n            group by c.address, ncd.nft_count\n            order by 2 desc\n            "
-  },
   "88abf29912d963900e4a54d28f51f0b445b5b82afbf1f64d758ceb0c11142835": {
     "describe": {
       "columns": [
@@ -3221,6 +3171,56 @@
       }
     },
     "query": "\n            select first_value(b.auction) over w                        as \"auction!\",\n                   first_value(b.buyer) over w                          as \"buyer!\",\n                   first_value(b.price) over w                          as \"price!\",\n                   first_value(b.price * tup.usd_price) over w          as \"usd_price\",\n                   first_value(b.created_at) over w                     as \"created_at!\",\n                   first_value(b.next_bid_value) over w                 as \"next_bid_value!\",\n                   first_value(b.next_bid_value * tup.usd_price) over w as \"next_bid_usd_value\",\n                   first_value(b.tx_lt) over w                          as \"tx_lt!\",\n                   true                                                 as \"active!\",\n                   count(1) over ()                                     as \"cnt!\"\n            from nft_auction_bid b\n                     join offers_whitelist ow on ow.address = b.auction\n                     left join token_usd_prices tup on tup.token = b.price_token\n            where auction = $1\n              and declined is false\n            window w as (partition by auction order by created_at desc)\n            limit 1\n            "
+  },
+  "e9afaa042dbe226e396ded7b99295d1efbd1bdb84ff0c8c0deba894b26ab7628": {
+    "describe": {
+      "columns": [
+        {
+          "name": "address",
+          "ordinal": 0,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "usd_value!",
+          "ordinal": 1,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "most_expensive_item!",
+          "ordinal": 2,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "usd_turnover!",
+          "ordinal": 3,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "nft_count!",
+          "ordinal": 4,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        false,
+        null,
+        null,
+        null,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "TextArray",
+          "Timestamptz",
+          "Timestamptz",
+          "VarcharArray",
+          "NumericArray",
+          "Numeric",
+          "Text"
+        ]
+      }
+    },
+    "query": "\n            with final_prices (token, usd_price) as (\n                select '0:77d36848bb159fa485628bc38dc37eadb74befa514395e09910f601b841f749e' as token, 0.000000000384277347387 as usd_price\n                union all\n                select '0:cda5e8d5953e1a09ffeb9f62316f2994019f10abe83c8f1b0aadfbc997bd79e6' as token, 0.000001 as usd_price\n                union all\n                select '0:8a4ed4483500caf2d4bb4b56c84df41009cc3d0ed6a9de05d853e26a30faeced' as token, 0.000001 as usd_price\n                union all\n                select '0:0447c738d8549c5ea92f1c945628367db4adcc706685f760c93f8b236bf8e7e4' as token, 0.000000000000000000999280251036 as usd_price\n            ), collection_mint_prices (collection, mint_price) as (\n                select *, $6::numeric as decimals, $7 as token_root from\n                    unnest($4::varchar[], $5::numeric[]) token_prices(collection, mint_price)\n            ), trades as (\n                select collection, nft, max_bid as token_amount, price_token as token_root, finished_at as timestamp\n                from nft_auction\n                where status = 'completed'\n\n                union all\n\n                select collection, nft, price as token_amount, price_token as token_root, finished_at as timestamp\n                from nft_direct_buy\n                where state = 'filled'\n\n                union all\n\n                select collection, nft, price as token_amount, price_token as token_root, finished_at as timestamp\n                from nft_direct_sell\n                where state = 'filled'\n\n                union all\n\n                select ne.collection, ne.nft, cmp.mint_price * 10^decimals as token_amount, token_root, to_timestamp(created_at) timestamp\n                from nft_events ne\n                         join collection_mint_prices cmp on ne.collection = cmp.collection\n                where computed_event_kind = 'mint'\n            ), ranked_trades as (\n                select *, row_number() over (partition by nft order by timestamp desc) as row_num\n                from trades\n                where (timestamp > $2 or $2 is null)\n                  and timestamp < coalesce($3, now()::timestamp with time zone)\n            ), nft_valuation as (\n                select rt.collection,\n                       nft,\n                       timestamp,\n                       token_amount,\n                       token_root,\n                       tup.usd_price,\n                       row_num = 1 as latest\n                from nft n\n                         join ranked_trades rt on rt.nft = n.address\n                         --left join token_usd_prices tup on tup.token = rt.token_root\n                         left join final_prices tup on tup.token = rt.token_root\n                where not n.burned\n            )\n            select c.address,\n                   coalesce(sum(coalesce(token_amount * usd_price, 0)) filter (where latest), 0) as \"usd_value!\",\n                   coalesce(max(coalesce(token_amount * usd_price, 0)) filter (where latest), 0) as \"most_expensive_item!\",\n                   sum(coalesce(token_amount * usd_price, 0)) as \"usd_turnover!\",\n                   coalesce(ncd.nft_count, 0) as \"nft_count!\"\n            from nft_collection c\n                     left join nft_valuation nv on nv.collection = c.address\n                     left join nft_collection_details ncd on ncd.address = c.address\n            where c.address = any($1)\n            group by c.address, ncd.nft_count\n            order by 2 desc\n            "
   },
   "ebd264003cdbac7a611dc7c75bcb585eccd732466be13ccd2e3238cf0f1351fc": {
     "describe": {
