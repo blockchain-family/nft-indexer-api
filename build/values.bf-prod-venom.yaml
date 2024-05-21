@@ -26,10 +26,17 @@ ingress:
       paths:
         - path: /
           pathType: ImplementationSpecific
+    - host: api.oasis.gallery
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
   tls:
     - secretName: indexer-api-venom-tls
       hosts:
         - api-venom.tokstock.io
+    - secretName: api.oasis.gallery-tls
+      hosts:
+        - api.oasis.gallery
 
 livenessProbe:
   httpGet:
