@@ -109,7 +109,7 @@ async fn main() {
     dotenv::dotenv().ok();
     stackdriver_logger::init_with_cargo!();
     log::info!("INDEXER-API SERVICE");
-    let cfg = ApiConfig::new().expect("Failed to load config");
+    let cfg = ApiConfig::new();
     let tokens = TokenDict::load(&cfg.token_manifest_path)
         .await
         .expect("error loading tokens dictionary");

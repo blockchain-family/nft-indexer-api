@@ -1,29 +1,14 @@
-use config::{self, ConfigError, Environment};
+use config::{self};
 use serde::Deserialize;
 use sqlx::{
     postgres::{PgPool, PgPoolOptions},
     Error,
 };
-use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
-
-fn default_http_address() -> SocketAddr {
-    SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, 8080))
-}
-
-fn default_url() -> String {
-    String::from("postgresql://localhost/nft_indexer")
-}
-
-fn default_max_connections() -> u32 {
-    50
-}
+use std::net::SocketAddr;
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct DatabaseConfig {
-    #[serde(default = "default_url")]
     pub url: String,
-
-    #[serde(default = "default_max_connections")]
     pub max_connections: u32,
 }
 
@@ -36,18 +21,8 @@ impl DatabaseConfig {
     }
 }
 
-impl Default for DatabaseConfig {
-    fn default() -> Self {
-        DatabaseConfig {
-            url: default_url(),
-            max_connections: default_max_connections(),
-        }
-    }
-}
-
 #[derive(Debug, Deserialize, Clone)]
 pub struct ApiConfig {
-    #[serde(default = "default_http_address")]
     pub http_address: SocketAddr,
     pub database: DatabaseConfig,
     pub auth_token_lifetime: u32,
@@ -59,28 +34,28 @@ pub struct ApiConfig {
     pub token_manifest_path: String,
 }
 
-impl ApiConfig {
-    pub fn new() -> Result<ApiConfig, ConfigError> {
-        let prefix = std::env::var("PREFIX").unwrap_or_else(|_| String::from("indexer_api"));
-        config::Config::builder()
-            .add_source(Environment::with_prefix(&prefix).separator("__"))
-            .build()?
-            .try_deserialize()
+impl Default for ApiConfig {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
-impl Default for ApiConfig {
-    fn default() -> Self {
-        ApiConfig {
-            http_address: default_http_address(),
-            database: DatabaseConfig::default(),
-            auth_token_lifetime: 999999999,
-            jwt_secret: "jwtsecret".to_string(),
-            base_url: String::default(),
-            dex_url: "".to_string(),
-            main_token: "".to_string(),
-            indexer_api_url: "https://indexer-venom-stg2.bf.works/".to_string(),
-            token_manifest_path: "https://static.web3.world/assets/manifest.json".to_string(),
+impl ApiConfig {
+    pub fn new() -> ApiConfig {
+        let mut conf_builder = config::Config::builder().add_source(
+            config::Environment::default()
+                .separator("__")
+                .try_parsing(true),
+        );
+
+        if std::path::Path::new("Settings.toml").exists() {
+            conf_builder = conf_builder.add_source(config::File::with_name("./Settings.toml"));
         }
+
+        conf_builder
+            .build()
+            .expect("Failed to build config")
+            .try_deserialize::<ApiConfig>()
+            .unwrap_or_else(|e| panic!("Error parsing config: {e}"))
     }
 }

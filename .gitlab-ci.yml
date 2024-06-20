@@ -12,113 +12,60 @@ stages:
 
 cloudbuild:image:stage:
   only:
-    - stage
+    - oasis-stage
   except:
     - tags
   extends: .cloudbuild:common
 
-deploy:stage-tokstock:
+deploy:stage-mainnet-venom:
   only:
-    - stage
+    - oasis-stage
   except:
     - tags
   extends: .deploy
   environment:
-    name: stage
-    on_stop: stop:stage-tokstock
+    name: bf
+    on_stop: stop:stage-mainnet-venom
+  variables:
+    K8S_NAMESPACE: ${CI_PROJECT_ROOT_NAMESPACE}-stage
+    APP_CONFIG: stage-mainnet-venom
 
-stop:stage-tokstock:
+stop:stage-mainnet-venom:
   only:
-    - stage
+    - oasis-stage
   except:
     - tags
   extends: .stop
   environment:
-    name: stage
-
-deploy:vstage:
-  only:
-    - stage
-  extends: .deploy
+    name: bf
   variables:
-    APP_CONFIG: vstage
-  environment:
-    name: stage
-    on_stop: stop:vstage
+    K8S_NAMESPACE: ${CI_PROJECT_ROOT_NAMESPACE}-stage
+    APP_CONFIG: stage-mainnet-venom
 
-stop:vstage:
-  only:
-    - stage
-  extends: .stop
-  variables:
-    APP_CONFIG: vstage
-  environment:
-    name: stage
-
-deploy:v1-prod:
-  only:
-    - main
-  extends: .deploy
-  variables:
-    APP_CONFIG: v1
-  environment:
-    name: prod
-    on_stop: stop:v1-prod
-
-stop:v1-prod:
-  only:
-    - main
-  extends: .stop
-  variables:
-    APP_CONFIG: v1
-  environment:
-    name: prod
 
 cloudbuild:image:prod:
   only:
-    - main
-    - venom_main
+    - oasis-prod
   except:
     - tags
   extends: .cloudbuild:common
 
-deploy:prod:
+deploy:prod-mainnet-venom:
   only:
-    - main
-  except:
-    - tags
-  extends: .deploy
-  environment:
-    name: prod
-    on_stop: stop:prod
-
-stop:prod:
-  only:
-    - main
-  except:
-    - tags
-  extends: .stop
-  environment:
-    name: prod
-
-deploy:prod-venom:
-  only:
-    - main
-    - venom_main
+    - oasis-prod
   except:
     - tags
   extends: .deploy
   environment:
     name: bf
-    on_stop: stop:prod-venom
+    on_stop: stop:prod-mainnet-venom
   variables:
     K8S_NAMESPACE: ${CI_PROJECT_ROOT_NAMESPACE}-prod
-    APP_CONFIG: prod-venom
+    APP_CONFIG: prod-mainnet-venom
 
-stop:prod-venom:
+stop:prod-mainnet-venom:
   only:
-    - main
-    - venom_main
+    - oasis-prod
   except:
     - tags
   extends: .stop
@@ -126,5 +73,4 @@ stop:prod-venom:
     name: bf
   variables:
     K8S_NAMESPACE: ${CI_PROJECT_ROOT_NAMESPACE}-prod
-    APP_CONFIG: prod-venom
-
+    APP_CONFIG: prod-mainnet-venom
