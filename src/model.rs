@@ -163,8 +163,11 @@ pub struct CollectionSimple {
 #[serde(rename_all = "camelCase")]
 pub struct CollectionEvaluation {
     pub address: Address,
+    #[schema(value_type = String, format = "BigDecimal")]
     pub usd_value: BigDecimal,
+    #[schema(value_type = String, format = "BigDecimal")]
     pub most_expensive_item: BigDecimal,
+    #[schema(value_type = String, format = "BigDecimal")]
     pub usd_turnover: BigDecimal,
     pub nft_count: i64,
 }

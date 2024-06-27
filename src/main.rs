@@ -85,6 +85,7 @@ use warp::{http::StatusCode, Filter};
         CollectionDetails,
         CollectionDetailsPreviewMeta, NftEventType, Attribute,
         CollectionEvaluationList,
+        CollectionEvaluation,
         Period,
     )),
     info(title="Marketplace API"),
