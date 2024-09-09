@@ -76,7 +76,7 @@ pub struct NftCollection {
     pub max_price: Option<BigDecimal>,
     pub total_price: Option<BigDecimal>,
     pub cnt: i64,
-    pub first_mint: Option<NaiveDateTime>,
+    pub first_mint: NaiveDateTime,
 }
 
 #[derive(Clone, Debug)]
@@ -107,7 +107,7 @@ pub struct NftCollectionDetails {
     pub verified: Option<bool>,
     pub wallpaper: Option<String>,
     pub logo: Option<String>,
-    pub owners_count: Option<i32>,
+    pub owners_count: Option<i64>,
     pub nft_count: Option<i64>,
     pub max_price: Option<BigDecimal>,
     pub total_price: Option<BigDecimal>,
@@ -119,7 +119,7 @@ pub struct NftCollectionDetails {
     pub first_mint: Option<NaiveDateTime>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, sqlx::FromRow)]
 pub struct NftAuction {
     pub address: Option<Address>,
     pub nft: Option<Address>,
@@ -256,7 +256,7 @@ pub struct Profile {
 
 #[derive(Clone, Debug)]
 pub struct TraitDef {
-    pub collection: Option<Address>,
+    pub collection: Address,
     pub trait_type: String,
     pub values: Option<serde_json::Value>,
 }
