@@ -1,0 +1,41 @@
+env:
+  RUST_LOG: info
+  RUST_BACKTRACE: 1
+  BACKEND_API_USER: $(PROD_V1_PG_USER)
+  indexer_api_database_url: postgresql://$(PROD_V1_PG_USER):$(PROD_V1_PG_PASSWORD)@postgresql-bf.europe-west1-c.c.broxus.internal:5432/tokstock-indexer-stage
+  indexer_api_http_address: 0.0.0.0:8080
+  indexer_api_database_max_connections: 3
+
+controller: statefulset
+
+service:
+  port: 8080
+
+ingress:
+  enabled: true
+  hosts:
+    - host: api.tokstock-stage.io
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls:
+    - secretName: tokstock-api-stage-tls
+      hosts:
+        - api.tokstock-stage.io
+
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: 8080
+  initialDelaySeconds: 5
+  periodSeconds: 10
+
+readinessProbe:
+  httpGet:
+    path: /healthz
+    port: 8080
+  initialDelaySeconds: 5
+  periodSeconds: 10
+
+sharedSecrets:
+  - nftIndexer
