@@ -1,8 +1,8 @@
 env:
   RUST_LOG: info
   RUST_BACKTRACE: 1
-  BACKEND_API_USER: $(PROD_V1_PG_USER)
-  indexer_api_database_url: postgresql://$(PROD_V1_PG_USER):$(PROD_V1_PG_PASSWORD)@postgresql-bf.europe-west1-c.c.broxus.internal:5432/tokstock-indexer-stage
+  BACKEND_API_USER: $(TOKSTOCK_STAGE_PG_USER)
+  indexer_api_database_url: postgresql://$(TOKSTOCK_STAGE_PG_USER):$(TOKSTOCK_STAGE_PG_PASSWORD)@postgresql-bf.europe-west1-c.c.broxus.internal:5432/tokstock-indexer-stage
   indexer_api_http_address: 0.0.0.0:8080
   indexer_api_database_max_connections: 3
 
@@ -14,14 +14,14 @@ service:
 ingress:
   enabled: true
   hosts:
-    - host: api.tokstock-stage.io
+    - host: api-stage.tokstock.io
       paths:
         - path: /
           pathType: ImplementationSpecific
   tls:
     - secretName: tokstock-api-stage-tls
       hosts:
-        - api.tokstock-stage.io
+        - api-stage.tokstock.io
 
 livenessProbe:
   httpGet:

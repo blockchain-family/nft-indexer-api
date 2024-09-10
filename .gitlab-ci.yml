@@ -41,3 +41,35 @@ stop:tokstock-prod:
   extends: .stop
   environment:
     name: bf
+
+cloudbuild:image:tokstock-stage:
+  only:
+    - tokstock-stage
+  except:
+    - tags
+  extends: .cloudbuild:common
+
+deploy:tokstock-stage:
+  only:
+    - tokstock-stage
+  except:
+    - tags
+  variables:
+    APP_CONFIG: stage
+    K8S_NAMESPACE: ${CI_PROJECT_ROOT_NAMESPACE}-stage
+  extends: .deploy
+  environment:
+    name: bf
+    on_stop: stop:tokstock-stage
+
+stop:tokstock-stage:
+  only:
+    - tokstock-stage
+  except:
+    - tags
+  variables:
+    APP_CONFIG: stage
+    K8S_NAMESPACE: ${CI_PROJECT_ROOT_NAMESPACE}-stage
+  extends: .stop
+  environment:
+    name: bf
