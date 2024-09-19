@@ -1,6 +1,7 @@
 use std::fmt::{Display, Formatter};
 
 use serde::{Deserialize, Serialize};
+use sqlx::postgres::{PgHasArrayType, PgTypeInfo};
 use utoipa::ToSchema;
 #[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type)]
 #[sqlx(type_name = "event_type", rename_all = "snake_case")]
@@ -68,7 +69,7 @@ pub enum DirectSellState {
     Expired = 5,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type, ToSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type, ToSchema, Eq, PartialEq)]
 #[sqlx(type_name = "direct_buy_state", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum DirectBuyState {
@@ -78,6 +79,12 @@ pub enum DirectBuyState {
     Filled = 3,
     Cancelled = 4,
     Expired = 5,
+}
+
+impl PgHasArrayType for DirectBuyState {
+    fn array_type_info() -> PgTypeInfo {
+        PgTypeInfo::with_name("_direct_buy_state")
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type)]
@@ -126,21 +133,21 @@ pub enum NftEventType {
     Transfer,
 }
 
-impl ToString for NftEventType {
-    fn to_string(&self) -> String {
+impl Display for NftEventType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            NftEventType::SellActive => "sell_active".to_string(),
-            NftEventType::SellPurchased => "sell_purchased".to_string(),
-            NftEventType::SellCanceled => "sell_canceled".to_string(),
-            NftEventType::OfferActive => "offer_active".to_string(),
-            NftEventType::OfferFilled => "offer_filled".to_string(),
-            NftEventType::OfferCanceled => "offer_canceled".to_string(),
-            NftEventType::AuctionActive => "auction_active".to_string(),
-            NftEventType::AuctionBidPlaced => "auction_bid_placed".to_string(),
-            NftEventType::AuctionCanceled => "auction_canceled".to_string(),
-            NftEventType::AuctionComplete => "auction_complete".to_string(),
-            NftEventType::Mint => "mint".to_string(),
-            NftEventType::Transfer => "transfer".to_string(),
+            NftEventType::SellActive => f.write_str("sell_active"),
+            NftEventType::SellPurchased => f.write_str("sell_purchased"),
+            NftEventType::SellCanceled => f.write_str("sell_canceled"),
+            NftEventType::OfferActive => f.write_str("offer_active"),
+            NftEventType::OfferFilled => f.write_str("offer_filled"),
+            NftEventType::OfferCanceled => f.write_str("offer_canceled"),
+            NftEventType::AuctionActive => f.write_str("auction_active"),
+            NftEventType::AuctionBidPlaced => f.write_str("auction_bid_placed"),
+            NftEventType::AuctionCanceled => f.write_str("auction_canceled"),
+            NftEventType::AuctionComplete => f.write_str("auction_complete"),
+            NftEventType::Mint => f.write_str("mint"),
+            NftEventType::Transfer => f.write_str("transfer"),
         }
     }
 }
