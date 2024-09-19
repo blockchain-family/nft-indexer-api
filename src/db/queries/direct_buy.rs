@@ -216,7 +216,6 @@ impl Queries {
                                                        to_timestamp(0::double precision) < s.expired_at and
                                                        s.expired_at < now()::timestamp then 'expired'::direct_buy_state
                                                   else s.state end  as state,
-                                              count(1) over ()      as cnt,
                                               fee_numerator,
                                               fee_denominator
                                        from nft_direct_buy s
@@ -230,27 +229,27 @@ impl Queries {
                                                 join nft n on n.address = s.nft
                                        where n.owner = $1
                                          and (n.collection = any ($2) or array_length($2::varchar[], 1) is null)
-                                       order by s.updated desc
-                                       limit $4 offset $5)
-            select address     as "address!",
-                   created     as "created!",
-                   updated     as "updated!",
-                   tx_lt       as "tx_lt!",
-                   nft         as "nft!",
-                   collection  as "collection?",
-                   buyer       as "buyer?",
-                   price_token as "price_token!",
-                   price       as "price!",
-                   usd_price   as "usd_price?",
-                   finished_at as "finished_at?",
-                   expired_at  as "expired_at?",
-                   state       as "state!: _",
-                   cnt         as "cnt!",
+                                       order by s.updated desc)
+            select address          as "address!",
+                   created          as "created!",
+                   updated          as "updated!",
+                   tx_lt            as "tx_lt!",
+                   nft              as "nft!",
+                   collection       as "collection?",
+                   buyer            as "buyer?",
+                   price_token      as "price_token!",
+                   price            as "price!",
+                   usd_price        as "usd_price?",
+                   finished_at      as "finished_at?",
+                   expired_at       as "expired_at?",
+                   state            as "state!: _",
+                   count(1) over () as  "cnt!",
                    fee_numerator,
                    fee_denominator
             from actual_direct_buy
             where array_length($3::direct_buy_state[], 1) is null
                or state = any ($3)
+            limit $4 offset $5
             "#,
             owner,
             collections,
