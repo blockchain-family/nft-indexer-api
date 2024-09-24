@@ -3,7 +3,7 @@ use crate::db::{MetaRoyalty, NftDetails, NftForBanner};
 use crate::handlers::calculate_hash;
 use crate::model::{DirectBuy, NFTPrice, NftTrait, NftsPriceRange, OrderDirection, VecWith, NFT};
 use crate::{
-    api_doc_addon, catch_empty, catch_error_500,
+    api_doc_addon, catch_empty, catch_error_401, catch_error_500,
     db::{Address, DirectBuyState},
     model::{Auction, Collection, DirectSell},
     response,
@@ -12,6 +12,7 @@ use crate::{
 use anyhow::Context;
 use bigdecimal::BigDecimal;
 use chrono::NaiveDateTime;
+use http::{HeaderMap, HeaderValue};
 use moka::future::Cache;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -20,6 +21,7 @@ use std::convert::Infallible;
 use std::fmt::{Display, Formatter};
 use std::hash::Hash;
 use std::str::FromStr;
+use std::sync::Arc;
 use tokio::join;
 use warp::http::StatusCode;
 use warp::Filter;
@@ -29,12 +31,24 @@ use crate::handlers::auction::collect_auctions;
 use crate::handlers::collection::collect_collections;
 use crate::schema::VecWithDirectBuy;
 use crate::schema::VecWithNFT;
-use utoipa::OpenApi;
+use crate::services::auth::AuthService;
 use utoipa::ToSchema;
+use utoipa::{IntoParams, OpenApi};
 
 #[derive(OpenApi)]
 #[openapi(
-    paths(get_nft, get_nft_direct_buy, get_nft_price_history, get_nft_list, get_nft_top_list, get_nft_random_list, get_nft_types, get_nft_for_banner, get_nfts_price_range),
+    paths(
+        get_nft,
+        get_nft_direct_buy,
+        get_nft_price_history,
+        get_nft_list,
+        get_nft_top_list,
+        get_nft_random_list,
+        get_nft_types,
+        get_nft_for_banner,
+        get_nfts_price_range,
+        get_my_best_offer,
+    ),
     components(schemas(
         NFTParam,
         GetNFTResult,
@@ -53,7 +67,8 @@ use utoipa::ToSchema;
         NFTListRandomBuyQuery,
         NftForBanner,
         NftPriceRangeParams,
-        NftsPriceRange
+        NftsPriceRange,
+        MyBestOfferForNftQuery,
     )),
     tags(
         (name = "nft", description = "NFT handlers"),
@@ -112,24 +127,22 @@ pub async fn get_nft_handler(
     };
 
     let mut direct_buy = HashMap::default();
-    let nft_addr = nft.address.clone().unwrap_or_default();
-    let mut list = catch_error_500!(
-        db.list_nft_direct_buy(&nft_addr, &[DirectBuyState::Active], 100, 0)
-            .await
-    );
 
-    for x in list.drain(..) {
-        direct_buy.insert(x.address.clone(), DirectBuy::from_db(&x, &db.tokens));
+    if let Some(best_offer) = nft.best_offer.as_ref() {
+        if let Some(offer) = catch_error_500!(db.get_direct_buy(best_offer).await) {
+            direct_buy.insert(
+                offer.address.clone(),
+                DirectBuy::from_db(&offer, &db.tokens),
+            );
+        }
     }
 
+    let nft_addr = nft.address.clone().unwrap_or_default();
     let traits = db.get_traits(&nft_addr).await;
-    let traits = match traits {
-        Ok(traits) => traits,
-        Err(e) => {
-            log::error!("Load traits error {e:?}");
-            vec![]
-        }
-    };
+    let traits = traits.unwrap_or_else(|e| {
+        log::error!("Load traits error {e:?}");
+        vec![]
+    });
 
     let traits: Vec<NftTrait> = traits.into_iter().map(NftTrait::from).collect();
 
@@ -816,10 +829,10 @@ pub struct NftPriceRangeParams {
     post,
     tag = "nft",
     path = "/nfts/price-range",
-        responses(
+    responses(
             (status = 200, body =  NftsPriceRange),
             (status = 500),
-        ),
+    ),
 )]
 pub fn get_nfts_price_range(
     db: Queries,
@@ -851,4 +864,51 @@ pub async fn get_nfts_price_range_handler(
     }
 
     response!(None::<Option<NftsPriceRange>>)
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, ToSchema, IntoParams)]
+#[into_params(parameter_in = Query)]
+pub struct MyBestOfferForNftQuery {
+    pub nft: Address,
+}
+
+#[utoipa::path(
+    tag = "nft",
+    get,
+    path = "/nft/my-best-offer",
+    params(MyBestOfferForNftQuery),
+    responses(
+        (status = 200, body = DirectBuy),
+        (status = 500),
+    ),
+)]
+pub fn get_my_best_offer(
+    db: Queries,
+    auth_service: Arc<AuthService>,
+) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
+    warp::path!("nft" / "my-best-offer")
+        .and(warp::get())
+        .and(warp::query::<MyBestOfferForNftQuery>())
+        .and(warp::header::headers_cloned())
+        .and(warp::any().map(move || db.clone()))
+        .and(warp::any().map(move || auth_service.clone()))
+        .and_then(get_my_best_offer_handler)
+}
+
+pub async fn get_my_best_offer_handler(
+    query: MyBestOfferForNftQuery,
+    headers: HeaderMap<HeaderValue>,
+    db: Queries,
+    auth_service: Arc<AuthService>,
+) -> Result<Box<dyn warp::Reply>, Infallible> {
+    let user_address = catch_error_401!(auth_service.authenticate(headers));
+
+    let best_offer_db_opt = catch_error_500!(
+        db.get_best_user_offer_for_nft(&user_address, &query.nft)
+            .await
+    );
+    let best_offer_db = catch_empty!(best_offer_db_opt, "offer not found");
+    let bets_offer = DirectBuy::from_db(&best_offer_db, &db.tokens);
+
+    response!(&bets_offer)
 }

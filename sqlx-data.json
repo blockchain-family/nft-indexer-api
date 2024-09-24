@@ -2777,6 +2777,131 @@
     },
     "query": "\n            select s.address             as \"address!\",\n                   s.created             as \"created!\",\n                   s.updated             as \"updated!\",\n                   s.tx_lt               as \"tx_lt!\",\n                   s.nft                 as \"nft!\",\n                   s.collection          as \"collection?\",\n                   s.buyer               as \"buyer?\",\n                   s.price_token         as \"price_token!\",\n                   s.price               as \"price!\",\n                   s.price * p.usd_price as \"usd_price?\",\n                   s.finished_at         as \"finished_at?\",\n                   s.expired_at          as \"expired_at?\",\n                   case when s.state = 'active'::direct_buy_state and to_timestamp(0::double precision) < s.expired_at and\n                             s.expired_at < now()::timestamp then 'expired'::direct_buy_state\n                        else s.state end as \"state!: _\",\n                   count(1) over ()      as \"cnt!\",\n                   fee_numerator,\n                   fee_denominator\n            from nft_direct_buy s\n                     join offers_whitelist ow on ow.address = s.address\n                     left join token_usd_prices p on s.price_token = p.token\n                     left join lateral ( select ((ne.args -> 'fee') -> 'numerator')::integer   as fee_numerator,\n                                                ((ne.args -> 'fee') -> 'denominator')::integer as fee_denominator\n                                         from nft_events ne\n                                         where ne.event_type = 'market_fee_changed'::event_type\n                                           and (ne.args ->> 'auction') = s.address) ev on true\n            where s.nft = $1\n              and s.state = 'active'::direct_buy_state\n              and (to_timestamp(0::double precision) = s.expired_at or s.expired_at > now()::timestamp)\n              and (array_length($2::varchar[], 1) is null or s.state::varchar = any ($2))\n            order by s.updated desc\n            limit $3 offset $4\n            "
   },
+  "c92350e4b1f274f8eb758f3efd6d54ffa60c1928cf9494f0517b754c8bd9f600": {
+    "describe": {
+      "columns": [
+        {
+          "name": "usd_price?",
+          "ordinal": 0,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "address!",
+          "ordinal": 1,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "created!",
+          "ordinal": 2,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "updated!",
+          "ordinal": 3,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "tx_lt!",
+          "ordinal": 4,
+          "type_info": "Int8"
+        },
+        {
+          "name": "nft!",
+          "ordinal": 5,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "collection?",
+          "ordinal": 6,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "buyer?",
+          "ordinal": 7,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "price_token!",
+          "ordinal": 8,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "price!",
+          "ordinal": 9,
+          "type_info": "Numeric"
+        },
+        {
+          "name": "finished_at?",
+          "ordinal": 10,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "expired_at?",
+          "ordinal": 11,
+          "type_info": "Timestamp"
+        },
+        {
+          "name": "state!: _",
+          "ordinal": 12,
+          "type_info": {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "create",
+                  "await_tokens",
+                  "active",
+                  "filled",
+                  "cancelled",
+                  "expired"
+                ]
+              },
+              "name": "direct_buy_state"
+            }
+          }
+        },
+        {
+          "name": "cnt!",
+          "ordinal": 13,
+          "type_info": "Int8"
+        },
+        {
+          "name": "fee_numerator",
+          "ordinal": 14,
+          "type_info": "Int4"
+        },
+        {
+          "name": "fee_denominator",
+          "ordinal": 15,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        null,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        true,
+        false,
+        null,
+        null,
+        null,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text"
+        ]
+      }
+    },
+    "query": "\n            select s.price * p.usd_price as \"usd_price?\",\n                   s.address             as \"address!\",\n                   s.created             as \"created!\",\n                   s.updated             as \"updated!\",\n                   s.tx_lt               as \"tx_lt!\",\n                   s.nft                 as \"nft!\",\n                   s.collection          as \"collection?\",\n                   s.buyer               as \"buyer?\",\n                   s.price_token         as \"price_token!\",\n                   s.price               as \"price!\",\n                   s.finished_at         as \"finished_at?\",\n                   s.expired_at          as \"expired_at?\",\n                   case\n                       when s.state = 'active'::direct_buy_state and to_timestamp(0::double precision) < s.expired_at and\n                            s.expired_at < now()::timestamp then 'expired'::direct_buy_state\n                       else s.state end  as \"state!: _\",\n                   1::bigint             as \"cnt!\",\n                   fee_numerator,\n                   fee_denominator\n            from nft_direct_buy s\n                     join offers_whitelist ow on ow.address = s.address\n                     left join token_usd_prices p on s.price_token = p.token\n                     left join lateral ( select ((ne.args -> 'fee') -> 'numerator')::integer   as fee_numerator,\n                                                ((ne.args -> 'fee') -> 'denominator')::integer as fee_denominator\n                                         from nft_events ne\n                                         where ne.event_type = 'market_fee_changed'::event_type\n                                           and (ne.args ->> 'auction') = s.address) ev on true\n            where s.buyer = $1\n              and s.nft = $2\n              and s.state = 'active'::direct_buy_state\n              and (to_timestamp(0::double precision) = s.expired_at or s.expired_at > now()::timestamp)\n            order by 1 desc\n            limit 1\n            "
+  },
   "c92f38ae1a5594fbdd51e68896cc6a1256b0ae013f61141967afa7152f01ea02": {
     "describe": {
       "columns": [

@@ -21,25 +21,16 @@ use api::cfg::ApiConfig;
 use api::db::enums::{AuctionStatus, DirectBuyState, DirectSellState, NftEventType};
 use api::db::queries::Queries;
 use api::handlers;
-use api::handlers::auction::{get_auction, get_auction_bids, get_auctions};
-use api::handlers::auth::sign_in;
-use api::handlers::collection::{
-    get_collection, get_collections_by_owner, list_collections, list_collections_evaluation,
-    list_collections_simple,
-};
-use api::handlers::collection_custom::upsert_collection_custom;
-use api::handlers::events::{get_events, search_all};
-use api::handlers::metadata::update_metadata;
-use api::handlers::metrics::get_metrics_summary;
-use api::handlers::nft::{
-    get_nft, get_nft_direct_buy, get_nft_for_banner, get_nft_list, get_nft_price_history,
-    get_nft_random_list, get_nft_sell_count, get_nft_top_list, get_nft_types, get_nfts_price_range,
-};
-use api::handlers::owner::{
-    get_fee, get_owner_bids_in, get_owner_bids_out, get_owner_direct_buy, get_owner_direct_buy_in,
-    get_owner_direct_sell,
-};
-use api::handlers::user::{get_user_by_address, upsert_user};
+use api::handlers::auction::*;
+use api::handlers::auth::*;
+use api::handlers::collection::*;
+use api::handlers::collection_custom::*;
+use api::handlers::events::*;
+use api::handlers::metadata::*;
+use api::handlers::metrics::*;
+use api::handlers::nft::*;
+use api::handlers::owner::*;
+use api::handlers::user::*;
 use api::handlers::{requests::Period, *};
 use api::model::OrderDirection;
 use api::model::*;
@@ -88,7 +79,7 @@ use warp::{http::StatusCode, Filter};
         CollectionEvaluation,
         Period,
     )),
-    info(title="Marketplace API"),
+    info(title = "Marketplace API"),
     modifiers(
         &AuctionApiDocAddon,
         &AuthApiDocAddon,
@@ -226,7 +217,8 @@ async fn main() {
                 ))
                 .or(update_metadata(cfg.indexer_api_url))
                 .or(sign_in(auth_service.clone()))
-                .or(get_nfts_price_range(db_service.clone())),
+                .or(get_nfts_price_range(db_service.clone()))
+                .or(get_my_best_offer(db_service.clone(), auth_service.clone())),
         )
         .with(cors);
 
