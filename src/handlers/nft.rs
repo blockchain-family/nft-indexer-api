@@ -351,13 +351,14 @@ pub async fn get_nft_list_handler(
                 auction: params.auction.unwrap_or(false),
                 price_from: price_from.as_ref(),
                 price_to: price_to.as_ref(),
+                price_token: params.price_tokens.as_deref(),
                 verified: params.verified.unwrap_or(true),
                 limit: final_limit,
                 offset: params.offset.unwrap_or_default(),
                 attributes: params.attributes.as_deref().unwrap_or_default(),
                 order: params.order,
                 with_count,
-                nft_type: params.nft_type.as_ref(),
+                nft_type: params.nft_types.as_deref(),
             };
 
             let list = if search_params.verified {
@@ -592,7 +593,7 @@ struct NFTTypeCache {
 }
 
 #[utoipa::path(
-    get,
+    post,
     tag = "nft",
     path = "/nfts/types",
     responses(
@@ -684,15 +685,13 @@ pub struct AttributeFilter {
 }
 
 #[derive(Clone, Deserialize, Serialize, Hash, ToSchema)]
+#[serde(rename_all = "camelCase")]
 pub struct NFTListQuery {
     pub owners: Option<Vec<String>>,
     pub collections: Option<Vec<String>>,
-    #[serde(rename = "priceFrom")]
     pub price_from: Option<String>,
-    #[serde(rename = "priceTo")]
     pub price_to: Option<String>,
-    #[serde(rename = "priceToken")]
-    pub price_token: Option<String>,
+    pub price_tokens: Option<Vec<String>>,
     pub forsale: Option<bool>,
     pub auction: Option<bool>,
     pub verified: Option<bool>,
@@ -700,10 +699,8 @@ pub struct NFTListQuery {
     pub offset: Option<usize>,
     pub attributes: Option<Vec<AttributeFilter>>,
     pub order: Option<NFTListOrder>,
-    #[serde(rename = "withCount")]
     pub with_count: Option<bool>,
-    #[serde(rename = "nftType")]
-    pub nft_type: Option<String>,
+    pub nft_types: Option<Vec<String>>,
 }
 
 #[derive(Clone, Deserialize, Serialize, Hash, ToSchema)]

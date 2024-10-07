@@ -52,8 +52,10 @@ where (n.owner = any ($1) or $1 = '{}')
         (nve.floor_price_auc_usd is not null and $3::bool) or
         (nve.floor_price_sell_usd is not null and $4::bool)
     )
-
-  and (coalesce($8, $9) is null or LEAST(nve.floor_price_auc_usd, nve.floor_price_sell_usd) between coalesce(null, LEAST(nve.floor_price_auc_usd, nve.floor_price_sell_usd)) and coalesce(null, LEAST(nve.floor_price_auc_usd, nve.floor_price_sell_usd)))
+  and ($8::numeric is null or $8::numeric <= LEAST(nve.floor_price_auc_usd, nve.floor_price_sell_usd))
+  and ($9::numeric is null or $9::numeric >= GREATEST(nve.floor_price_auc_usd, nve.floor_price_sell_usd))
+  and ($10::t_address[] is null or coalesce(s.price_token, a.price_token) = any ($10::t_address[]))
+  and ($11::varchar[] is null or exists(select mimetype from nft_type_mv where nft_address = nve.address and mimetype = any($11)))
 #ATTRIBUTES#
 #ORDER#
 limit $5 offset $6

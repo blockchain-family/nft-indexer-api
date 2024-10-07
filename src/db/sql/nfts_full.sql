@@ -21,6 +21,7 @@ select n.address,
        case when $7 then count(1) over () else 0 end total_count
 from nft n
          left join nft_metadata m on m.nft = n.address
+         left join nft_type_mv n_type on n.address = n_type.nft_address
          left join lateral ( select s.address
                                                                    from nft_direct_buy s
                                                                             left join token_usd_prices tup on tup.token = s.price_token
@@ -57,7 +58,10 @@ where (n.owner = any ($1) or $1 = '{}')
         (ow2.address is not null and $3::bool) or
         (ow.address is not null and $4::bool)
     )
-  #ATTRIBUTES#
-  and (floor_price_usd.val between coalesce($8, floor_price_usd.val) and coalesce($9, floor_price_usd.val) or coalesce($8, $9) is null)
+  and ($8::numeric is null or $8::numeric <= floor_price_usd.val)
+  and ($9::numeric is null or $9::numeric >= floor_price_usd.val)
+  and ($10::t_address[] is null or coalesce(s.price_token, a.price_token) = any ($10::t_address[]))
+  and ($11::varchar[] is null or exists(select mimetype from nft_type_mv where nft_address = n.address and mimetype = any($11)))
+#ATTRIBUTES#
 #ORDER#
 limit $5 offset $6

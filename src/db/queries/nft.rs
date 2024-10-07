@@ -176,8 +176,8 @@ impl Queries {
             "#,
             address
         )
-        .fetch_optional(self.db.as_ref())
-        .await
+            .fetch_optional(self.db.as_ref())
+            .await
     }
 
     pub async fn nft_get_for_banner(&self) -> sqlx::Result<Vec<NftForBanner>> {
@@ -313,8 +313,8 @@ impl Queries {
             "#,
             ids
         )
-        .fetch_all(self.db.as_ref())
-        .await
+            .fetch_all(self.db.as_ref())
+            .await
     }
 
     pub async fn nft_top_search(
@@ -424,8 +424,8 @@ impl Queries {
             limit,
             offset
         )
-        .fetch_all(self.db.as_ref())
-        .await
+            .fetch_all(self.db.as_ref())
+            .await
     }
 
     pub async fn nft_get_types(&self, verified: bool) -> sqlx::Result<Vec<NftMimetype>> {
@@ -434,8 +434,8 @@ impl Queries {
             r#"
             select distinct mimetype as "mimetype!"
             from collection_type_mv
-            where $1::boolean is false or verified is true
-            group by mimetype
+            where verified = $1
+                and mimetype is not null
             "#,
             verified
         )
@@ -446,7 +446,7 @@ impl Queries {
     pub async fn nft_search(&self, params: &NftSearchParams<'_>) -> sqlx::Result<Vec<NftDetails>> {
         let sql: &str = include_str!("../sql/nfts_full.sql");
 
-        let (attributes_filter, bind_params) = build_attributes_filter(10, params.attributes, "n")?;
+        let (attributes_filter, bind_params) = build_attributes_filter(12, params.attributes, "n")?;
 
         let order = params.order.clone().unwrap_or(NFTListOrder {
             field: NFTListOrderField::Name,
@@ -484,7 +484,9 @@ impl Queries {
             .bind(params.offset as i64)
             .bind(params.with_count)
             .bind(params.price_from)
-            .bind(params.price_to);
+            .bind(params.price_to)
+            .bind(params.price_token)
+            .bind(params.nft_type);
 
         for (param1, param2) in bind_params {
             db_query = db_query.bind(param1).bind(param2);
@@ -500,7 +502,7 @@ impl Queries {
         let sql: &str = include_str!("../sql/nfts_verified.sql");
 
         let (attributes_filter, bind_params) =
-            build_attributes_filter(10, params.attributes, "nve")?;
+            build_attributes_filter(12, params.attributes, "nve")?;
 
         let order = params.order.clone().unwrap_or(NFTListOrder {
             field: NFTListOrderField::Name,
@@ -508,23 +510,23 @@ impl Queries {
         });
 
         let order = match order.field {
-                NFTListOrderField::FloorPriceUsd => {
-                    match order.direction {
-                        OrderDirection::Asc =>  "order by LEAST(nve.floor_price_auc_usd, nve.floor_price_sell_usd) asc, nve.name  COLLATE numeric asc, nve.address asc",
-                        OrderDirection::Desc => "order by coalesce(LEAST(nve.floor_price_auc_usd, nve.floor_price_sell_usd), 0) desc, nve.name COLLATE numeric asc, nve.address asc"
-                    }
+            NFTListOrderField::FloorPriceUsd => {
+                match order.direction {
+                    OrderDirection::Asc => "order by LEAST(nve.floor_price_auc_usd, nve.floor_price_sell_usd) asc, nve.name  COLLATE numeric asc, nve.address asc",
+                    OrderDirection::Desc => "order by coalesce(LEAST(nve.floor_price_auc_usd, nve.floor_price_sell_usd), 0) desc, nve.name COLLATE numeric asc, nve.address asc"
                 }
-                NFTListOrderField::DealPriceUsd => {
-                    match order.direction {
-                        OrderDirection::Asc =>  "order by LEAST(nve.floor_price_auc_usd, nve.floor_price_sell_usd) asc, nve.name COLLATE numeric asc, nve.address asc",
-                        OrderDirection::Desc =>  "order by coalesce(LEAST(nve.floor_price_auc_usd, nve.floor_price_sell_usd) desc, nve.name COLLATE numeric asc, nve.address asc"
-                    }
+            }
+            NFTListOrderField::DealPriceUsd => {
+                match order.direction {
+                    OrderDirection::Asc => "order by LEAST(nve.floor_price_auc_usd, nve.floor_price_sell_usd) asc, nve.name COLLATE numeric asc, nve.address asc",
+                    OrderDirection::Desc => "order by coalesce(LEAST(nve.floor_price_auc_usd, nve.floor_price_sell_usd) desc, nve.name COLLATE numeric asc, nve.address asc"
                 }
-                NFTListOrderField::Name => {
-                    match order.direction {
-                        OrderDirection::Asc => "order by nve.name COLLATE numeric asc, nve.address asc",
-                        OrderDirection::Desc =>  "order by nve.name COLLATE numeric desc, nve.address asc"
-                    }
+            }
+            NFTListOrderField::Name => {
+                match order.direction {
+                    OrderDirection::Asc => "order by nve.name COLLATE numeric asc, nve.address asc",
+                    OrderDirection::Desc => "order by nve.name COLLATE numeric desc, nve.address asc"
+                }
             }
         };
 
@@ -539,7 +541,9 @@ impl Queries {
             .bind(params.offset as i64)
             .bind(params.with_count)
             .bind(params.price_from)
-            .bind(params.price_to);
+            .bind(params.price_to)
+            .bind(params.price_token)
+            .bind(params.nft_type);
 
         for (param1, param2) in bind_params {
             db_query = db_query.bind(param1).bind(param2);

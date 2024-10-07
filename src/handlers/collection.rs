@@ -93,7 +93,7 @@ pub async fn list_collections_handler(
                 limit: params.limit.unwrap_or(100),
                 offset: params.offset.unwrap_or_default(),
                 order: params.order.map(|order| order.into()),
-                nft_type: params.nft_type.as_ref(),
+                nft_type: params.nft_types.as_deref(),
             };
 
             let list = db.list_collections(&params).await;
@@ -316,7 +316,8 @@ impl Hash for ListCollectionsEvaluationParams {
     post,
     tag = "collection",
     path = "/collections/evaluation",
-    request_body(content = ListCollectionsEvaluationParams, description = "List collections evaluation"),
+    request_body(content = ListCollectionsEvaluationParams, description = "List collections evaluation"
+    ),
     responses(
         (status = 200, body = CollectionEvaluationList),
         (status = 500),

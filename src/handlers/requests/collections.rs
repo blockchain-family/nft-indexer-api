@@ -13,6 +13,7 @@ pub enum CollectionOrderingFields {
 }
 
 #[derive(Clone, Deserialize, Hash, ToSchema)]
+#[serde(rename_all = "camelCase")]
 pub struct ListCollectionsParams {
     pub name: Option<String>,
     pub owners: Option<Vec<String>>,
@@ -21,6 +22,5 @@ pub struct ListCollectionsParams {
     pub limit: Option<usize>,
     pub offset: Option<usize>,
     pub order: Option<CollectionListOrder>,
-    #[serde(rename = "nftType")]
-    pub nft_type: Option<String>,
+    pub nft_types: Option<Vec<String>>,
 }

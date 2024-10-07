@@ -69,8 +69,8 @@ impl Queries {
             "#,
             ids
         )
-        .fetch_all(self.db.as_ref())
-        .await
+            .fetch_all(self.db.as_ref())
+            .await
     }
 
     pub async fn list_collections_by_owner(
@@ -160,9 +160,7 @@ impl Queries {
               and ($4::boolean is false or c.verified is true)
               and ($5::varchar is null or c.name ilike $5)
               and (c.address = any ($6) or array_length($6::varchar[], 1) is null)
-              and ($7::varchar is null or c.address in (select distinct nсt.collection_address from collection_type_mv nсt
-                                where nсt.mimetype = $7 and ($4::boolean is false or nсt.verified is true))
-              )
+              and ($7::varchar[] is null or exists(select mimetype from collection_type_mv where collection_address = c.address and mimetype = any($7)))
             order by {order} nulls last
             limit $1 offset $2
             "#
@@ -222,8 +220,8 @@ impl Queries {
             verified,
             name,
         )
-        .fetch_all(self.db.as_ref())
-        .await
+            .fetch_all(self.db.as_ref())
+            .await
     }
 
     pub async fn collection_evaluation(

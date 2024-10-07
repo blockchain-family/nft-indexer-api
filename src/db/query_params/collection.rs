@@ -43,5 +43,5 @@ pub struct CollectionsListParams<'a> {
     pub limit: usize,
     pub offset: usize,
     pub order: Option<Ordering<CollectionOrderingFields>>,
-    pub nft_type: Option<&'a String>,
+    pub nft_type: Option<&'a [String]>,
 }
