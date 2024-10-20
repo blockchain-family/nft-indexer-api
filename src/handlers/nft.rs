@@ -34,24 +34,14 @@ pub async fn get_nft_handler(
 ) -> Result<Box<dyn warp::Reply>, Infallible> {
     let nft = catch_error!(db.get_nft_details(&param.nft).await);
     let mut nft = catch_empty!(nft, "not found");
-
     let collections_ids = match &nft.collection {
         Some(c) => vec![c.clone()],
         None => vec![],
     };
+
     let collection = catch_error!(collect_collections(&db, &collections_ids).await);
 
     let mut auction = HashMap::default();
-    if nft.auction.is_none() {
-        let auc = catch_error!(
-            db.get_nft_auction_by_nft(&nft.address.clone().unwrap_or_default())
-                .await
-        );
-
-        if let Some(a) = auc {
-            nft.auction = a.address
-        }
-    };
     if let Some(ref auction_id) = nft.auction {
         let a = catch_error!(db.get_nft_auction(auction_id).await);
         if let Some(a) = a {

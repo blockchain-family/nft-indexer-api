@@ -47,7 +47,6 @@ pub async fn get_events_handler(
 ) -> Result<Box<dyn warp::Reply>, Infallible> {
     let nft = query.nft.as_ref();
     let event_type = query.event_type.as_deref().unwrap_or(&[]);
-    let category = query.categories.as_deref().unwrap_or(&[]);
     let collection = query.collections.as_deref().unwrap_or(&[]);
     let owner = query.owner.as_ref();
     let limit = query.limit.unwrap_or(100);
@@ -65,11 +64,10 @@ pub async fn get_events_handler(
             collection,
             owner,
             event_type,
-            category,
             offset,
             final_limit,
             with_count,
-            verified,
+            verified
         )
         .await
     );
