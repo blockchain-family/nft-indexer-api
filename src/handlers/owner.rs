@@ -11,11 +11,6 @@ use std::convert::Infallible;
 use warp::http::StatusCode;
 use warp::Filter;
 
-#[derive(Debug, Clone, Deserialize)]
-pub struct OwnerParam {
-    pub owner: Address,
-}
-
 /// POST /owner/bids-out
 pub fn get_owner_bids_out(
     db: Queries,

@@ -233,7 +233,7 @@ pub struct DirectSell {
     pub finished: Option<i64>,
     #[serde(rename = "expiredAt")]
     pub expired: Option<i64>,
-    pub fee: Fee
+    pub fee: Fee,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -274,10 +274,7 @@ impl CollectionAttributes {
         let mut collection = None;
         let mut attributes = HashMap::new();
         for attr in defs.iter() {
-            let col = attr
-                .collection
-                .clone()
-                .expect("Collection should be present");
+            let col = attr.collection.clone();
             match collection.as_ref() {
                 None => collection = Some(col),
                 Some(c) if *c == col => {
@@ -363,7 +360,7 @@ impl Collection {
             nft_count: db.nft_count as usize,
             total_price: db.total_price.map(|x| x.to_string()),
             lowest_price: None,
-            first_mint: db.first_mint.map(|i| i.timestamp()),
+            first_mint: Some(db.first_mint.timestamp()),
         }
     }
 }
@@ -399,16 +396,11 @@ impl CollectionDetails {
 
 impl Auction {
     pub fn from_db(db: &crate::db::NftAuction, tokens: &TokenDict) -> Self {
-        let fee = match (db.fee_numerator, db.fee_denominator) {
-            (Some(numerator), Some(denominator)) => Fee {
-                numerator,
-                denominator,
-            },
-            _ => Fee {
-                numerator: 2,
-                denominator: 100,
-            },
+        let fee = Fee {
+            numerator: db.fee_numerator.unwrap_or(2),
+            denominator: db.fee_denominator.unwrap_or(100),
         };
+
         let token = db.price_token.clone().unwrap_or_default();
         Auction {
             address: db.address.clone().unwrap_or_default(),
