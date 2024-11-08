@@ -12,27 +12,27 @@ stages:
 
 cloudbuild:image:stage:
   only:
-    - oasis-stage
+    - tycho-tnet-stage
   except:
     - tags
   extends: .cloudbuild:common
 
-deploy:stage-mainnet-venom:
+deploy:stage-testnet-tycho:
   only:
-    - oasis-stage
+    - tycho-tnet-stage
   except:
     - tags
   extends: .deploy
   environment:
     name: bf
-    on_stop: stop:stage-mainnet-venom
+    on_stop: stop:stage-testnet-tycho
   variables:
     K8S_NAMESPACE: ${CI_PROJECT_ROOT_NAMESPACE}-stage
-    APP_CONFIG: stage-mainnet-venom
+    APP_CONFIG: stage-testnet-tycho
 
-stop:stage-mainnet-venom:
+stop:stage-testnet-tycho:
   only:
-    - oasis-stage
+    - tycho-tnet-stage
   except:
     - tags
   extends: .stop
@@ -40,37 +40,5 @@ stop:stage-mainnet-venom:
     name: bf
   variables:
     K8S_NAMESPACE: ${CI_PROJECT_ROOT_NAMESPACE}-stage
-    APP_CONFIG: stage-mainnet-venom
+    APP_CONFIG: stage-testnet-tycho
 
-
-cloudbuild:image:prod:
-  only:
-    - oasis-prod
-  except:
-    - tags
-  extends: .cloudbuild:common
-
-deploy:prod-mainnet-venom:
-  only:
-    - oasis-prod
-  except:
-    - tags
-  extends: .deploy
-  environment:
-    name: bf
-    on_stop: stop:prod-mainnet-venom
-  variables:
-    K8S_NAMESPACE: ${CI_PROJECT_ROOT_NAMESPACE}-prod
-    APP_CONFIG: prod-mainnet-venom
-
-stop:prod-mainnet-venom:
-  only:
-    - oasis-prod
-  except:
-    - tags
-  extends: .stop
-  environment:
-    name: bf
-  variables:
-    K8S_NAMESPACE: ${CI_PROJECT_ROOT_NAMESPACE}-prod
-    APP_CONFIG: prod-mainnet-venom
