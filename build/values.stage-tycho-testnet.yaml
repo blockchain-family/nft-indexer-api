@@ -1,0 +1,48 @@
+env:
+  RUST_LOG: info
+  RUST_BACKTRACE: 1
+
+  DATABASE__URL: postgresql://$(PG_USER_TYCHO_TESTNET):$(PG_PASSWORD_TYCHO_TESTNET)@cloudsqlproxy.default:5432/nft-indexer-stage-tycho-testnet
+  DATABASE__MAX_CONNECTIONS: 50
+  HTTP_ADDRESS: 0.0.0.0:9000
+  JWT_SECRET: $(TYCHO_TESTNET_API_JWT_SECRET)
+  AUTH_TOKEN_LIFETIME: 31536000
+  BASE_URL: api-tycho.tokstock.io
+  DEX_URL: https://api-test-tycho.flatqube.io
+  MAIN_TOKEN: ??? 0:77d36848bb159fa485628bc38dc37eadb74befa514395e09910f601b841f749e
+  INDEXER_API_URL: ??? http://nft-nft-indexer-stage-mainnet-venom:3001
+  TOKEN_MANIFEST_PATH: ??? https://static.web3.world/assets/manifest.json
+
+controller: statefulset
+
+service:
+  port: 9000
+
+ingress:
+  enabled: true
+  hosts:
+    - host: api-tycho-testnet.tokstock.io
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls:
+    - secretName: indexer-api-tycho-testnet-tls
+      hosts:
+        - api-tycho-testnet.tokstock.io
+
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: 9000
+  initialDelaySeconds: 5
+  periodSeconds: 10
+
+readinessProbe:
+  httpGet:
+    path: /healthz
+    port: 9000
+  initialDelaySeconds: 5
+  periodSeconds: 10
+
+sharedSecrets:
+  - nftIndexer
