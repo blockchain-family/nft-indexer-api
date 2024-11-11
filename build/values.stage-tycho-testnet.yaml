@@ -7,11 +7,11 @@ env:
   HTTP_ADDRESS: 0.0.0.0:9000
   JWT_SECRET: $(TYCHO_TESTNET_API_JWT_SECRET)
   AUTH_TOKEN_LIFETIME: 31536000
-  BASE_URL: api-tycho.tokstock.io
+  BASE_URL: api-tycho-testnet.tokstock.io
   DEX_URL: https://api-test-tycho.flatqube.io
-  MAIN_TOKEN: ??? 0:77d36848bb159fa485628bc38dc37eadb74befa514395e09910f601b841f749e
-  INDEXER_API_URL: ??? http://nft-nft-indexer-stage-mainnet-venom:3001
-  TOKEN_MANIFEST_PATH: ??? https://static.web3.world/assets/manifest.json
+  MAIN_TOKEN: 0:6b3355b19c6aedc65be291c00abbf6e5061c07e1926a3fd543863c7a8d06cc79
+  INDEXER_API_URL: https://indexer-tycho-stage-testnet.bf.works
+  TOKEN_MANIFEST_PATH: https://raw.githubusercontent.com/broxus/ton-assets/refs/heads/tychotestnet/manifest.json
 
 controller: statefulset
 
