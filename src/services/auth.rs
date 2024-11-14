@@ -15,15 +15,15 @@ use ton_block::MsgAddressInt;
 pub struct AuthService {
     access_token_lifetime: u32,
     jwt_secret: String,
-    base_url: String,
+    service_name: String,
 }
 
 impl AuthService {
-    pub fn new(access_token_lifetime: u32, jwt_secret: String, base_url: String) -> Self {
+    pub fn new(access_token_lifetime: u32, jwt_secret: String, service_name: String) -> Self {
         Self {
             access_token_lifetime,
             jwt_secret,
-            base_url,
+            service_name,
         }
     }
 
@@ -58,7 +58,7 @@ impl AuthService {
             login.address.as_str(),
             login.signature.as_str(),
             login.timestamp,
-            self.base_url.as_str(),
+            &self.service_name,
             login.with_signature_id,
         )?;
         self.ensure_not_expired(login.timestamp)?;

@@ -32,6 +32,7 @@ pub struct ApiConfig {
     pub main_token: String,
     pub indexer_api_url: String,
     pub token_manifest_path: String,
+    pub service_name: String,
 }
 
 impl Default for ApiConfig {

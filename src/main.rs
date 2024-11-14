@@ -110,7 +110,7 @@ async fn main() {
     let auth_service = Arc::new(AuthService::new(
         cfg.auth_token_lifetime,
         cfg.jwt_secret,
-        cfg.base_url,
+        cfg.service_name,
     ));
 
     CurrencyClient::new(db_service.clone(), cfg.main_token, cfg.dex_url)
