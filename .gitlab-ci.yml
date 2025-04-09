@@ -10,16 +10,16 @@ stages:
   - cloudbuild
   - deploy
 
-cloudbuild:image:tokstock-prod:
+cloudbuild:image:prod:
   only:
-    - tokstock-prod
+    - tokstock
   except:
     - tags
   extends: .cloudbuild:common
 
 deploy:tokstock-prod:
   only:
-    - tokstock-prod
+    - tokstock
   except:
     - tags
   variables:
@@ -32,7 +32,7 @@ deploy:tokstock-prod:
 
 stop:tokstock-prod:
   only:
-    - tokstock-prod
+    - tokstock
   except:
     - tags
   variables:
@@ -42,16 +42,16 @@ stop:tokstock-prod:
   environment:
     name: bf
 
-cloudbuild:image:tokstock-stage:
+cloudbuild:image:stage:
   only:
-    - tokstock-stage
+    - tokstock
   except:
     - tags
   extends: .cloudbuild:common
 
 deploy:tokstock-stage:
   only:
-    - tokstock-stage
+    - tokstock
   except:
     - tags
   variables:
@@ -64,7 +64,7 @@ deploy:tokstock-stage:
 
 stop:tokstock-stage:
   only:
-    - tokstock-stage
+    - tokstock
   except:
     - tags
   variables:
