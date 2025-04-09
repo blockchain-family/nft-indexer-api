@@ -12,14 +12,14 @@ stages:
 
 cloudbuild:image:prod:
   only:
-    - master
+    - prod
   except:
     - tags
   extends: .cloudbuild:common
 
 deploy:prod-mainnet-venom:
   only:
-    - master
+    - prod
   except:
     - tags
   extends: .deploy
@@ -32,7 +32,7 @@ deploy:prod-mainnet-venom:
 
 stop:prod-mainnet-venom:
   only:
-    - master
+    - prod
   except:
     - tags
   extends: .stop
