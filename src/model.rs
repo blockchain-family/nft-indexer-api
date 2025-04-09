@@ -372,7 +372,7 @@ impl NFT {
                 address: nft.address.expect("null nft address"),
                 name: nft.name,
                 description: nft.description,
-                owner: nft.owner.map(Address::from),
+                owner: nft.owner,
                 verified: None,
             },
             collection: nft.collection.unwrap_or_default(),

@@ -46,7 +46,6 @@ use warp::Filter;
         (name = "event", description = "Event handlers"),
     ),
 )]
-
 struct ApiDoc;
 api_doc_addon!(ApiDoc);
 
