@@ -404,14 +404,14 @@ impl Collection {
                 verified: Some(db.verified),
             },
             verified: Some(db.verified),
-            created_at: db.created.timestamp() as usize,
+            created_at: db.created.and_utc().timestamp() as usize,
             logo: db.logo,
             wallpaper: db.wallpaper,
             owners_count: db.owners_count.unwrap_or_default() as usize,
             nft_count: db.nft_count as usize,
             total_price: db.total_price.map(|x| x.to_string()),
             lowest_price: None,
-            first_mint: db.first_mint.timestamp(),
+            first_mint: db.first_mint.and_utc().timestamp(),
             social: serde_json::from_value(db.social.unwrap_or_default()).unwrap_or_default(),
             royalty: serde_json::from_value(db.royalty.unwrap_or_default()).unwrap_or_default(),
         }
@@ -435,14 +435,18 @@ impl CollectionDetails {
                     verified: db.verified,
                 },
                 verified: db.verified,
-                created_at: db.created.unwrap_or_default().timestamp() as usize,
+                created_at: db.created.unwrap_or_default().and_utc().timestamp() as usize,
                 logo: db.logo,
                 wallpaper: db.wallpaper,
                 owners_count: db.owners_count.unwrap_or_default() as usize,
                 nft_count: db.nft_count.unwrap_or_default() as usize,
                 total_price: db.total_price.map(|x| x.to_string()),
                 lowest_price: None,
-                first_mint: db.first_mint.expect("NFT without collection").timestamp(),
+                first_mint: db
+                    .first_mint
+                    .expect("NFT without collection")
+                    .and_utc()
+                    .timestamp(),
                 social: serde_json::from_value(db.social.unwrap_or_default())?,
                 royalty: serde_json::from_value(db.royalty.unwrap_or_default())?,
             },
@@ -482,10 +486,10 @@ impl Auction {
             min_bid: db.min_bid.clone().map(|x| tokens.format_value(&token, &x)),
             max_usd_bid: db.max_usd_bid.as_ref().map(|x| x.to_string()),
             min_usd_bid: db.min_usd_bid.as_ref().map(|x| x.to_string()),
-            start_time: db.created_at.map(|x| x.timestamp()),
-            finish_time: db.finished_at.map(|x| x.timestamp()),
+            start_time: db.created_at.map(|x| x.and_utc().timestamp()),
+            finish_time: db.finished_at.map(|x| x.and_utc().timestamp()),
             last_bid_from: db.last_bid_from.clone(),
-            last_bid_ts: db.last_bid_ts.map(|x| x.timestamp()),
+            last_bid_ts: db.last_bid_ts.map(|x| x.and_utc().timestamp()),
             last_bid_value: db.last_bid_value.as_ref().map(|x| x.to_string()),
             last_bid_usd_value: db.last_bid_usd_value.as_ref().map(|x| x.to_string()),
             fee,
@@ -506,7 +510,7 @@ impl AuctionBid {
             auction: bid.auction.clone(),
             price: tokens.format_value(&token, &bid.price),
             usd_price: bid.usd_price.as_ref().map(|x| x.to_string()),
-            created_at: bid.created_at.timestamp(),
+            created_at: bid.created_at.and_utc().timestamp(),
             active: bid.active,
         }
     }
@@ -519,7 +523,7 @@ impl AuctionBid {
             auction: bid.auction.clone(),
             price: tokens.format_value(&token, &bid.price),
             usd_price: bid.usd_price.as_ref().map(|x| x.to_string()),
-            created_at: bid.created_at.timestamp(),
+            created_at: bid.created_at.and_utc().timestamp(),
             active: bid.active.unwrap_or_default(),
         }
     }
@@ -547,9 +551,9 @@ impl DirectSell {
                 price: tokens.format_value(&val.price_token, &val.price),
                 usd_price: val.usd_price.as_ref().map(|x| x.to_string()),
             },
-            created: val.created.timestamp(),
-            finished: val.finished_at.map(|x| x.timestamp()),
-            expired: val.expired_at.map(|x| x.timestamp()),
+            created: val.created.and_utc().timestamp(),
+            finished: val.finished_at.map(|x| x.and_utc().timestamp()),
+            expired: val.expired_at.map(|x| x.and_utc().timestamp()),
             fee,
         }
     }
@@ -577,9 +581,9 @@ impl DirectBuy {
                 price: tokens.format_value(&val.price_token, &val.price),
                 usd_price: val.usd_price.as_ref().map(|x| x.to_string()),
             },
-            created: val.created.timestamp(),
-            finished: val.finished_at.map(|x| x.timestamp()),
-            expired: val.expired_at.map(|x| x.timestamp()),
+            created: val.created.and_utc().timestamp(),
+            finished: val.finished_at.map(|x| x.and_utc().timestamp()),
+            expired: val.expired_at.map(|x| x.and_utc().timestamp()),
             fee,
         }
     }
@@ -588,7 +592,7 @@ impl DirectBuy {
 impl NFTPrice {
     pub fn from_db(val: crate::db::NftPrice) -> Self {
         let usd_price = val.usd_price.to_string();
-        let ts = val.ts.timestamp();
+        let ts = val.ts.and_utc().timestamp();
         NFTPrice { usd_price, ts }
     }
 }

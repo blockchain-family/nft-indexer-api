@@ -12,7 +12,7 @@ use crate::schema::VecCollectionSimpleWithTotal;
 use crate::schema::VecCollectionsWithTotal;
 use crate::{api_doc_addon, catch_empty, catch_error_500, response};
 use bigdecimal::BigDecimal;
-use chrono::NaiveDateTime;
+use chrono::DateTime;
 use moka::future::Cache;
 use serde::Deserialize;
 use serde_json::Value;
@@ -351,11 +351,13 @@ pub async fn list_collections_evaluation_handler(
                 .period
                 .clone()
                 .and_then(|p| p.from)
-                .and_then(|t| NaiveDateTime::from_timestamp_opt(t, 0));
+                .and_then(|t| DateTime::from_timestamp(t, 0))
+                .map(|t| t.naive_utc());
             let to = params
                 .period
                 .and_then(|p| p.to)
-                .and_then(|t| NaiveDateTime::from_timestamp_opt(t, 0));
+                .and_then(|t| DateTime::from_timestamp(t, 0))
+                .map(|t| t.naive_utc());
             let mint_prices = params
                 .mint_prices
                 .unwrap_or_default()

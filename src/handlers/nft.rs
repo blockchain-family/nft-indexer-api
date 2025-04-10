@@ -11,7 +11,7 @@ use crate::{
 
 use anyhow::Context;
 use bigdecimal::BigDecimal;
-use chrono::{DateTime, NaiveDateTime};
+use chrono::DateTime;
 use http::{HeaderMap, HeaderValue};
 use moka::future::Cache;
 use serde::{Deserialize, Serialize};
@@ -499,7 +499,7 @@ pub async fn get_nft_sell_count_handler(
                 catch_error_500!(db.nft_sell_count(max_price).await).unwrap_or_default();
             response = NFTSellCountResponse {
                 count: sell_count,
-                timestamp: chrono::offset::Utc::now().naive_utc().timestamp(),
+                timestamp: chrono::offset::Utc::now().naive_utc().and_utc().timestamp(),
             };
             let value_for_cache =
                 serde_json::to_value(response.clone()).expect("Failed serializing cached value");
@@ -572,8 +572,9 @@ pub async fn get_nft_top_list_handler(
     let response;
     match cached_value {
         None => {
-            let from =
-                NaiveDateTime::from_timestamp_opt(params.from, 0).expect("Failed to get datetime");
+            let from = DateTime::from_timestamp(params.from, 0)
+                .expect("Failed to get datetime")
+                .naive_utc();
             let list = catch_error_500!(db.nft_top_search(from, params.limit, params.offset).await);
             response = catch_error_500!(make_nfts_response(list, db).await);
             let value_for_cache =

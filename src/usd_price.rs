@@ -1,9 +1,9 @@
 use crate::db::queries::Queries;
 use crate::db::TokenUsdPrice;
 use bigdecimal::BigDecimal;
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use sqlx::types::chrono::{Local, NaiveDateTime};
+use sqlx::types::chrono::Local;
 use std::{collections::HashMap, str::FromStr, time::Duration};
 
 #[derive(Debug, Clone)]
@@ -46,8 +46,9 @@ impl CurrencyClient {
 
     pub async fn update_prices(&self) -> anyhow::Result<()> {
         let prices = self.get_prices().await?;
-        let ts = NaiveDateTime::from_timestamp_opt(Local::now().timestamp(), 0)
-            .expect("Failed to get time");
+        let ts = DateTime::from_timestamp(Local::now().timestamp(), 0)
+            .expect("Failed to get time")
+            .naive_utc();
         let db_prices = prices
             .iter()
             .map(|(token, price)| {

@@ -3,7 +3,7 @@ use crate::handlers::calculate_hash;
 use crate::model::MetricsSummary;
 use crate::model::MetricsSummaryBase;
 use crate::{api_doc_addon, catch_error_500, response};
-use chrono::NaiveDateTime;
+use chrono::DateTime;
 use moka::future::Cache;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -71,10 +71,12 @@ pub async fn metrics_summary_handler(
     let response;
     match cached_value {
         None => {
-            let from =
-                NaiveDateTime::from_timestamp_opt(query.from, 0).expect("Failed to get datetime");
-            let to =
-                NaiveDateTime::from_timestamp_opt(query.to, 0).expect("Failed to get datetime");
+            let from = DateTime::from_timestamp(query.from, 0)
+                .expect("Failed to get datetime")
+                .naive_utc();
+            let to = DateTime::from_timestamp(query.to, 0)
+                .expect("Failed to get datetime")
+                .naive_utc();
             let values = catch_error_500!(
                 db.get_metrics_summary(from, to, query.limit, query.offset)
                     .await
