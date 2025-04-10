@@ -1,0 +1,73 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH periods AS (\n    SELECT\n        $1::timestamp AS date_from,\n        $2::timestamp AS date_to,\n        'current' AS period_type\n    UNION ALL\n    SELECT\n        $1::timestamp - ($2 - $1)::interval AS date_from,\n        $1::timestamp - INTERVAL '1 second' AS date_to,\n        'previous' AS period_type\n),\ntotal_volume AS (\n    SELECT\n        nph.collection AS address,\n        p.period_type,\n        SUM(nph.price * tup.usd_price) AS price_usd\n    FROM periods p\n    JOIN nft_price_history nph ON nph.ts BETWEEN p.date_from AND p.date_to\n    JOIN token_usd_prices tup ON tup.token = nph.price_token\n    GROUP BY nph.collection, p.period_type\n),\naggregated_volumes AS (\n    SELECT\n        tv.address,\n        SUM(CASE WHEN tv.period_type = 'current' THEN tv.price_usd ELSE 0 END) AS total_volume_usd_now,\n        SUM(CASE WHEN tv.period_type = 'previous' THEN tv.price_usd ELSE 0 END) AS total_volume_usd_previous\n    FROM total_volume tv\n    GROUP BY tv.address\n)\nSELECT\n    c.address AS \"collection!\",\n    c.name,\n    c.logo,\n    c.floor_price_usd AS \"floor_price\",\n    COALESCE(av.total_volume_usd_now, 0) AS \"total_volume_usd_now!\",\n    COALESCE(av.total_volume_usd_previous, 0) AS \"total_volume_usd_previous!\",\n    c.owners_count::int AS \"owners_count!\",\n    c.nft_count::int AS \"nfts_count!\",\n    (SELECT COUNT(*) FROM nft_collection)::int AS \"total_rows_count!\"\nFROM nft_collection_details c\nLEFT JOIN aggregated_volumes av ON av.address = c.address\nWHERE c.verified\nORDER BY COALESCE(av.total_volume_usd_now, 0) DESC\nLIMIT $3 OFFSET $4",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "collection!",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "logo",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "floor_price",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 4,
+        "name": "total_volume_usd_now!",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 5,
+        "name": "total_volume_usd_previous!",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 6,
+        "name": "owners_count!",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 7,
+        "name": "nfts_count!",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 8,
+        "name": "total_rows_count!",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Timestamp",
+        "Timestamp",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      true,
+      true,
+      true,
+      true,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "2aaed5e0cb04570175a1a5f3a3f5549489d485becda8c76f98130b7171369aab"
+}

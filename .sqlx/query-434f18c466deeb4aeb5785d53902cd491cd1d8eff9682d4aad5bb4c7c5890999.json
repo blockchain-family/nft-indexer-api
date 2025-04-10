@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                call update_collections_details($1, false)\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        {
+          "Custom": {
+            "name": "t_address[]",
+            "kind": {
+              "Array": {
+                "Custom": {
+                  "name": "t_address",
+                  "kind": {
+                    "Domain": "Varchar"
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "434f18c466deeb4aeb5785d53902cd491cd1d8eff9682d4aad5bb4c7c5890999"
+}

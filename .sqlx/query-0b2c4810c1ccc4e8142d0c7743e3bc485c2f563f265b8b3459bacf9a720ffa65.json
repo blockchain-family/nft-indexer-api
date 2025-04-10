@@ -1,0 +1,126 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            select s.address             as \"address!\",\n                   s.created             as \"created!\",\n                   s.updated             as \"updated!\",\n                   s.tx_lt               as \"tx_lt!\",\n                   s.nft                 as \"nft!\",\n                   s.collection          as \"collection?\",\n                   s.seller              as \"seller?\",\n                   s.price_token         as \"price_token!\",\n                   s.price               as \"price!\",\n                   s.price * p.usd_price as \"usd_price?\",\n                   s.finished_at         as \"finished_at?\",\n                   s.expired_at          as \"expired_at?\",\n                   case when s.state = 'active'::direct_sell_state and to_timestamp(0) < s.expired_at and s.expired_at < now()::timestamp\n                            then 'expired'::direct_sell_state\n                        else s.state end as \"state!: _\",\n                   count(1) over ()      as \"cnt!\",\n                   fee_numerator,\n                   fee_denominator\n            from nft_direct_sell s\n                     join offers_whitelist ow on ow.address = s.address\n                     left join token_usd_prices p on s.price_token = p.token\n                     left join lateral ( select (ne.args -> 'fee' -> 'numerator')::int   as fee_numerator,\n                                                (ne.args -> 'fee' -> 'denominator')::int as fee_denominator\n                                         from nft_events ne\n                                         where ne.event_type = 'market_fee_changed'\n                                           and ne.args ->> 'auction' = s.address ) as ev on true\n            where s.address = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "address!",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "created!",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 2,
+        "name": "updated!",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 3,
+        "name": "tx_lt!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "nft!",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "collection?",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "seller?",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 7,
+        "name": "price_token!",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 8,
+        "name": "price!",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 9,
+        "name": "usd_price?",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 10,
+        "name": "finished_at?",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 11,
+        "name": "expired_at?",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 12,
+        "name": "state!: _",
+        "type_info": {
+          "Custom": {
+            "name": "direct_sell_state",
+            "kind": {
+              "Enum": [
+                "create",
+                "await_nft",
+                "active",
+                "filled",
+                "cancelled",
+                "expired"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "cnt!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 14,
+        "name": "fee_numerator",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 15,
+        "name": "fee_denominator",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      null,
+      true,
+      false,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "0b2c4810c1ccc4e8142d0c7743e3bc485c2f563f265b8b3459bacf9a720ffa65"
+}

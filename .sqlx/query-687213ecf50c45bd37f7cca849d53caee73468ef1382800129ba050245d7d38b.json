@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            select distinct a.nft\n            from nft_attributes a\n            where a.collection = $1\n              and a.trait_type = $2\n              and a.value = any ($3::jsonb[])\n            order by 1 asc\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "nft",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "JsonbArray"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "687213ecf50c45bd37f7cca849d53caee73468ef1382800129ba050245d7d38b"
+}

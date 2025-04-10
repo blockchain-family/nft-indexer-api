@@ -1,0 +1,142 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            select c.address,\n                   c.owner,\n                   c.name,\n                   c.description,\n                   c.created as \"created?\",\n                   c.updated as \"updated?\",\n                   c.verified,\n                   c.wallpaper,\n                   c.logo,\n                   c.owners_count,\n                   c.nft_count,\n                   c.floor_price_usd,\n                   c.total_volume_usd,\n                   c.attributes,\n                   c.first_mint,\n                   c.social,\n                   c.royalty,\n                   null::numeric as max_price,\n                   null::numeric as total_price,\n                   1::bigint     as \"cnt!\",\n                   '[]'::json    as \"previews!\"\n            from nft_collection_details c\n            where c.address = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "address",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "owner",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "created?",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 5,
+        "name": "updated?",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 6,
+        "name": "verified",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 7,
+        "name": "wallpaper",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 8,
+        "name": "logo",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 9,
+        "name": "owners_count",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 10,
+        "name": "nft_count",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 11,
+        "name": "floor_price_usd",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 12,
+        "name": "total_volume_usd",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 13,
+        "name": "attributes",
+        "type_info": "Json"
+      },
+      {
+        "ordinal": 14,
+        "name": "first_mint",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 15,
+        "name": "social",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 16,
+        "name": "royalty",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 17,
+        "name": "max_price",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 18,
+        "name": "total_price",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 19,
+        "name": "cnt!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 20,
+        "name": "previews!",
+        "type_info": "Json"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "c92f38ae1a5594fbdd51e68896cc6a1256b0ae013f61141967afa7152f01ea02"
+}

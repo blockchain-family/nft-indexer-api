@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            select distinct mimetype as \"mimetype!\"\n            from collection_type_mv\n            where verified = $1\n                and mimetype is not null\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "mimetype!",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bool"
+      ]
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "2012294833894c72d46d1370d1a172c1b69ba187175f3f4a1bba49988faa5a57"
+}

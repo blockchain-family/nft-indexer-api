@@ -102,12 +102,6 @@ use std::hash::{Hash, Hasher};
 
 use serde::{Deserialize, Serialize};
 
-lazy_static::lazy_static! {
-    static ref SWAGGER: Vec<u8> = {
-        std::fs::read("openapi.yml").expect("cannot read 'openapi.yml' from disk")
-    };
-}
-
 #[macro_export]
 macro_rules! api_doc_addon {
     ($addon:ty) => {

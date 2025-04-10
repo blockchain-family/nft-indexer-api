@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            with traits as ( select trait_type, value as trait_value from nft_attributes where nft = $1 )\n            select traits.trait_type                                                             as \"trait_type?\",\n                   traits.trait_value                                                            as \"trait_value?\",\n                   ( select count(*)\n                     from nft_attributes na\n                     where traits.trait_type = na.trait_type and traits.trait_value = na.value\n                     and na.collection = (select collection from nft nn where nn.address = $1)\n                      ) as \"cnt!\"\n            from traits\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "trait_type?",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "trait_value?",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 2,
+        "name": "cnt!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      null
+    ]
+  },
+  "hash": "f7e979765e6f8bcb6ec6bff18e009a95fea38328a026fea8a5c3bdaadb0cb93f"
+}

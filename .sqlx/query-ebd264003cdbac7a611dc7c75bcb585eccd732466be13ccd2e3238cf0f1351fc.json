@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            select ts, usd_price as \"usd_price!\"\n            from nft_price_history nph\n                     inner join offers_whitelist ow on ow.address = nph.source\n            where nft = $1\n              and ts between $2 and $3\n              and usd_price is not null\n            order by ts\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "ts",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 1,
+        "name": "usd_price!",
+        "type_info": "Numeric"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Timestamp",
+        "Timestamp"
+      ]
+    },
+    "nullable": [
+      false,
+      true
+    ]
+  },
+  "hash": "ebd264003cdbac7a611dc7c75bcb585eccd732466be13ccd2e3238cf0f1351fc"
+}

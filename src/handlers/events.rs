@@ -108,7 +108,7 @@ pub async fn get_events_handler(
     cache: Cache<u64, Value>,
 ) -> Result<Box<dyn warp::Reply>, Infallible> {
     let hash = calculate_hash(&query);
-    let cached_value = cache.get(&hash);
+    let cached_value = cache.get(&hash).await;
 
     let response;
     match cached_value {

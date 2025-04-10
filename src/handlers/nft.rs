@@ -11,7 +11,7 @@ use crate::{
 
 use anyhow::Context;
 use bigdecimal::BigDecimal;
-use chrono::NaiveDateTime;
+use chrono::{DateTime, NaiveDateTime};
 use http::{HeaderMap, HeaderValue};
 use moka::future::Cache;
 use serde::{Deserialize, Serialize};
@@ -252,8 +252,12 @@ pub async fn get_nft_price_history_handler(
     query: NftPriceHistoryQuery,
     db: Queries,
 ) -> Result<Box<dyn warp::Reply>, Infallible> {
-    let from = NaiveDateTime::from_timestamp_opt(query.from, 0).expect("Failed to get datetime");
-    let to = NaiveDateTime::from_timestamp_opt(query.to, 0).expect("Failed to get datetime");
+    let from = DateTime::from_timestamp(query.from, 0)
+        .expect("Failed to get datetime")
+        .naive_utc();
+    let to = DateTime::from_timestamp(query.to, 0)
+        .expect("Failed to get datetime")
+        .naive_utc();
     let list = catch_error_500!(db.list_nft_price_history(&query.nft, from, to).await);
     let ret: Vec<NFTPrice> = list.into_iter().map(NFTPrice::from_db).collect();
     response!(&ret)
@@ -322,7 +326,7 @@ pub async fn get_nft_list_handler(
     cache: Cache<u64, Value>,
 ) -> Result<Box<dyn warp::Reply>, Infallible> {
     let hash = calculate_hash(&params);
-    let cached_value = cache.get(&hash);
+    let cached_value = cache.get(&hash).await;
 
     let response;
     match cached_value {
@@ -425,7 +429,7 @@ pub async fn get_nft_random_list_handler(
     cache: Cache<u64, Value>,
 ) -> Result<Box<dyn warp::Reply>, Infallible> {
     let hash = calculate_hash(&params);
-    let cached_value = cache.get(&hash);
+    let cached_value = cache.get(&hash).await;
 
     let response;
     match cached_value {
@@ -486,7 +490,7 @@ pub async fn get_nft_sell_count_handler(
     cache: Cache<u64, Value>,
 ) -> Result<Box<dyn warp::Reply>, Infallible> {
     let hash = calculate_hash(&params);
-    let cached_value = cache.get(&hash);
+    let cached_value = cache.get(&hash).await;
     let response;
     match cached_value {
         None => {
@@ -534,7 +538,7 @@ pub async fn get_nft_for_banner_handler(
     cache: Cache<u64, Value>,
 ) -> Result<Box<dyn warp::Reply>, Infallible> {
     let hash = calculate_hash(&"nft/banner".to_string());
-    let cached_value = cache.get(&hash);
+    let cached_value = cache.get(&hash).await;
 
     let nft_for_banner: Vec<NftForBanner>;
     match cached_value {
@@ -563,7 +567,7 @@ pub async fn get_nft_top_list_handler(
         offset: params.offset,
     };
     let hash = calculate_hash(&params_cache);
-    let cached_value = cache.get(&hash);
+    let cached_value = cache.get(&hash).await;
 
     let response;
     match cached_value {
@@ -623,7 +627,7 @@ pub async fn get_nft_types_handler(
         verified_type: verified_flag,
     };
     let hash = calculate_hash(&params_cache);
-    let cached_value = cache.get(&hash);
+    let cached_value = cache.get(&hash).await;
 
     let response: Vec<String>;
     match cached_value {

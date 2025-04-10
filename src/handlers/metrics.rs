@@ -16,7 +16,7 @@ use warp::Filter;
 
 #[derive(OpenApi)]
 #[openapi(
-    paths(get_metrics_summary,),
+    paths(get_metrics_summary, ),
     components(schemas(MetricsSummaryBase, MetricsSummary)),
     tags(
         (name = "metrics", description = "Metrics handlers"),
@@ -66,7 +66,7 @@ pub async fn metrics_summary_handler(
     query.to = (query.to / 300) * 300;
 
     let hash = calculate_hash(&query);
-    let cached_value = cache.get(&hash);
+    let cached_value = cache.get(&hash).await;
 
     let response;
     match cached_value {

@@ -1,0 +1,98 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            with bids_detailed as ( select x.auction                               as \"auction!\",\n                                           x.buyer                                 as \"buyer!\",\n                                           x.price                                 as \"price!\",\n                                           x.price_token,\n                                           x.created_at                            as \"created_at!\",\n                                           x.next_bid_value,\n                                           x.tx_lt,\n                                           x.nft_owner                             as owner,\n                                           max(x.created_at) over w = x.created_at as active,\n                                           x.price * tup.usd_price                 as usd_price,\n                                           x.next_bid_value * tup.usd_price        as next_bid_usd_value,\n                                           x.nft,\n                                           x.collection\n                                    from nft_auction_bid x\n                                             left join token_usd_prices tup on tup.token = x.price_token\n                                    where x.nft_owner = $1\n                                    and (x.collection = any ($2) or array_length($2::varchar[], 1) is null)\n                                    window w as (partition by x.auction) )\n            select \"auction!\",\n                   \"buyer!\",\n                   \"price!\",\n                   price_token        as \"price_token?\",\n                   \"created_at!\",\n                   next_bid_value     as \"next_bid_value?\",\n                   tx_lt              as \"tx_lt?\",\n                   active             as \"active?\",\n                   usd_price          as \"usd_price?\",\n                   next_bid_usd_value as \"next_bid_usd_value?\",\n                   nft                as \"nft?\",\n                   collection         as \"collection?\",\n                   count(1) over ()   as \"cnt!\"\n            from bids_detailed x\n            where (x.active = true or ($3::bool is null or $3::bool = false))\n            order by x.\"created_at!\" desc\n            limit $4 offset $5\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "auction!",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "buyer!",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "price!",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 3,
+        "name": "price_token?",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "created_at!",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 5,
+        "name": "next_bid_value?",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 6,
+        "name": "tx_lt?",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 7,
+        "name": "active?",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 8,
+        "name": "usd_price?",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 9,
+        "name": "next_bid_usd_value?",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 10,
+        "name": "nft?",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 11,
+        "name": "collection?",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 12,
+        "name": "cnt!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "TextArray",
+        "Bool",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      null,
+      null,
+      null,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "31cda0f66c946f4f5eb14a35b6b6affbb09be90824cfb01d9d8be53445301b89"
+}

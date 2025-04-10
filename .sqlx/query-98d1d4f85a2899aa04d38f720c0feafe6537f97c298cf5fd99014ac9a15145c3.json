@@ -1,0 +1,43 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                insert into users(address, logo_nft, username, bio, twitter, instagram, facebook, link, email)\n                values ($1, $2, $3, $4, $5, $6, $7, $8, $9)\n                on conflict (address)\n                do update set logo_nft  = $2,\n                              username  = $3,\n                              bio       = $4,\n                              twitter   = $5,\n                              instagram = $6,\n                              facebook  = $7,\n                              link      = $8,\n                              email     = $9\n\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        {
+          "Custom": {
+            "name": "t_address",
+            "kind": {
+              "Domain": "Varchar"
+            }
+          }
+        },
+        {
+          "Custom": {
+            "name": "t_address",
+            "kind": {
+              "Domain": "Varchar"
+            }
+          }
+        },
+        "Varchar",
+        "Text",
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        {
+          "Custom": {
+            "name": "t_email",
+            "kind": {
+              "Domain": "Varchar"
+            }
+          }
+        }
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "98d1d4f85a2899aa04d38f720c0feafe6537f97c298cf5fd99014ac9a15145c3"
+}

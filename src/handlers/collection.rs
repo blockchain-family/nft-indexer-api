@@ -80,7 +80,7 @@ pub async fn list_collections_handler(
     cache: Cache<u64, Value>,
 ) -> Result<Box<dyn warp::Reply>, Infallible> {
     let hash = calculate_hash(&params);
-    let cached_value = cache.get(&hash);
+    let cached_value = cache.get(&hash).await;
 
     let ret: VecWithTotal<CollectionDetails>;
     match cached_value {
@@ -160,7 +160,7 @@ pub async fn list_collections_simple_handler(
     cache: Cache<u64, Value>,
 ) -> Result<Box<dyn warp::Reply>, Infallible> {
     let hash = calculate_hash(&params);
-    let cached_value = cache.get(&hash);
+    let cached_value = cache.get(&hash).await;
     let ret: VecWithTotal<CollectionSimple>;
 
     match cached_value {
@@ -217,7 +217,7 @@ pub async fn get_collection_handler(
     cache: Cache<u64, Value>,
 ) -> Result<Box<dyn warp::Reply>, Infallible> {
     let hash = calculate_hash(&param);
-    let cached_value = cache.get(&hash);
+    let cached_value = cache.get(&hash).await;
     let ret;
     match cached_value {
         None => {
@@ -341,7 +341,7 @@ pub async fn list_collections_evaluation_handler(
     cache: Cache<u64, Value>,
 ) -> Result<Box<dyn warp::Reply>, Infallible> {
     let hash = calculate_hash(&params);
-    let cached_value = cache.get(&hash);
+    let cached_value = cache.get(&hash).await;
     let ret: CollectionEvaluationList;
 
     match cached_value {

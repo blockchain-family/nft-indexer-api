@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            select count(1)\n            from nft n\n                     join nft_collection c on n.collection = c.address\n                     join nft_direct_sell nds on nds.nft = n.address and nds.created <= now() and\n                                                 (now() <= nds.expired_at or nds.expired_at = to_timestamp(0)) and\n                                                 nds.state = 'active' and nds.price <= $1::int8\n                     join offers_whitelist ow on ow.address = nds.address\n            where n.burned is false\n              and c.verified is true\n           ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "14217782d384f339d7155c8e4157d1267372f2da5a01d8de6689149352a07d2c"
+}

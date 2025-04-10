@@ -1,0 +1,76 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            select first_value(b.auction) over w                        as \"auction!\",\n                   first_value(b.buyer) over w                          as \"buyer!\",\n                   first_value(b.price) over w                          as \"price!\",\n                   first_value(b.price * tup.usd_price) over w          as \"usd_price\",\n                   first_value(b.created_at) over w                     as \"created_at!\",\n                   first_value(b.next_bid_value) over w                 as \"next_bid_value!\",\n                   first_value(b.next_bid_value * tup.usd_price) over w as \"next_bid_usd_value\",\n                   first_value(b.tx_lt) over w                          as \"tx_lt!\",\n                   true                                                 as \"active!\",\n                   count(1) over ()                                     as \"cnt!\"\n            from nft_auction_bid b\n                     join offers_whitelist ow on ow.address = b.auction\n                     left join token_usd_prices tup on tup.token = b.price_token\n            where auction = $1\n              and declined is false\n            window w as (partition by auction order by created_at desc)\n            limit 1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "auction!",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "buyer!",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "price!",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 3,
+        "name": "usd_price",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 4,
+        "name": "created_at!",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 5,
+        "name": "next_bid_value!",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 6,
+        "name": "next_bid_usd_value",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 7,
+        "name": "tx_lt!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 8,
+        "name": "active!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 9,
+        "name": "cnt!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "e84788ccf8061a9452dfacb46ae563d00fa53837a58f87dab63acb4154728afd"
+}

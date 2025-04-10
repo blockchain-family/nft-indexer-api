@@ -1,0 +1,118 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            select c.address     as \"address!\",\n                   coalesce(c.owner, '0:0000000000000000000000000000000000000000000000000000000000000000')       as \"owner!\",\n                   c.name        as \"name\",\n                   c.description as \"description\",\n                   c.updated     as \"updated!\",\n                   c.wallpaper   as \"wallpaper\",\n                   c.logo        as \"logo\",\n                   null::numeric as total_price,\n                   null::numeric as max_price,\n                   c.owners_count::int,\n                   c.verified    as \"verified!\",\n                   c.created     as \"created!\",\n                   c.first_mint  as \"first_mint!\",\n                   coalesce(c.nft_count,0)   as \"nft_count!\",\n                   c.total_count as \"cnt!\",\n                   c.social      as \"social\",\n                   c.royalty     as \"royalty\"\n            from nft_collection_details c\n            where c.address = any ($1)\n              --and owner is not null\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "address!",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "owner!",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "updated!",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 5,
+        "name": "wallpaper",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "logo",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 7,
+        "name": "total_price",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 8,
+        "name": "max_price",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 9,
+        "name": "owners_count",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 10,
+        "name": "verified!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 11,
+        "name": "created!",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 12,
+        "name": "first_mint!",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 13,
+        "name": "nft_count!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 14,
+        "name": "cnt!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 15,
+        "name": "social",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 16,
+        "name": "royalty",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "TextArray"
+      ]
+    },
+    "nullable": [
+      true,
+      null,
+      true,
+      true,
+      false,
+      true,
+      true,
+      null,
+      null,
+      null,
+      true,
+      false,
+      true,
+      null,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "43124bc1cdd94e131ee72dd9ed32d450a0376f36ae887e568dfa2f3bbfa35c56"
+}

@@ -98,7 +98,6 @@ struct ApiDoc;
 
 #[tokio::main(flavor = "multi_thread", worker_threads = 16)]
 async fn main() {
-    dotenv::dotenv().ok();
     stackdriver_logger::init_with_cargo!();
     log::info!("INDEXER-API SERVICE");
     let cfg = ApiConfig::new();

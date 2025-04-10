@@ -1,7 +1,6 @@
 use std::fmt::{Display, Formatter};
 
 use serde::{Deserialize, Serialize};
-use sqlx::postgres::{PgHasArrayType, PgTypeInfo};
 use utoipa::ToSchema;
 #[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type)]
 #[sqlx(type_name = "event_type", rename_all = "snake_case")]
@@ -79,12 +78,6 @@ pub enum DirectBuyState {
     Filled = 3,
     Cancelled = 4,
     Expired = 5,
-}
-
-impl PgHasArrayType for DirectBuyState {
-    fn array_type_info() -> PgTypeInfo {
-        PgTypeInfo::with_name("_direct_buy_state")
-    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type)]

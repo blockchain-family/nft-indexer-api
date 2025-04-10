@@ -1,0 +1,78 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            select b.auction                             as \"auction!\",\n                   b.buyer                               as \"buyer!\",\n                   b.price                               as \"price!\",\n                   b.price * tup.usd_price               as \"usd_price\",\n                   b.created_at                          as \"created_at!\",\n                   b.next_bid_value                      as \"next_bid_value!\",\n                   b.next_bid_value * tup.usd_price      as \"next_bid_usd_value\",\n                   b.tx_lt                               as \"tx_lt!\",\n                   max(created_at) over w = b.created_at as \"active!\",\n                   count(1) over ()                      as \"cnt!\"\n            from nft_auction_bid b\n                     join offers_whitelist ow on ow.address = b.auction\n                     left join token_usd_prices tup on tup.token = b.price_token\n            where auction = $1\n              and declined is false\n            window w as (partition by auction)\n            order by created_at desc\n            limit $2 offset $3\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "auction!",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "buyer!",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "price!",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 3,
+        "name": "usd_price",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 4,
+        "name": "created_at!",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 5,
+        "name": "next_bid_value!",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 6,
+        "name": "next_bid_usd_value",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 7,
+        "name": "tx_lt!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 8,
+        "name": "active!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 9,
+        "name": "cnt!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      null,
+      false,
+      false,
+      null,
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "b956b7fc297a07ea75b388ca8a982ddcc5ee435ec2cb437ec47a83a93a503fd2"
+}

@@ -1,11 +1,9 @@
 use crate::db::queries::Queries;
 use crate::db::TokenUsdPrice;
+use bigdecimal::BigDecimal;
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
-use sqlx::types::{
-    chrono::{Local, NaiveDateTime},
-    BigDecimal,
-};
+use sqlx::types::chrono::{Local, NaiveDateTime};
 use std::{collections::HashMap, str::FromStr, time::Duration};
 
 #[derive(Debug, Clone)]

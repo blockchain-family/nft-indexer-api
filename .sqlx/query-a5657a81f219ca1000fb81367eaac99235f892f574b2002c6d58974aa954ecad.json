@@ -1,0 +1,46 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                                  with nft_top as (\n                    select n.address,\n                           n.name                                                                           nft_name,\n                           nc.name                                                                          collection_name,\n                           'nft'                                                                         as object_type,\n                           case when m.meta is not null then m.meta::jsonb -> 'preview' ->> 'source' end as \"image\",\n                           case\n                               when lower(n.address) = lower($1) then 10\n                               when lower(n.name) = lower($1) then 9\n                               when n.name like '' || $1 || ' %' then 7.9\n                               when n.name like '% ' || $1 || '' then 7.86\n                               when n.name like '%' || $1 || '' then 7.855\n                               when n.name like '' || $1 || '%' then 7.85\n                               when n.name like '% ' || $1 || ' %' then 7.7\n                               when n.name like '%' || $1 || '%' then 7\n                               when n.address ilike '%' || $1 || '%' then 5\n                               else 1 end                                                                   priority\n                    from nft_verified_extended n\n                             left join nft_metadata m on n.address = m.nft\n                             join nft_collection nc on n.collection = nc.address\n                    where n.name ilike '%' || $1 || '%'\n                       or lower(n.address) = lower($1)\n                    order by priority desc\n                    limit 20\n                )\n\n                select ag.address as \"address!\", nft_name, collection_name, object_type as \"object_type!\", image\n                from (\n                         select *\n                         from nft_top\n                         union all\n\n                         select c.address,\n                                null            nft_name,\n                                c.name          collection_name,\n                                'collection' as object_type,\n                                c.logo          \"image\",\n                                case\n                                    when lower(c.address) = lower($1) then 20\n                                    when lower(c.name) = lower($1) then 19\n                                    when c.name like '' || $1 || ' %' then 8.9\n                                    when c.name like '% ' || $1 || '' then 8.86\n                                    when c.name like '%' || $1 || '' then 8.855\n                                    when c.name like '' || $1 || '%' then 8.85\n\n                                    when c.name like '% ' || $1 || ' %' then 8.7\n                                    when c.address ilike '%' || $1 || '%' then 6\n                                    else 2 end  priority\n                         from nft_collection c\n                         where (c.name ilike '%' || $1 || '%' or c.description ilike '%' || $1 || '%' or\n                                c.address ilike '%' || $1 || '%')\n                           and c.verified) ag\n                order by ag.priority desc\n                limit 20\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "address!",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "nft_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "collection_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "object_type!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "image",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "a5657a81f219ca1000fb81367eaac99235f892f574b2002c6d58974aa954ecad"
+}

@@ -1,0 +1,61 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            select c.address                                                                   as \"address!\",\n                   c.name,\n                   c.description,\n                   c.logo,\n                   c.verified                                                                  as \"verified!\",\n                   case when $3::boolean is false then c.total_count else c.verified_count end as \"cnt!\",\n                   c.nft_count                                                                 as \"nft_count!\"\n            from nft_collection_details c\n            where ($3::boolean is false or c.verified is true)\n              and ($4::varchar is null or c.name ilike $4)\n            order by c.owners_count desc\n            limit $1 offset $2\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "address!",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "logo",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "verified!",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 5,
+        "name": "cnt!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "nft_count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Bool",
+        "Varchar"
+      ]
+    },
+    "nullable": [
+      true,
+      true,
+      true,
+      true,
+      true,
+      null,
+      true
+    ]
+  },
+  "hash": "10795a2a56c6c6162cebd8fafec514191977a108ab85f799eaccff3f4f52e7af"
+}

@@ -1,6 +1,6 @@
 use crate::db::Address;
+use bigdecimal::BigDecimal;
 use serde::Deserialize;
-use sqlx::types::BigDecimal;
 use std::{collections::HashMap, sync::Arc};
 
 #[derive(Debug, Clone, Deserialize)]

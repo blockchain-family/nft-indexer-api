@@ -1,0 +1,52 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            select case when fee.fee_numerator is not null and fee.fee_denominator is not null then fee.fee_numerator\n                        else (ne.args -> 'fee' -> 'numerator')::int end   \"fee_numerator!\",\n                   case when fee.fee_numerator is not null and fee.fee_denominator is not null then fee.fee_denominator\n                        else (ne.args -> 'fee' -> 'denominator')::int end \"fee_denominator!\",\n                   fee.collection,\n                   fee.nft\n            from nft_events ne\n                     join roots r on ne.address = r.address and r.code = $2::t_root_types\n                     left join lateral ( select nc.fee_numerator,\n                                                nc.fee_denominator,\n                                                max(n.collection) collection,\n                                                max(n.id)::text   nft\n                                         from nft n\n                                                  join nft_collection nc\n                                                       on n.collection = nc.address and nc.fee_numerator is not null and\n                                                          nc.fee_denominator is not null\n                                         where n.owner = $1\n                                         group by nc.fee_numerator, nc.fee_denominator\n                                         order by min(nc.fee_numerator / nc.fee_denominator)\n                                         limit 1 ) as fee on true\n            where ne.event_type = 'market_fee_default_changed'\n            order by created_at desc, created_lt desc, id desc\n            limit 1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "fee_numerator!",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "fee_denominator!",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "collection",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "nft",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        {
+          "Custom": {
+            "name": "t_root_types",
+            "kind": {
+              "Enum": [
+                "auction",
+                "sell",
+                "buy"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "e10ecf13473c9bab7601edf33cb9854728f51742f65a36e227657bcb668819f9"
+}

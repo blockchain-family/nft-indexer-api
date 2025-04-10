@@ -1,0 +1,44 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            select distinct on (result.collection_address)\n                result.name as \"name!\",\n                result.collection_address as \"collection_address!\",\n                result.nft_address as \"nft_address!\",\n                result.picture as \"picture!\",\n                result.mimetype \"mimetype!\"\n            from (\n                select\n                     nc.\"name\",\n                     nc.address as \"collection_address\",\n                     n.address as \"nft_address\",\n                     nmd.meta -> 'preview' ->> 'source' as \"picture\",\n                     nmd.meta -> 'preview' ->> 'mimetype' as \"mimetype\"\n                from\n                     nft_collection nc\n                     join nft n on nc.address = n.collection\n                     join nft_metadata nmd on nmd.nft = n.address\n                where\n                     nmd.meta -> 'preview' ->> 'source' is not null\n                     and nc.address in (\n                         select nc.address from nft_collection nc where nc.for_banner\n                     )\n            ) result\n            order by result.collection_address, random()\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "name!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "collection_address!",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "nft_address!",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "picture!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "mimetype!",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      true,
+      false,
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "a62682f8c50b965bbb02eed17579975447aef6aa288136ed4e2822a32c01577b"
+}

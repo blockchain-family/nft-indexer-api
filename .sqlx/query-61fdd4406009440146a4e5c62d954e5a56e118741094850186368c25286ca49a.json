@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                insert into nft_collection_custom(address, updated, name, description, wallpaper, logo, social)\n                select address, $2, $3, $4, $5, $6, $7 from nft_collection\n                where address = $1 and owner = $8\n                on conflict (address)\n                do update set updated     = $2,\n                              name        = $3,\n                              description = $4,\n                              wallpaper   = $5,\n                              logo        = $6,\n                              social      = $7\n                where nft_collection_custom.address =\n                (select nc.address from nft_collection nc where nc.address = $1 and nc.owner = $8)\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Timestamp",
+        "Text",
+        "Text",
+        {
+          "Custom": {
+            "name": "t_url",
+            "kind": {
+              "Domain": "Varchar"
+            }
+          }
+        },
+        {
+          "Custom": {
+            "name": "t_url",
+            "kind": {
+              "Domain": "Varchar"
+            }
+          }
+        },
+        "Jsonb",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "61fdd4406009440146a4e5c62d954e5a56e118741094850186368c25286ca49a"
+}

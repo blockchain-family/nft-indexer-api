@@ -1,9 +1,9 @@
 use super::*;
+use bigdecimal::BigDecimal;
 use chrono::NaiveDateTime;
 use log::error;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use sqlx::types::BigDecimal;
 use utoipa::ToSchema;
 pub type Address = String;
 
