@@ -12,7 +12,7 @@ env:
   MAIN_TOKEN: 0:77d36848bb159fa485628bc38dc37eadb74befa514395e09910f601b841f749e
   INDEXER_API_URL: http://nft-nft-indexer-stage-mainnet-venom:3001
   TOKEN_MANIFEST_PATH: https://static.web3.world/assets/manifest.json
-  SERVICE_NAME: oasis.gallery
+  SERVICE_NAME: Oasis
 
 controller: statefulset
 
