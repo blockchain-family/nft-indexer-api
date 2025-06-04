@@ -122,7 +122,7 @@ async fn main() {
         // Metrics endpoints
         .route("/metrics/summary", get(get_metrics_summary))
         // User endpoints
-        .route("/user/:address", get(get_user_by_address))
+        .route("/user/{address}", get(get_user_by_address))
         .route("/user", post(upsert_user))
         // Auth endpoints
         .route("/user/sign_in", post(sign_in))
