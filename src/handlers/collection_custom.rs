@@ -1,31 +1,12 @@
-use crate::db::queries::Queries;
+use super::HttpState;
 use crate::db::{Address, Social};
-use crate::services::auth::AuthService;
-use crate::{api_doc_addon, catch_empty, catch_error_401, catch_error_403, catch_error_500};
-use http::{HeaderMap, HeaderValue};
+use crate::{catch_empty, catch_error_401, catch_error_403, catch_error_500, response};
+use axum::extract::{Json, State};
+use axum::http::{HeaderMap, HeaderValue};
+use axum::response::IntoResponse;
 use serde::{Deserialize, Serialize};
-use std::convert::Infallible;
 use std::sync::Arc;
-use utoipa::OpenApi;
 use utoipa::ToSchema;
-use warp::http::StatusCode;
-use warp::Filter;
-
-#[derive(OpenApi)]
-#[openapi(
-    paths(
-        upsert_collection_custom
-    ),
-    components(schemas(
-        UpsertCollectionCustomPayload,
-        Social
-    )),
-    tags(
-        (name = "collection-custom", description = "Collection-custom handlers"),
-    ),
-)]
-struct ApiDoc;
-api_doc_addon!(ApiDoc);
 
 #[derive(Debug, Clone, Deserialize, Serialize, ToSchema)]
 pub struct UpsertCollectionCustomPayload {
@@ -47,31 +28,17 @@ pub struct UpsertCollectionCustomPayload {
         (status = 500),
     ),
 )]
-pub fn upsert_collection_custom(
-    db: Queries,
-    auth_service: Arc<AuthService>,
-) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
-    warp::path!("collections-custom")
-        .and(warp::post())
-        .and(warp::body::json::<UpsertCollectionCustomPayload>())
-        .and(warp::header::headers_cloned())
-        .and(warp::any().map(move || db.clone()))
-        .and(warp::any().map(move || auth_service.clone()))
-        .and_then(upsert_collection_custom_handler)
-}
-
-pub async fn upsert_collection_custom_handler(
-    payload: UpsertCollectionCustomPayload,
+pub async fn upsert_collection_custom(
+    State(s): State<Arc<HttpState>>,
     headers: HeaderMap<HeaderValue>,
-    db: Queries,
-    auth_service: Arc<AuthService>,
-) -> Result<Box<dyn warp::Reply>, Infallible> {
-    let address = catch_error_401!(auth_service.authenticate(headers));
+    Json(payload): Json<UpsertCollectionCustomPayload>,
+) -> impl IntoResponse {
+    let address = catch_error_401!(s.auth_service.authenticate(headers));
     let address_of_collection = payload.address;
 
-    let validation_of_owner_result = db
-        .validate_owner_of_collection(&address_of_collection, &address)
-        .await;
+    let validation_of_owner_result =
+        s.db.validate_owner_of_collection(&address_of_collection, &address)
+            .await;
 
     let validation_of_owner_option = catch_error_500!(validation_of_owner_result);
 
@@ -86,7 +53,7 @@ pub async fn upsert_collection_custom_handler(
     catch_error_403!(validation_of_owner);
 
     catch_error_500!(
-        db.upsert_collection_custom(
+        s.db.upsert_collection_custom(
             &address_of_collection,
             &address,
             chrono::Utc::now().naive_utc(),
@@ -99,5 +66,5 @@ pub async fn upsert_collection_custom_handler(
         .await
     );
 
-    Ok(Box::from(warp::reply::with_status("", StatusCode::OK)))
+    response!(&())
 }

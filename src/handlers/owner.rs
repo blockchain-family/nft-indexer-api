@@ -1,4 +1,4 @@
-use crate::db::queries::Queries;
+use super::HttpState;
 use crate::db::RootType;
 use crate::handlers::auction::collect_auctions_nfts_collections;
 use crate::handlers::nft::collect_nft_and_collection;
@@ -7,51 +7,17 @@ use crate::schema::VecWithAuctionBids;
 use crate::schema::VecWithDirectBuy;
 use crate::schema::VecWithDirectSell;
 use crate::{
-    api_doc_addon, catch_error_500,
+    catch_error_500,
     db::{Address, DirectBuyState, DirectSellState},
     model::{AuctionBid, DirectBuy, DirectSell, VecWith},
     response,
 };
+use axum::extract::{Json, Query, State};
+use axum::response::IntoResponse;
 use serde::{Deserialize, Serialize};
-use std::convert::Infallible;
+use std::sync::Arc;
 use utoipa::IntoParams;
-use utoipa::OpenApi;
 use utoipa::ToSchema;
-use warp::http::StatusCode;
-use warp::Filter;
-
-#[derive(OpenApi)]
-#[openapi(
-    paths(
-        get_owner_bids_out,
-        get_owner_bids_in,
-        get_owner_direct_buy,
-        get_owner_direct_buy_in,
-        get_owner_direct_sell,
-        get_fee
-    ),
-    components(schemas(
-        OwnerBidsOutQuery,
-        VecWithAuctionBids,
-        OwnerDirectBuyQuery,
-        OwnerDirectSellQuery,
-        VecWithDirectSell,
-        VecWithDirectBuy,
-        OwnerBidsInQuery,
-        RootType,
-        OwnerFee
-    )),
-    tags(
-        (name = "owner", description = "Owner handlers"),
-    )
-)]
-struct ApiDoc;
-api_doc_addon!(ApiDoc);
-
-#[derive(Debug, Clone, Deserialize)]
-pub struct OwnerParam {
-    pub owner: Address,
-}
 
 #[utoipa::path(
     post,
@@ -63,37 +29,27 @@ pub struct OwnerParam {
         (status = 500),
     ),
 )]
-pub fn get_owner_bids_out(
-    db: Queries,
-) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
-    warp::path!("owner" / "bids-out")
-        .and(warp::post())
-        .and(warp::body::json::<OwnerBidsOutQuery>())
-        .and(warp::any().map(move || db.clone()))
-        .and_then(get_owner_bids_out_handler)
-}
-
-pub async fn get_owner_bids_out_handler(
-    query: OwnerBidsOutQuery,
-    db: Queries,
-) -> Result<Box<dyn warp::Reply>, Infallible> {
+pub async fn get_owner_bids_out(
+    State(s): State<Arc<HttpState>>,
+    Json(query): Json<OwnerBidsOutQuery>,
+) -> impl IntoResponse {
     let collections = query.collections.as_deref().unwrap_or(&[]);
     let owner = query.owner;
     let limit = query.limit.unwrap_or(100);
     let offset = query.offset.unwrap_or_default();
     let list = catch_error_500!(
-        db.list_owner_auction_bids_out(&owner, collections, &query.lastbid, limit, offset)
+        s.db.list_owner_auction_bids_out(&owner, collections, &query.lastbid, limit, offset)
             .await
     );
 
     let count = list.first().map(|it| it.cnt).unwrap_or_default();
     let ret: Vec<AuctionBid> = list
         .iter()
-        .map(|x| AuctionBid::from_extended(x, &db.tokens))
+        .map(|x| AuctionBid::from_extended(x, &s.db.tokens))
         .collect();
     let auction_ids: Vec<String> = ret.iter().map(|x| x.auction.clone()).collect();
     let (nft, collection, auctions) =
-        catch_error_500!(collect_auctions_nfts_collections(&db, &auction_ids).await);
+        catch_error_500!(collect_auctions_nfts_collections(&s.db, &auction_ids).await);
 
     let ret = VecWith {
         count,
@@ -125,38 +81,28 @@ pub struct OwnerBidsOutQuery {
         (status = 500),
     ),
 )]
-pub fn get_owner_bids_in(
-    db: Queries,
-) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
-    warp::path!("owner" / "bids-in")
-        .and(warp::post())
-        .and(warp::body::json::<OwnerBidsInQuery>())
-        .and(warp::any().map(move || db.clone()))
-        .and_then(get_owner_bids_in_handler)
-}
-
-pub async fn get_owner_bids_in_handler(
-    query: OwnerBidsInQuery,
-    db: Queries,
-) -> Result<Box<dyn warp::Reply>, Infallible> {
+pub async fn get_owner_bids_in(
+    State(s): State<Arc<HttpState>>,
+    Json(query): Json<OwnerBidsInQuery>,
+) -> impl IntoResponse {
     let collections = query.collections.as_deref().unwrap_or(&[]);
     let owner = query.owner;
     let active = &query.active;
     let limit = query.limit.unwrap_or(100);
     let offset = query.offset.unwrap_or_default();
     let list = catch_error_500!(
-        db.list_owner_auction_bids_in(&owner, collections, active, limit, offset)
+        s.db.list_owner_auction_bids_in(&owner, collections, active, limit, offset)
             .await
     );
 
     let count = list.first().map(|it| it.cnt).unwrap_or_default();
     let ret: Vec<AuctionBid> = list
         .iter()
-        .map(|x| AuctionBid::from_extended(x, &db.tokens))
+        .map(|x| AuctionBid::from_extended(x, &s.db.tokens))
         .collect();
     let auction_ids: Vec<String> = ret.iter().map(|x| x.auction.clone()).collect();
     let (nft, collection, auctions) =
-        catch_error_500!(collect_auctions_nfts_collections(&db, &auction_ids).await);
+        catch_error_500!(collect_auctions_nfts_collections(&s.db, &auction_ids).await);
 
     let ret = VecWith {
         count,
@@ -189,46 +135,28 @@ pub struct OwnerBidsInQuery {
         (status = 500),
     ),
 )]
-pub fn get_owner_direct_buy(
-    db: Queries,
-) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
-    warp::path!("owner" / "direct" / "buy")
-        .and(warp::post())
-        .and(warp::body::json::<OwnerDirectBuyQuery>())
-        .and(warp::any().map(move || db.clone()))
-        .and_then(get_owner_direct_buy_handler)
-}
-
-pub async fn get_owner_direct_buy_handler(
-    query: OwnerDirectBuyQuery,
-    db: Queries,
-) -> Result<Box<dyn warp::Reply>, Infallible> {
+pub async fn get_owner_direct_buy(
+    State(s): State<Arc<HttpState>>,
+    Json(query): Json<OwnerDirectBuyQuery>,
+) -> impl IntoResponse {
     let collections = query.collections.as_deref().unwrap_or(&[]);
     let owner = query.owner;
     let status = query.status.as_deref().unwrap_or_default();
     let limit = query.limit.unwrap_or(100);
     let offset = query.offset.unwrap_or_default();
     let list = catch_error_500!(
-        db.list_owner_direct_buy(&owner, collections, status, limit, offset)
+        s.db.list_owner_direct_buy(&owner, collections, status, limit, offset)
             .await
     );
 
     let count = list.first().map(|it| it.cnt).unwrap_or_default();
     let ret: Vec<DirectBuy> = list
         .iter()
-        .map(|x| DirectBuy::from_db(x, &db.tokens))
+        .map(|x| DirectBuy::from_db(x, &s.db.tokens))
         .collect();
 
     let nft_ids = ret.iter().map(|x| x.nft.clone()).collect();
-    let (nft, collection) = match collect_nft_and_collection(&db, &nft_ids).await {
-        Err(e) => {
-            return Ok(Box::from(warp::reply::with_status(
-                e.to_string(),
-                StatusCode::INTERNAL_SERVER_ERROR,
-            )))
-        }
-        Ok(m) => m,
-    };
+    let (nft, collection) = catch_error_500!(collect_nft_and_collection(&s.db, &nft_ids).await);
 
     let ret = VecWith {
         count,
@@ -252,45 +180,27 @@ pub async fn get_owner_direct_buy_handler(
         (status = 500),
     ),
 )]
-pub fn get_owner_direct_buy_in(
-    db: Queries,
-) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
-    warp::path!("owner" / "direct" / "buy-in")
-        .and(warp::post())
-        .and(warp::body::json::<OwnerDirectBuyQuery>())
-        .and(warp::any().map(move || db.clone()))
-        .and_then(get_owner_direct_buy_in_handler)
-}
-
-pub async fn get_owner_direct_buy_in_handler(
-    query: OwnerDirectBuyQuery,
-    db: Queries,
-) -> Result<Box<dyn warp::Reply>, Infallible> {
+pub async fn get_owner_direct_buy_in(
+    State(s): State<Arc<HttpState>>,
+    Json(query): Json<OwnerDirectBuyQuery>,
+) -> impl IntoResponse {
     let collections = query.collections.as_deref().unwrap_or_default();
     let owner = query.owner;
     let status = query.status.as_deref().unwrap_or_default();
     let limit = query.limit.unwrap_or(100);
     let offset = query.offset.unwrap_or_default();
     let list = catch_error_500!(
-        db.list_owner_direct_buy_in(&owner, collections, status, limit, offset)
+        s.db.list_owner_direct_buy_in(&owner, collections, status, limit, offset)
             .await
     );
 
     let count = list.first().map(|it| it.cnt).unwrap_or_default();
     let ret: Vec<DirectBuy> = list
         .iter()
-        .map(|x| DirectBuy::from_db(x, &db.tokens))
+        .map(|x| DirectBuy::from_db(x, &s.db.tokens))
         .collect();
     let nft_ids = ret.iter().map(|x| x.nft.clone()).collect();
-    let (nft, collection) = match collect_nft_and_collection(&db, &nft_ids).await {
-        Err(e) => {
-            return Ok(Box::from(warp::reply::with_status(
-                e.to_string(),
-                StatusCode::INTERNAL_SERVER_ERROR,
-            )))
-        }
-        Ok(m) => m,
-    };
+    let (nft, collection) = catch_error_500!(collect_nft_and_collection(&s.db, &nft_ids).await);
 
     let ret = VecWith {
         count,
@@ -314,37 +224,27 @@ pub async fn get_owner_direct_buy_in_handler(
         (status = 500),
     ),
 )]
-pub fn get_owner_direct_sell(
-    db: Queries,
-) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
-    warp::path!("owner" / "direct" / "sell")
-        .and(warp::post())
-        .and(warp::body::json::<OwnerDirectSellQuery>())
-        .and(warp::any().map(move || db.clone()))
-        .and_then(get_owner_direct_sell_handler)
-}
-
-pub async fn get_owner_direct_sell_handler(
-    query: OwnerDirectSellQuery,
-    db: Queries,
-) -> Result<Box<dyn warp::Reply>, Infallible> {
+pub async fn get_owner_direct_sell(
+    State(s): State<Arc<HttpState>>,
+    Json(query): Json<OwnerDirectSellQuery>,
+) -> impl IntoResponse {
     let collections = query.collections.as_deref().unwrap_or(&[]);
     let owner = query.owner;
     let status = query.status.as_deref().unwrap_or_default();
     let limit = query.limit.unwrap_or(100);
     let offset = query.offset.unwrap_or_default();
     let list = catch_error_500!(
-        db.list_owner_direct_sell(&owner, collections, status, limit, offset)
+        s.db.list_owner_direct_sell(&owner, collections, status, limit, offset)
             .await
     );
 
     let count = list.first().map(|it| it.cnt).unwrap_or_default();
     let ret: Vec<DirectSell> = list
         .iter()
-        .map(|x| DirectSell::from_db(x, &db.tokens))
+        .map(|x| DirectSell::from_db(x, &s.db.tokens))
         .collect();
     let nft_ids = ret.iter().map(|x| x.nft.clone()).collect();
-    let (nft, collection) = catch_error_500!(collect_nft_and_collection(&db, &nft_ids).await);
+    let (nft, collection) = catch_error_500!(collect_nft_and_collection(&s.db, &nft_ids).await);
 
     let ret = VecWith {
         count,
@@ -376,21 +276,11 @@ tag = "owner",
         (status = 500),
     ),
 )]
-pub fn get_fee(
-    db: Queries,
-) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
-    warp::path!("owner" / "fee")
-        .and(warp::get())
-        .and(warp::query::<OwnerFeeQuery>())
-        .and(warp::any().map(move || db.clone()))
-        .and_then(get_fee_handler)
-}
-
-pub async fn get_fee_handler(
-    query: OwnerFeeQuery,
-    db: Queries,
-) -> Result<Box<dyn warp::Reply>, Infallible> {
-    let fee = catch_error_500!(db.get_owner_fee(&query.owner, &query.root_code).await);
+pub async fn get_fee(
+    State(s): State<Arc<HttpState>>,
+    Query(query): Query<OwnerFeeQuery>,
+) -> impl IntoResponse {
+    let fee = catch_error_500!(s.db.get_owner_fee(&query.owner, &query.root_code).await);
 
     let owner_fee = OwnerFee::from(fee);
     response!(&owner_fee)

@@ -1,29 +1,14 @@
-use crate::db::queries::Queries;
+use super::HttpState;
 use crate::handlers::calculate_hash;
-use crate::model::MetricsSummary;
 use crate::model::MetricsSummaryBase;
-use crate::{api_doc_addon, catch_error_500, response};
+use crate::{catch_error_500, response};
+use axum::extract::{Query, State};
+use axum::response::IntoResponse;
 use chrono::DateTime;
-use moka::future::Cache;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
-use std::convert::Infallible;
+use std::sync::Arc;
 use utoipa::IntoParams;
-use utoipa::OpenApi;
 use utoipa::ToSchema;
-use warp::http::StatusCode;
-use warp::Filter;
-
-#[derive(OpenApi)]
-#[openapi(
-    paths(get_metrics_summary, ),
-    components(schemas(MetricsSummaryBase, MetricsSummary)),
-    tags(
-        (name = "metrics", description = "Metrics handlers"),
-    ),
-)]
-struct ApiDoc;
-api_doc_addon!(ApiDoc);
 
 #[derive(Debug, Clone, Deserialize, Serialize, IntoParams, ToSchema, Hash)]
 #[into_params(parameter_in = Query)]
@@ -44,29 +29,16 @@ pub struct MetricsSummaryQuery {
         (status = 500),
     ),
 )]
-pub fn get_metrics_summary(
-    db: Queries,
-    cache: Cache<u64, Value>,
-) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
-    warp::path!("metrics" / "summary")
-        .and(warp::get())
-        .and(warp::query::<MetricsSummaryQuery>())
-        .and(warp::any().map(move || db.clone()))
-        .and(warp::any().map(move || cache.clone()))
-        .and_then(metrics_summary_handler)
-}
-
-pub async fn metrics_summary_handler(
-    query: MetricsSummaryQuery,
-    db: Queries,
-    cache: Cache<u64, Value>,
-) -> Result<Box<dyn warp::Reply>, Infallible> {
+pub async fn get_metrics_summary(
+    State(s): State<Arc<HttpState>>,
+    Query(query): Query<MetricsSummaryQuery>,
+) -> impl IntoResponse {
     let mut query = query;
     query.from = (query.from / 300) * 300;
     query.to = (query.to / 300) * 300;
 
     let hash = calculate_hash(&query);
-    let cached_value = cache.get(&hash).await;
+    let cached_value = s.cache_minute.get(&hash).await;
 
     let response;
     match cached_value {
@@ -78,13 +50,13 @@ pub async fn metrics_summary_handler(
                 .expect("Failed to get datetime")
                 .naive_utc();
             let values = catch_error_500!(
-                db.get_metrics_summary(from, to, query.limit, query.offset)
+                s.db.get_metrics_summary(from, to, query.limit, query.offset)
                     .await
             );
             response = MetricsSummaryBase::from(values);
             let value_for_cache =
                 serde_json::to_value(response.clone()).expect("Failed serializing cached value");
-            cache.insert(hash, value_for_cache).await;
+            s.cache_minute.insert(hash, value_for_cache).await;
         }
         Some(cached_value) => {
             response = serde_json::from_value(cached_value).expect("Failed parsing cached value")

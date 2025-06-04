@@ -1,8 +1,7 @@
-use crate::db::queries::Queries;
+use super::HttpState;
 use crate::db::query_params::collection::CollectionsListParams;
 use crate::db::Address;
-use crate::handlers::requests::collections::CollectionOrderingFields;
-use crate::handlers::requests::{CollectionListOrder, Period};
+use crate::handlers::requests::Period;
 use crate::handlers::{calculate_hash, requests::collections::ListCollectionsParams};
 use crate::model::{
     Collection, CollectionDetails, CollectionEvaluation, CollectionEvaluationList,
@@ -10,47 +9,16 @@ use crate::model::{
 };
 use crate::schema::VecCollectionSimpleWithTotal;
 use crate::schema::VecCollectionsWithTotal;
-use crate::{api_doc_addon, catch_empty, catch_error_500, response};
+use crate::{catch_empty, catch_error_500, response};
+use axum::extract::{Json, State};
+use axum::response::IntoResponse;
 use bigdecimal::BigDecimal;
 use chrono::DateTime;
-use moka::future::Cache;
 use serde::Deserialize;
-use serde_json::Value;
+use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
-use std::{collections::HashMap, convert::Infallible};
-use utoipa::OpenApi;
+use std::sync::Arc;
 use utoipa::ToSchema;
-use warp::http::StatusCode;
-use warp::Filter;
-
-#[derive(OpenApi)]
-#[openapi(
-    paths(
-        list_collections,
-        list_collections_simple,
-        list_collections_evaluation,
-        get_collection,
-        get_collections_by_owner
-    ),
-    components(schemas(
-        VecCollectionsWithTotal,
-        ListCollectionsParams,
-        CollectionListOrder,
-        CollectionOrderingFields,
-        ListCollectionsSimpleParams,
-        ListCollectionsEvaluationParams,
-        VecCollectionSimpleWithTotal,
-        CollectionParam,
-        CollectionSimple,
-        OwnerParam,
-        CollectionParam
-    )),
-    tags(
-        (name = "collection", description = "Collection handlers"),
-    ),
-)]
-struct ApiDoc;
-api_doc_addon!(ApiDoc);
 
 #[utoipa::path(
     post,
@@ -62,25 +30,12 @@ api_doc_addon!(ApiDoc);
         (status = 500),
     ),
 )]
-pub fn list_collections(
-    db: Queries,
-    cache: Cache<u64, Value>,
-) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
-    warp::path!("collections")
-        .and(warp::post())
-        .and(warp::body::json::<ListCollectionsParams>())
-        .and(warp::any().map(move || db.clone()))
-        .and(warp::any().map(move || cache.clone()))
-        .and_then(list_collections_handler)
-}
-
-pub async fn list_collections_handler(
-    params: ListCollectionsParams,
-    db: Queries,
-    cache: Cache<u64, Value>,
-) -> Result<Box<dyn warp::Reply>, Infallible> {
+pub async fn list_collections(
+    State(s): State<Arc<HttpState>>,
+    Json(params): Json<ListCollectionsParams>,
+) -> impl IntoResponse {
     let hash = calculate_hash(&params);
-    let cached_value = cache.get(&hash).await;
+    let cached_value = s.cache_minute.get(&hash).await;
 
     let ret: VecWithTotal<CollectionDetails>;
     match cached_value {
@@ -96,7 +51,7 @@ pub async fn list_collections_handler(
                 nft_type: params.nft_types.as_deref(),
             };
 
-            let list = db.list_collections(&params).await;
+            let list = s.db.list_collections(&params).await;
 
             let list = catch_error_500!(list);
 
@@ -109,7 +64,7 @@ pub async fn list_collections_handler(
             ret = VecWithTotal { count, items };
             let value_for_cache =
                 serde_json::to_value(ret.clone()).expect("Failed serializing cached value");
-            cache.insert(hash, value_for_cache).await;
+            s.cache_minute.insert(hash, value_for_cache).await;
         }
         Some(cached_value) => {
             ret = serde_json::from_value(cached_value).expect("Failed parsing cached value")
@@ -142,25 +97,12 @@ pub struct ListCollectionsSimpleParams {
         (status = 500),
     ),
 )]
-pub fn list_collections_simple(
-    db: Queries,
-    cache: Cache<u64, Value>,
-) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
-    warp::path!("collections" / "simple")
-        .and(warp::post())
-        .and(warp::body::json::<ListCollectionsSimpleParams>())
-        .and(warp::any().map(move || db.clone()))
-        .and(warp::any().map(move || cache.clone()))
-        .and_then(list_collections_simple_handler)
-}
-
-pub async fn list_collections_simple_handler(
-    params: ListCollectionsSimpleParams,
-    db: Queries,
-    cache: Cache<u64, Value>,
-) -> Result<Box<dyn warp::Reply>, Infallible> {
+pub async fn list_collections_simple(
+    State(s): State<Arc<HttpState>>,
+    Json(params): Json<ListCollectionsSimpleParams>,
+) -> impl IntoResponse {
     let hash = calculate_hash(&params);
-    let cached_value = cache.get(&hash).await;
+    let cached_value = s.cache_minute.get(&hash).await;
     let ret: VecWithTotal<CollectionSimple>;
 
     match cached_value {
@@ -170,7 +112,7 @@ pub async fn list_collections_simple_handler(
             let limit = params.limit.unwrap_or(100);
             let offset = params.offset.unwrap_or_default();
             let list = catch_error_500!(
-                db.list_collections_simple(name, verified.as_ref(), limit, offset)
+                s.db.list_collections_simple(name, verified.as_ref(), limit, offset)
                     .await
             );
             let count = list.first().map(|it| it.cnt).unwrap_or_default();
@@ -179,7 +121,7 @@ pub async fn list_collections_simple_handler(
             ret = VecWithTotal { count, items };
             let value_for_cache =
                 serde_json::to_value(ret.clone()).expect("Failed serializing cached value");
-            cache.insert(hash, value_for_cache).await;
+            s.cache_minute.insert(hash, value_for_cache).await;
         }
         Some(cached_value) => {
             ret = serde_json::from_value(cached_value).expect("Failed parsing cached value")
@@ -199,34 +141,21 @@ pub async fn list_collections_simple_handler(
         (status = 500),
     ),
 )]
-pub fn get_collection(
-    db: Queries,
-    cache: Cache<u64, Value>,
-) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
-    warp::path!("collection" / "details")
-        .and(warp::post())
-        .and(warp::body::json::<CollectionParam>())
-        .and(warp::any().map(move || db.clone()))
-        .and(warp::any().map(move || cache.clone()))
-        .and_then(get_collection_handler)
-}
-
-pub async fn get_collection_handler(
-    param: CollectionParam,
-    db: Queries,
-    cache: Cache<u64, Value>,
-) -> Result<Box<dyn warp::Reply>, Infallible> {
+pub async fn get_collection(
+    State(s): State<Arc<HttpState>>,
+    Json(param): Json<CollectionParam>,
+) -> impl IntoResponse {
     let hash = calculate_hash(&param);
-    let cached_value = cache.get(&hash).await;
+    let cached_value = s.cache_1_sec.get(&hash).await;
     let ret;
     match cached_value {
         None => {
-            let col = catch_error_500!(db.get_collection(&param.collection).await);
+            let col = catch_error_500!(s.db.get_collection(&param.collection).await);
             let col = catch_empty!(col, "");
             ret = catch_error_500!(CollectionDetails::from_db(col));
             let value_for_cache =
                 serde_json::to_value(ret.clone()).expect("Failed serializing cached value");
-            cache.insert(hash, value_for_cache).await;
+            s.cache_1_sec.insert(hash, value_for_cache).await;
         }
         Some(cached_value) => {
             ret = serde_json::from_value(cached_value).expect("Failed parsing cached value")
@@ -252,25 +181,15 @@ pub struct OwnerParam {
         (status = 500),
     ),
 )]
-pub fn get_collections_by_owner(
-    db: Queries,
-) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
-    warp::path!("collections" / "by-owner")
-        .and(warp::post())
-        .and(warp::body::json::<OwnerParam>())
-        .and(warp::any().map(move || db.clone()))
-        .and_then(get_collections_by_owner_handler)
-}
-
-pub async fn get_collections_by_owner_handler(
-    params: OwnerParam,
-    db: Queries,
-) -> Result<Box<dyn warp::Reply>, Infallible> {
+pub async fn get_collections_by_owner(
+    State(s): State<Arc<HttpState>>,
+    Json(params): Json<OwnerParam>,
+) -> impl IntoResponse {
     let owner = params.owner;
     let limit = params.limit.unwrap_or(100);
     let offset = params.offset.unwrap_or_default();
 
-    let list = catch_error_500!(db.list_collections_by_owner(&owner, limit, offset).await);
+    let list = catch_error_500!(s.db.list_collections_by_owner(&owner, limit, offset).await);
 
     let count = list.first().map(|it| it.cnt).unwrap_or_default();
     let ret: Vec<Collection> = list.into_iter().map(Collection::from_db).collect();
@@ -280,7 +199,7 @@ pub async fn get_collections_by_owner_handler(
 
 #[allow(clippy::ptr_arg)]
 pub async fn collect_collections(
-    db: &Queries,
+    db: &crate::db::queries::Queries,
     ids: &Vec<String>,
 ) -> anyhow::Result<HashMap<String, Collection>> {
     let dblist = db.collect_collections(ids).await?;
@@ -323,25 +242,12 @@ impl Hash for ListCollectionsEvaluationParams {
         (status = 500),
     ),
 )]
-pub fn list_collections_evaluation(
-    db: Queries,
-    cache: Cache<u64, Value>,
-) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
-    warp::path!("collections" / "evaluation")
-        .and(warp::post())
-        .and(warp::body::json::<ListCollectionsEvaluationParams>())
-        .and(warp::any().map(move || db.clone()))
-        .and(warp::any().map(move || cache.clone()))
-        .and_then(list_collections_evaluation_handler)
-}
-
-pub async fn list_collections_evaluation_handler(
-    params: ListCollectionsEvaluationParams,
-    db: Queries,
-    cache: Cache<u64, Value>,
-) -> Result<Box<dyn warp::Reply>, Infallible> {
+pub async fn list_collections_evaluation(
+    State(s): State<Arc<HttpState>>,
+    Json(params): Json<ListCollectionsEvaluationParams>,
+) -> impl IntoResponse {
     let hash = calculate_hash(&params);
-    let cached_value = cache.get(&hash).await;
+    let cached_value = s.cache_5_minutes.get(&hash).await;
     let ret: CollectionEvaluationList;
 
     match cached_value {
@@ -365,7 +271,7 @@ pub async fn list_collections_evaluation_handler(
                 .map(|(a, p)| (a, p.unwrap_or_default()))
                 .collect::<HashMap<_, _>>();
             let list = catch_error_500!(
-                db.collection_evaluation(addresses, mint_prices, from, to)
+                s.db.collection_evaluation(addresses, mint_prices, from, to)
                     .await
             );
             ret = CollectionEvaluationList {
@@ -377,7 +283,7 @@ pub async fn list_collections_evaluation_handler(
 
             let value_for_cache =
                 serde_json::to_value(ret.clone()).expect("Failed serializing cached value");
-            cache.insert(hash, value_for_cache).await;
+            s.cache_5_minutes.insert(hash, value_for_cache).await;
         }
         Some(cached_value) => {
             ret = serde_json::from_value(cached_value).expect("Failed parsing cached value")

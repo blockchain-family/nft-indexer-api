@@ -2,11 +2,11 @@ pub mod collections;
 pub mod metadata;
 
 use crate::handlers::requests::collections::CollectionOrderingFields;
-use serde::Deserialize;
-use std::hash::Hash;
+use serde::{Deserialize, Serialize};
+use std::{fmt::Display, hash::Hash};
 use utoipa::ToSchema;
 
-#[derive(Clone, Hash, Deserialize, ToSchema)]
+#[derive(Clone, Deserialize, Serialize, Hash, ToSchema)]
 pub enum OrderDirection {
     #[serde(rename = "asc")]
     Asc,
@@ -14,17 +14,28 @@ pub enum OrderDirection {
     Desc,
 }
 
+impl Display for OrderDirection {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            OrderDirection::Asc => write!(f, "asc"),
+            OrderDirection::Desc => write!(f, "desc"),
+        }
+    }
+}
+
 #[derive(Clone, Hash, Deserialize, ToSchema)]
-#[aliases(CollectionListOrder = Ordering<CollectionOrderingFields>)]
 pub struct Ordering<T> {
     pub direction: OrderDirection,
     pub field: T,
 }
 
+pub type CollectionListOrder = Ordering<CollectionOrderingFields>;
+
 #[derive(Default, Debug, Clone, Hash, PartialEq, Eq, Deserialize, ToSchema)]
-#[aliases(Period = FromTo<i64>)]
 #[serde(rename_all = "camelCase")]
 pub struct FromTo<T> {
     pub from: Option<T>,
     pub to: Option<T>,
 }
+
+pub type Period = FromTo<i64>;

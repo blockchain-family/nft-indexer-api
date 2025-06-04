@@ -1,24 +1,4 @@
-#![deny(
-    non_ascii_idents,
-    non_shorthand_field_patterns,
-    no_mangle_generic_items,
-    overflowing_literals,
-    path_statements,
-    unused_allocation,
-    unused_comparisons,
-    unused_parens,
-    while_true,
-    trivial_numeric_casts,
-    unused_extern_crates,
-    unused_import_braces,
-    unused_qualifications,
-    unused_must_use,
-    clippy::unwrap_used
-)]
-#![recursion_limit = "256"]
-
 use api::cfg::ApiConfig;
-use api::db::enums::{AuctionStatus, DirectBuyState, DirectSellState, NftEventType};
 use api::db::queries::Queries;
 use api::handlers;
 use api::handlers::auction::*;
@@ -30,71 +10,21 @@ use api::handlers::metadata::*;
 use api::handlers::metrics::*;
 use api::handlers::nft::*;
 use api::handlers::owner::*;
+use api::handlers::service::*;
+use api::handlers::swagger::*;
 use api::handlers::user::*;
-use api::handlers::{requests::Period, *};
-use api::model::OrderDirection;
-use api::model::*;
-use api::schema::Address;
 use api::services::auth::AuthService;
 use api::token::TokenDict;
-
 use api::usd_price::CurrencyClient;
-use handlers::auction::ApiDocAddon as AuctionApiDocAddon;
-use handlers::auth::ApiDocAddon as AuthApiDocAddon;
-use handlers::collection::ApiDocAddon as CollectionApiDocAddon;
-use handlers::collection_custom::ApiDocAddon as CollectionCustomAddon;
-use handlers::events::ApiDocAddon as EventApiDocAddon;
-use handlers::metadata::ApiDocAddon as MetadataApiDocAddon;
-use handlers::metrics::ApiDocAddon as MetricsApiDocAddon;
-use handlers::nft::ApiDocAddon as NftApiDocAddon;
-use handlers::owner::ApiDocAddon as OwnerApiDocAddon;
-use handlers::user::ApiDocAddon as UserApiDocAddon;
-use handlers::ApiDocAddon as ModuleApiDocAddon;
+use axum::{
+    http::{Method, StatusCode},
+    routing::{get, post},
+    Router,
+};
 use moka::future::Cache;
 use std::sync::Arc;
 use std::time::Duration;
-use utoipa::OpenApi;
-use warp::{http::StatusCode, Filter};
-
-#[derive(OpenApi)]
-#[openapi(
-    components(schemas(
-        Address,
-        Auction,
-        Collection,
-        DirectBuy,
-        DirectSell,
-        Fee,
-        DirectBuyState,
-        NFT,
-        Contract,
-        Price,
-        AuctionBid,
-        DirectSellState,
-        AuctionStatus,
-        OrderDirection,
-        CollectionDetails,
-        CollectionDetailsPreviewMeta, NftEventType, Attribute,
-        CollectionEvaluationList,
-        CollectionEvaluation,
-        Period,
-    )),
-    info(title = "Marketplace API"),
-    modifiers(
-        &AuctionApiDocAddon,
-        &AuthApiDocAddon,
-        &CollectionApiDocAddon,
-        &MetricsApiDocAddon,
-        &EventApiDocAddon,
-        &NftApiDocAddon,
-        &OwnerApiDocAddon,
-        &UserApiDocAddon,
-        &ModuleApiDocAddon,
-        &CollectionCustomAddon,
-        &MetadataApiDocAddon
-    )
-)]
-struct ApiDoc;
+use tower_http::cors::{Any, CorsLayer};
 
 #[tokio::main(flavor = "multi_thread", worker_threads = 16)]
 async fn main() {
@@ -106,11 +36,7 @@ async fn main() {
         .expect("error loading tokens dictionary");
     let db_pool = cfg.database.init().await.expect("err init database");
     let db_service = Queries::new(Arc::new(db_pool), cfg.main_token.clone(), tokens);
-    let auth_service = Arc::new(AuthService::new(
-        cfg.auth_token_lifetime,
-        cfg.jwt_secret,
-        cfg.service_name,
-    ));
+    let auth_service = AuthService::new(cfg.auth_token_lifetime, cfg.jwt_secret, cfg.service_name);
 
     CurrencyClient::new(db_service.clone(), cfg.main_token, cfg.dex_url)
         .expect("err initialize currency client")
@@ -118,25 +44,14 @@ async fn main() {
         .await
         .expect("err start currency client");
 
-    let cors = warp::cors()
-        .allow_any_origin()
-        .allow_headers(vec![
-            "authority",
-            "user-agent",
-            "content-type",
-            "authorization",
+    let cors = CorsLayer::new()
+        .allow_origin(Any)
+        .allow_headers([
+            axum::http::header::AUTHORIZATION,
+            axum::http::header::USER_AGENT,
+            axum::http::header::CONTENT_TYPE,
         ])
-        .allow_methods(vec!["GET", "POST", "OPTIONS"]);
-
-    let mut cors_headers = http::HeaderMap::new();
-    cors_headers.insert(
-        "access-control-allow-origin",
-        http::HeaderValue::from_static("*"),
-    );
-    cors_headers.insert(
-        "access-control-allow-methods",
-        http::HeaderValue::from_static("GET, POST, OPTIONS"),
-    );
+        .allow_methods([Method::GET, Method::POST, Method::OPTIONS]);
 
     let cache_minute = Cache::builder()
         .time_to_live(Duration::from_secs(60))
@@ -154,74 +69,77 @@ async fn main() {
         .time_to_live(Duration::from_secs(1))
         .build();
 
-    let api_doc = warp::path("swagger.json")
-        .and(warp::get())
-        .map(|| warp::reply::json(&ApiDoc::openapi()));
+    let state = Arc::new(handlers::HttpState {
+        db: db_service,
+        auth_service,
+        cache_minute,
+        cache_5_minutes,
+        cache_10_sec,
+        cache_1_sec,
+        indexer_api_url: cfg.indexer_api_url,
+    });
 
-    let api = warp::any()
-        .and(
-            warp::options()
-                .map(|| StatusCode::NO_CONTENT)
-                .with(warp::reply::with::headers(cors_headers))
-                .or(api_doc)
-                .or(warp::path!("healthz").map(warp::reply))
-                .or(get_nft_list(db_service.clone(), cache_10_sec.clone()))
-                .or(get_nft_random_list(db_service.clone(), cache_1_sec.clone()))
-                .or(get_nft_sell_count(
-                    db_service.clone(),
-                    cache_5_minutes.clone(),
-                ))
-                .or(get_nft(db_service.clone()))
-                .or(get_nft_top_list(db_service.clone(), cache_minute.clone()))
-                .or(get_nft_for_banner(db_service.clone(), cache_minute.clone()))
-                .or(get_nft_direct_buy(db_service.clone()))
-                .or(get_nft_price_history(db_service.clone()))
-                .boxed()
-                .or(list_collections(db_service.clone(), cache_minute.clone()))
-                .or(list_collections_simple(
-                    db_service.clone(),
-                    cache_minute.clone(),
-                ))
-                .or(list_collections_evaluation(
-                    db_service.clone(),
-                    cache_5_minutes.clone(),
-                ))
-                .or(get_collection(db_service.clone(), cache_1_sec.clone()))
-                .or(get_collections_by_owner(db_service.clone()))
-                .boxed()
-                .or(get_nft_types(db_service.clone(), cache_5_minutes.clone()))
-                .or(get_owner_bids_out(db_service.clone()))
-                .or(get_owner_bids_in(db_service.clone()))
-                .or(get_owner_direct_buy_in(db_service.clone()))
-                .or(get_owner_direct_buy(db_service.clone()))
-                .or(get_owner_direct_sell(db_service.clone()))
-                .boxed()
-                .or(get_auctions(db_service.clone()))
-                .or(get_auction(db_service.clone()))
-                .or(get_auction_bids(db_service.clone()))
-                .or(get_events(db_service.clone(), cache_10_sec.clone()))
-                .or(get_metrics_summary(
-                    db_service.clone(),
-                    cache_minute.clone(),
-                ))
-                .boxed()
-                .or(list_roots(db_service.clone()))
-                .or(search_all(db_service.clone()))
-                .or(get_fee(db_service.clone()))
-                .or(get_user_by_address(db_service.clone()))
-                .or(upsert_user(db_service.clone()))
-                .or(upsert_collection_custom(
-                    db_service.clone(),
-                    auth_service.clone(),
-                ))
-                .or(update_metadata(cfg.indexer_api_url))
-                .or(sign_in(auth_service.clone()))
-                .or(get_nfts_price_range(db_service.clone()))
-                .or(get_my_best_offer(db_service.clone(), auth_service.clone())),
-        )
-        .with(cors);
+    let service_routes = Router::new()
+        .route("/healthz", get(|| async { StatusCode::OK }))
+        .merge(swagger_json(&cfg.base_url))
+        .merge(swagger_yaml(&cfg.base_url))
+        .merge(swagger_ui(&cfg.base_url));
 
-    let routes = api.with(warp::log("api"));
+    let app_routes = Router::new()
+        // NFT endpoints
+        .route("/nfts", post(get_nft_list))
+        .route("/nfts/random-buy", post(get_nft_random_list))
+        .route("/nfts/sell-count", post(get_nft_sell_count))
+        .route("/nft/details", post(get_nft))
+        .route("/nfts/top", post(get_nft_top_list))
+        .route("/nft/banner", post(get_nft_for_banner))
+        .route("/nft/direct/buy", post(get_nft_direct_buy))
+        .route("/nft/price-history", post(get_nft_price_history))
+        .route("/nfts/types", post(get_nft_types))
+        .route("/nfts/price-range", post(get_nfts_price_range))
+        .route("/nft/my-best-offer", get(get_my_best_offer))
+        // Collection endpoints
+        .route("/collections", post(list_collections))
+        .route("/collections/simple", post(list_collections_simple))
+        .route("/collections/evaluation", post(list_collections_evaluation))
+        .route("/collection/details", post(get_collection))
+        .route("/collections/by-owner", post(get_collections_by_owner))
+        .route("/collections-custom", post(upsert_collection_custom))
+        // Owner endpoints
+        .route("/owner/bids-out", post(get_owner_bids_out))
+        .route("/owner/bids-in", post(get_owner_bids_in))
+        .route("/owner/direct/buy", post(get_owner_direct_buy))
+        .route("/owner/direct/buy-in", post(get_owner_direct_buy_in))
+        .route("/owner/direct/sell", post(get_owner_direct_sell))
+        .route("/owner/fee", get(get_fee))
+        // Auction endpoints
+        .route("/auctions", post(get_auctions))
+        .route("/auction", post(get_auction))
+        .route("/auction/bids", post(get_auction_bids))
+        // Event endpoints
+        .route("/events", post(get_events))
+        .route("/search", post(search_all))
+        // Metrics endpoints
+        .route("/metrics/summary", get(get_metrics_summary))
+        // User endpoints
+        .route("/user/:address", get(get_user_by_address))
+        .route("/user", post(upsert_user))
+        // Auth endpoints
+        .route("/user/sign_in", post(sign_in))
+        // Metadata endpoints
+        .route("/update-metadata", post(update_metadata))
+        // Service endpoints
+        .route("/roots", get(list_roots))
+        .layer(cors)
+        .with_state(state);
+
+    let listener = tokio::net::TcpListener::bind(&cfg.http_address)
+        .await
+        .unwrap();
+
     log::info!("start http server on {}", cfg.http_address);
-    warp::serve(routes).run(cfg.http_address).await;
+
+    axum::serve(listener, service_routes.merge(app_routes))
+        .await
+        .unwrap();
 }

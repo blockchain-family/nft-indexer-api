@@ -5,33 +5,38 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0.58"
+anyhow = "1.0.98"
+axum = "0.8.4"
 base64 = "0.22.1"
 bigdecimal = { version = "0.4.8", features = ["serde"] }
-chrono = { version = "0.4.40", features = ["serde"] }
+chrono = { version = "0.4.41", features = ["serde"] }
 config = "0.15.11"
 ed25519-dalek = { git = "https://github.com/broxus/ed25519-dalek.git" }
 hex = "0.4.3"
-http = "0.2"
 jsonwebtoken = { version = "9.3.1", default-features = false }
-log = "0.4.17"
+log = "0.4.27"
 moka = { version = "0.12.10", features = ["future"] }
-nekoton = { git = "https://github.com/broxus/nekoton.git", default-features = false, features = ["wallet_core"] }
+nekoton = { git = "https://github.com/broxus/nekoton.git", default-features = false, features = [
+    "wallet_core",
+] }
 nekoton-utils = { git = "https://github.com/broxus/nekoton.git", default-features = false }
-reqwest = { version = "0.11", features = ["json"] }
+reqwest = { version = "0.12.19", features = ["json"] }
 serde = "1.0"
 serde_json = "1.0"
-sha2 = "0.10.8"
-sqlx = { version = "0.8.3", features = [
+sha2 = "0.10.9"
+sqlx = { version = "0.8.6", features = [
     "runtime-tokio-native-tls",
     "postgres",
     "bigdecimal",
     "json",
     "chrono",
 ] }
-stackdriver_logger = { version = "0.8.2", default-features = false, features = ["prod"] }
+stackdriver_logger = { version = "0.8.2", default-features = false, features = [
+    "prod",
+] }
 thiserror = "2.0.12"
-tokio = { version = "1.44.2", features = ["macros", "rt-multi-thread", "time"] }
+tokio = { version = "1.45.1", features = ["macros", "rt-multi-thread", "time"] }
 ton_block = { git = "https://github.com/broxus/ton-labs-block" }
-utoipa = "4.2.3"
-warp = "0.3.3"
+tower-http = { version = "0.6.6", features = ["cors"] }
+utoipa = { version = "5.3.1", features = ["macros", "yaml"] }
+utoipa-swagger-ui = { version = "9.0.2", features = ["axum"] }

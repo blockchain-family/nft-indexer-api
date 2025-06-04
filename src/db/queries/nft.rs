@@ -8,7 +8,7 @@ use super::*;
 use crate::handlers::nft::{AttributeFilter, NFTListOrder, NFTListOrderField};
 
 use crate::db::query_params::nft::NftSearchParams;
-use crate::model::OrderDirection;
+use crate::handlers::requests::OrderDirection;
 use sqlx::{self};
 
 impl Queries {

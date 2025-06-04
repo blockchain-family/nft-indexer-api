@@ -1,9 +1,9 @@
-use super::error::Error;
 use crate::model::{JwtClaims, LoginData};
+use crate::services::error::Error;
+use axum::http::{HeaderMap, HeaderValue};
 use base64::engine::general_purpose;
 use base64::Engine;
 use ed25519_dalek::{PublicKey, Verifier};
-use http::{HeaderMap, HeaderValue};
 use nekoton::core::ton_wallet::compute_address;
 use nekoton::core::ton_wallet::WalletType;
 use sha2::Digest;
@@ -196,7 +196,7 @@ impl AuthService {
     fn jwt_from_header(&self, headers: &HeaderMap<HeaderValue>) -> anyhow::Result<String> {
         const BEARER: &str = "Bearer ";
 
-        let header = match headers.get(http::header::AUTHORIZATION) {
+        let header = match headers.get(axum::http::header::AUTHORIZATION) {
             Some(v) => v,
             None => anyhow::bail!(Error::NoAuthHeader),
         };

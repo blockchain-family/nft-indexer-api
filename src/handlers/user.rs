@@ -1,24 +1,13 @@
-use crate::db::queries::Queries;
+use std::sync::Arc;
+
+use super::HttpState;
 use crate::db::Address;
 use crate::model::UserDto;
-use crate::{api_doc_addon, catch_error_500, response};
+use crate::{catch_error_500, response};
+use axum::extract::{Json, Path, State};
+use axum::response::IntoResponse;
 use serde::{Deserialize, Serialize};
-use std::convert::Infallible;
-use utoipa::OpenApi;
 use utoipa::ToSchema;
-use warp::http::StatusCode;
-use warp::Filter;
-
-#[derive(OpenApi)]
-#[openapi(
-        paths(get_user_by_address, upsert_user),
-        components(schemas(UserDto, UpsertUserPayload)),
-        tags(
-            (name = "user", description = "User handlers")
-        ),
-)]
-struct ApiDoc;
-api_doc_addon!(ApiDoc);
 
 #[utoipa::path(
     get,
@@ -30,20 +19,11 @@ api_doc_addon!(ApiDoc);
         (status = 500),
     )
 )]
-pub fn get_user_by_address(
-    db: Queries,
-) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
-    warp::path!("user" / String)
-        .and(warp::get())
-        .and(warp::any().map(move || db.clone()))
-        .and_then(get_user_by_address_handler)
-}
-
-async fn get_user_by_address_handler(
-    address: Address,
-    db: Queries,
-) -> Result<Box<dyn warp::Reply>, Infallible> {
-    let user = catch_error_500!(db.get_user_by_address(&address).await);
+pub async fn get_user_by_address(
+    State(s): State<Arc<HttpState>>,
+    Path(address): Path<Address>,
+) -> impl IntoResponse {
+    let user = catch_error_500!(s.db.get_user_by_address(&address).await);
     let mut user = user.unwrap_or_default();
     user.address = address;
     let user = UserDto::from(user);
@@ -51,7 +31,7 @@ async fn get_user_by_address_handler(
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
-struct UpsertUserPayload {
+pub struct UpsertUserPayload {
     address: Address,
     username: Option<String>,
     bio: Option<String>,
@@ -73,22 +53,12 @@ struct UpsertUserPayload {
     (status = 500),
     )
 )]
-pub fn upsert_user(
-    db: Queries,
-) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
-    warp::path!("user")
-        .and(warp::post())
-        .and(warp::body::json::<UpsertUserPayload>())
-        .and(warp::any().map(move || db.clone()))
-        .and_then(upsert_user_handler)
-}
-
-async fn upsert_user_handler(
-    payload: UpsertUserPayload,
-    db: Queries,
-) -> Result<Box<dyn warp::Reply>, Infallible> {
+pub async fn upsert_user(
+    State(s): State<Arc<HttpState>>,
+    Json(payload): Json<UpsertUserPayload>,
+) -> impl IntoResponse {
     catch_error_500!(
-        db.upsert_user(
+        s.db.upsert_user(
             payload.address,
             payload.bio,
             payload.username,
@@ -102,5 +72,5 @@ async fn upsert_user_handler(
         .await
     );
 
-    Ok(Box::from(warp::reply::with_status("", StatusCode::OK)))
+    response!(&())
 }

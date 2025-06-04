@@ -10,7 +10,6 @@ use bigdecimal::BigDecimal;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
-use std::fmt::Display;
 
 use utoipa::ToSchema;
 
@@ -848,23 +847,6 @@ impl From<UserRecord> for UserDto {
             link: value.link,
             email: value.email,
             avatar_url: value.avatar_url,
-        }
-    }
-}
-
-#[derive(Clone, Deserialize, Serialize, ToSchema, Hash)]
-pub enum OrderDirection {
-    #[serde(rename = "asc")]
-    Asc,
-    #[serde(rename = "desc")]
-    Desc,
-}
-
-impl Display for OrderDirection {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            OrderDirection::Asc => write!(f, "asc"),
-            OrderDirection::Desc => write!(f, "desc"),
         }
     }
 }

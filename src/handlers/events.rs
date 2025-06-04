@@ -1,53 +1,14 @@
-use crate::db::queries::Queries;
+use super::HttpState;
 use crate::db::NftEventType;
 use crate::handlers::calculate_hash;
-use crate::model::AuctionActive;
-use crate::model::AuctionBidPlaced;
-use crate::model::AuctionCanceled;
-use crate::model::AuctionComplete;
-use crate::model::NftEvent;
-use crate::model::NftEventAuction;
-use crate::model::NftEventDirectBuy;
-use crate::model::NftEventDirectSell;
-use crate::model::NftEventMint;
-use crate::model::NftEventTransfer;
 use crate::model::NftEvents;
-use crate::{api_doc_addon, catch_error_500, model::SearchResult, response};
-use moka::future::Cache;
+use crate::{catch_error_500, model::SearchResult, response};
+use axum::body::Bytes;
+use axum::extract::{Json, State};
+use axum::response::IntoResponse;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
-use std::convert::Infallible;
-use utoipa::OpenApi;
+use std::sync::Arc;
 use utoipa::ToSchema;
-use warp::http::StatusCode;
-use warp::hyper::body::Bytes;
-use warp::Filter;
-
-#[derive(OpenApi)]
-#[openapi(
-    paths(search_all, get_events),
-    components(schemas(
-        SearchResult,
-        SearchRes,
-        EventsQuery,
-        NftEvents,
-        NftEvent,
-        NftEventDirectSell,
-        NftEventDirectBuy,
-        NftEventAuction,
-        NftEventMint,
-        NftEventTransfer,
-        AuctionActive,
-        AuctionComplete,
-        AuctionCanceled,
-        AuctionBidPlaced
-    )),
-    tags(
-        (name = "event", description = "Event handlers"),
-    ),
-)]
-struct ApiDoc;
-api_doc_addon!(ApiDoc);
 
 #[utoipa::path(
     post,
@@ -59,22 +20,9 @@ api_doc_addon!(ApiDoc);
         (status = 500),
     ),
 )]
-pub fn search_all(
-    db: Queries,
-) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
-    warp::path!("search")
-        .and(warp::post())
-        .and(warp::body::bytes())
-        .and(warp::any().map(move || db.clone()))
-        .and_then(search_all_handler)
-}
-
-pub async fn search_all_handler(
-    query: Bytes,
-    db: Queries,
-) -> Result<Box<dyn warp::Reply>, Infallible> {
+pub async fn search_all(State(s): State<Arc<HttpState>>, query: Bytes) -> impl IntoResponse {
     let query = String::from_utf8(query.into()).expect("err converting to String");
-    let items = catch_error_500!(db.search_all(&query).await);
+    let items = catch_error_500!(s.db.search_all(&query).await);
     let items: Vec<SearchResult> = items.into_iter().map(SearchResult::from_db).collect();
     let count = items.len();
     response!(&SearchRes { items, count })
@@ -90,25 +38,12 @@ pub async fn search_all_handler(
         (status = 500),
     ),
 )]
-pub fn get_events(
-    db: Queries,
-    cache: Cache<u64, Value>,
-) -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
-    warp::path!("events")
-        .and(warp::post())
-        .and(warp::body::json::<EventsQuery>())
-        .and(warp::any().map(move || db.clone()))
-        .and(warp::any().map(move || cache.clone()))
-        .and_then(get_events_handler)
-}
-
-pub async fn get_events_handler(
-    query: EventsQuery,
-    db: Queries,
-    cache: Cache<u64, Value>,
-) -> Result<Box<dyn warp::Reply>, Infallible> {
+pub async fn get_events(
+    State(s): State<Arc<HttpState>>,
+    Json(query): Json<EventsQuery>,
+) -> impl IntoResponse {
     let hash = calculate_hash(&query);
-    let cached_value = cache.get(&hash).await;
+    let cached_value = s.cache_10_sec.get(&hash).await;
 
     let response;
     match cached_value {
@@ -130,7 +65,7 @@ pub async fn get_events_handler(
             let verified = if nft.is_some() { Some(false) } else { verified };
 
             let record = catch_error_500!(
-                db.list_events(
+                s.db.list_events(
                     nft,
                     collection,
                     owner,
@@ -162,7 +97,7 @@ pub async fn get_events_handler(
             response = r;
             let value_for_cache =
                 serde_json::to_value(response.clone()).expect("Failed serializing cached value");
-            cache.insert(hash, value_for_cache).await;
+            s.cache_10_sec.insert(hash, value_for_cache).await;
         }
         Some(cached_value) => {
             response = serde_json::from_value(cached_value).expect("Failed parsing cached value")
