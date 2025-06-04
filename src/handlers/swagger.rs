@@ -1,7 +1,7 @@
 use axum::routing::get;
-use axum::{http, Router};
-use utoipa::openapi::Server;
+use axum::{Router, http};
 use utoipa::OpenApi;
+use utoipa::openapi::Server;
 use utoipa_swagger_ui::SwaggerUi;
 
 use crate::handlers::api_doc::ApiDoc;

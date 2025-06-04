@@ -454,24 +454,26 @@ impl Queries {
         });
 
         let order = match order.field {
-            NFTListOrderField::FloorPriceUsd => {
-                match order.direction {
-                    OrderDirection::Asc => "order by floor_price_usd.val asc, n.name COLLATE numeric asc, n.address asc",
-                    OrderDirection::Desc => "order by coalesce(floor_price_usd.val, 0) desc, n.name COLLATE numeric asc, n.address asc"
+            NFTListOrderField::FloorPriceUsd => match order.direction {
+                OrderDirection::Asc => {
+                    "order by floor_price_usd.val asc, n.name COLLATE numeric asc, n.address asc"
                 }
-            }
-            NFTListOrderField::DealPriceUsd => {
-                match order.direction {
-                    OrderDirection::Asc => "order by floor_price_usd.val asc, n.name COLLATE numeric asc, n.address asc",
-                    OrderDirection::Desc => "order by coalesce(floor_price_usd.val, 0) desc, n.name COLLATE numeric asc, n.address asc"
+                OrderDirection::Desc => {
+                    "order by coalesce(floor_price_usd.val, 0) desc, n.name COLLATE numeric asc, n.address asc"
                 }
-            }
-            NFTListOrderField::Name => {
-                match order.direction {
-                    OrderDirection::Asc => "order by n.name COLLATE numeric asc, n.address asc",
-                    OrderDirection::Desc => "order by n.name COLLATE numeric desc, n.address asc"
+            },
+            NFTListOrderField::DealPriceUsd => match order.direction {
+                OrderDirection::Asc => {
+                    "order by floor_price_usd.val asc, n.name COLLATE numeric asc, n.address asc"
                 }
-            }
+                OrderDirection::Desc => {
+                    "order by coalesce(floor_price_usd.val, 0) desc, n.name COLLATE numeric asc, n.address asc"
+                }
+            },
+            NFTListOrderField::Name => match order.direction {
+                OrderDirection::Asc => "order by n.name COLLATE numeric asc, n.address asc",
+                OrderDirection::Desc => "order by n.name COLLATE numeric desc, n.address asc",
+            },
         };
         let sql = sql.replace("#ORDER#", order);
         let sql = sql.replace("#ATTRIBUTES#", &attributes_filter);
@@ -510,24 +512,26 @@ impl Queries {
         });
 
         let order = match order.field {
-            NFTListOrderField::FloorPriceUsd => {
-                match order.direction {
-                    OrderDirection::Asc => "order by LEAST(nve.floor_price_auc_usd, nve.floor_price_sell_usd) asc, nve.name  COLLATE numeric asc, nve.address asc",
-                    OrderDirection::Desc => "order by coalesce(LEAST(nve.floor_price_auc_usd, nve.floor_price_sell_usd), 0) desc, nve.name COLLATE numeric asc, nve.address asc"
+            NFTListOrderField::FloorPriceUsd => match order.direction {
+                OrderDirection::Asc => {
+                    "order by LEAST(nve.floor_price_auc_usd, nve.floor_price_sell_usd) asc, nve.name  COLLATE numeric asc, nve.address asc"
                 }
-            }
-            NFTListOrderField::DealPriceUsd => {
-                match order.direction {
-                    OrderDirection::Asc => "order by LEAST(nve.floor_price_auc_usd, nve.floor_price_sell_usd) asc, nve.name COLLATE numeric asc, nve.address asc",
-                    OrderDirection::Desc => "order by coalesce(LEAST(nve.floor_price_auc_usd, nve.floor_price_sell_usd) desc, nve.name COLLATE numeric asc, nve.address asc"
+                OrderDirection::Desc => {
+                    "order by coalesce(LEAST(nve.floor_price_auc_usd, nve.floor_price_sell_usd), 0) desc, nve.name COLLATE numeric asc, nve.address asc"
                 }
-            }
-            NFTListOrderField::Name => {
-                match order.direction {
-                    OrderDirection::Asc => "order by nve.name COLLATE numeric asc, nve.address asc",
-                    OrderDirection::Desc => "order by nve.name COLLATE numeric desc, nve.address asc"
+            },
+            NFTListOrderField::DealPriceUsd => match order.direction {
+                OrderDirection::Asc => {
+                    "order by LEAST(nve.floor_price_auc_usd, nve.floor_price_sell_usd) asc, nve.name COLLATE numeric asc, nve.address asc"
                 }
-            }
+                OrderDirection::Desc => {
+                    "order by coalesce(LEAST(nve.floor_price_auc_usd, nve.floor_price_sell_usd) desc, nve.name COLLATE numeric asc, nve.address asc"
+                }
+            },
+            NFTListOrderField::Name => match order.direction {
+                OrderDirection::Asc => "order by nve.name COLLATE numeric asc, nve.address asc",
+                OrderDirection::Desc => "order by nve.name COLLATE numeric desc, nve.address asc",
+            },
         };
 
         let sql = sql.replace("#ORDER#", order);

@@ -1,11 +1,11 @@
 use crate::model::{JwtClaims, LoginData};
 use crate::services::error::Error;
 use axum::http::{HeaderMap, HeaderValue};
-use base64::engine::general_purpose;
 use base64::Engine;
+use base64::engine::general_purpose;
 use ed25519_dalek::{PublicKey, Verifier};
-use nekoton::core::ton_wallet::compute_address;
 use nekoton::core::ton_wallet::WalletType;
+use nekoton::core::ton_wallet::compute_address;
 use sha2::Digest;
 use std::borrow::Cow;
 use std::str::FromStr;
@@ -28,7 +28,7 @@ impl AuthService {
     }
 
     pub fn authenticate(&self, headers: HeaderMap<HeaderValue>) -> anyhow::Result<String> {
-        use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
+        use jsonwebtoken::{Algorithm, DecodingKey, Validation, decode};
 
         match self.jwt_from_header(&headers) {
             Ok(jwt) => {

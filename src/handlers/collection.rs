@@ -1,6 +1,6 @@
 use super::HttpState;
-use crate::db::query_params::collection::CollectionsListParams;
 use crate::db::Address;
+use crate::db::query_params::collection::CollectionsListParams;
 use crate::handlers::requests::Period;
 use crate::handlers::{calculate_hash, requests::collections::ListCollectionsParams};
 use crate::model::{

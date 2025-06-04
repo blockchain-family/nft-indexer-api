@@ -1,5 +1,5 @@
-use crate::db::query_params::Ordering;
 use crate::db::Address;
+use crate::db::query_params::Ordering;
 
 pub enum CollectionOrderingFields {
     OwnersCount,

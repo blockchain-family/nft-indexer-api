@@ -1,8 +1,8 @@
 use config::{self};
 use serde::Deserialize;
 use sqlx::{
-    postgres::{PgPool, PgPoolOptions},
     Error,
+    postgres::{PgPool, PgPoolOptions},
 };
 use std::net::SocketAddr;
 

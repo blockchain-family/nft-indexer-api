@@ -1,5 +1,5 @@
-use crate::db::queries::Queries;
 use crate::db::TokenUsdPrice;
+use crate::db::queries::Queries;
 use bigdecimal::BigDecimal;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};

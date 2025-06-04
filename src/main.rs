@@ -17,9 +17,9 @@ use api::services::auth::AuthService;
 use api::token::TokenDict;
 use api::usd_price::CurrencyClient;
 use axum::{
+    Router,
     http::{Method, StatusCode},
     routing::{get, post},
-    Router,
 };
 use moka::future::Cache;
 use std::sync::Arc;

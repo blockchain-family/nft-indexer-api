@@ -1,5 +1,5 @@
-use crate::db::queries::Queries;
 use crate::db::Address;
+use crate::db::queries::Queries;
 use chrono::NaiveDateTime;
 
 impl Queries {

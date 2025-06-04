@@ -2,7 +2,7 @@ use super::HttpState;
 use crate::db::{NftDetails, NftForBanner};
 use crate::handlers::calculate_hash;
 use crate::handlers::requests::OrderDirection;
-use crate::model::{DirectBuy, NFTPrice, NftTrait, NftsPriceRange, VecWith, NFT};
+use crate::model::{DirectBuy, NFT, NFTPrice, NftTrait, NftsPriceRange, VecWith};
 use crate::{
     catch_empty, catch_error_401, catch_error_500,
     db::{Address, DirectBuyState},
@@ -274,15 +274,19 @@ pub async fn get_nft_list(
                 false => limit + 1,
             };
 
-            let price_from = catch_error_500!(params
-                .price_from
-                .map(|p| BigDecimal::from_str(&p))
-                .transpose());
+            let price_from = catch_error_500!(
+                params
+                    .price_from
+                    .map(|p| BigDecimal::from_str(&p))
+                    .transpose()
+            );
 
-            let price_to = catch_error_500!(params
-                .price_to
-                .map(|p| BigDecimal::from_str(&p))
-                .transpose());
+            let price_to = catch_error_500!(
+                params
+                    .price_to
+                    .map(|p| BigDecimal::from_str(&p))
+                    .transpose()
+            );
 
             let search_params = &NftSearchParams {
                 owners: params.owners.as_deref().unwrap_or(&[]),
