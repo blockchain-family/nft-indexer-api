@@ -7,7 +7,7 @@ env:
   HTTP_ADDRESS: 0.0.0.0:9000
   JWT_SECRET: $(VENOM_STAGE_MAINNET_API_JWT_SECRET)
   AUTH_TOKEN_LIFETIME: 31536000
-  BASE_URL: oasis.gallery
+  BASE_URL: https://api-venom.tokstock.io
   DEX_URL: https://api.web3.world
   MAIN_TOKEN: 0:77d36848bb159fa485628bc38dc37eadb74befa514395e09910f601b841f749e
   INDEXER_API_URL: http://nft-nft-indexer-stage-mainnet-venom:3001
