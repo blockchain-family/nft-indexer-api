@@ -2,7 +2,7 @@ env:
   RUST_LOG: info
   RUST_BACKTRACE: 1
 
-  DATABASE__URL: postgresql://$(STAGE_MAINNET_VENOM_PG_USER):$(STAGE_MAINNET_VENOM_PG_PASSWORD)@postgresql-bf.europe-west1-c.c.broxus.internal:5432/nft-indexer-stage-mainnet-venom
+  DATABASE__URL: postgresql://$(STAGE_MAINNET_VENOM_PG_USER):$(STAGE_MAINNET_VENOM_PG_PASSWORD)@cloudsqlproxy.default:5432/nft-indexer-stage-mainnet-venom
   DATABASE__MAX_CONNECTIONS: 50
   HTTP_ADDRESS: 0.0.0.0:9000
   JWT_SECRET: $(VENOM_STAGE_MAINNET_API_JWT_SECRET)
