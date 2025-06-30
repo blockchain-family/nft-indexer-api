@@ -23,11 +23,10 @@ deploy:tokstock-prod:
   except:
     - tags
   variables:
-    APP_CONFIG: prod
     K8S_NAMESPACE: ${CI_PROJECT_ROOT_NAMESPACE}-prod
   extends: .deploy
   environment:
-    name: bf
+    name: prod
     on_stop: stop:tokstock-prod
 
 stop:tokstock-prod:
@@ -36,11 +35,10 @@ stop:tokstock-prod:
   except:
     - tags
   variables:
-    APP_CONFIG: prod
     K8S_NAMESPACE: ${CI_PROJECT_ROOT_NAMESPACE}-prod
   extends: .stop
   environment:
-    name: bf
+    name: prod
 
 cloudbuild:image:stage:
   only:
@@ -55,11 +53,10 @@ deploy:tokstock-stage:
   except:
     - tags
   variables:
-    APP_CONFIG: stage
     K8S_NAMESPACE: ${CI_PROJECT_ROOT_NAMESPACE}-stage
   extends: .deploy
   environment:
-    name: bf
+    name: stage
     on_stop: stop:tokstock-stage
 
 stop:tokstock-stage:
@@ -68,8 +65,7 @@ stop:tokstock-stage:
   except:
     - tags
   variables:
-    APP_CONFIG: stage
     K8S_NAMESPACE: ${CI_PROJECT_ROOT_NAMESPACE}-stage
   extends: .stop
   environment:
-    name: bf
+    name: stage
