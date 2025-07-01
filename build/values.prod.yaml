@@ -1,8 +1,8 @@
 env:
   RUST_LOG: info
   RUST_BACKTRACE: 1
-  BACKEND_API_USER: $(PROD_V1_PG_USER)
-  indexer_api_database_url: postgresql://$(PROD_V1_PG_USER):$(PROD_V1_PG_PASSWORD)@postgresql-bf.europe-west1-c.c.broxus.internal:5432/nft-indexer-prod-v1
+  BACKEND_API_USER: $(PROD_PG_USER)
+  indexer_api_database_url: postgresql://$(PROD_PG_USER):$(PROD_PG_PASSWORD)@cloudsqlproxy.default:5432/nft-indexer-prod
   indexer_api_http_address: 0.0.0.0:8080
   indexer_api_database_max_connections: 3
 
