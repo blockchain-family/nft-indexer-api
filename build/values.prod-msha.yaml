@@ -1,0 +1,49 @@
+env:
+  RUST_LOG: info
+  RUST_BACKTRACE: 1
+
+  DATABASE__URL: postgresql://$(PROD_MSHA_PG_USER):$(PROD_MSHA_PG_PASSWORD)@cloudsqlproxy.default:5432/nft-indexer-prod-msha
+  DATABASE__MAX_CONNECTIONS: 50
+  HTTP_ADDRESS: 0.0.0.0:9000
+  JWT_SECRET: $(TYCHO_TESTNET_API_JWT_SECRET)
+  AUTH_TOKEN_LIFETIME: 31536000
+  BASE_URL: nft-api.sharia.io
+  DEX_URL: https://api-test-tycho.flatqube.io
+  MAIN_TOKEN: 0:6b3355b19c6aedc65be291c00abbf6e5061c07e1926a3fd543863c7a8d06cc79
+  INDEXER_API_URL: nft-indexer-msha:port:3001
+  TOKEN_MANIFEST_PATH: https://raw.githubusercontent.com/broxus/ton-assets/refs/heads/tychotestnet/manifest.json
+  SERVICE_NAME: Tokstock
+
+controller: statefulset
+
+service:
+  port: 9000
+
+ingress:
+  enabled: true
+  hosts:
+    - host: nft-api.msharia.io
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls:
+    - secretName: nft-api-msharia-io-tls
+      hosts:
+        - nft-api.msharia.io
+
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: 9000
+  initialDelaySeconds: 5
+  periodSeconds: 10
+
+readinessProbe:
+  httpGet:
+    path: /healthz
+    port: 9000
+  initialDelaySeconds: 5
+  periodSeconds: 10
+
+sharedSecrets:
+  - nftIndexer
