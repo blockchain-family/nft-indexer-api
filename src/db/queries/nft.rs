@@ -1,15 +1,13 @@
-use crate::db::queries::Queries;
-use crate::db::{NftDetails, NftMimetype};
 use anyhow::{anyhow, bail};
 use chrono::NaiveDateTime;
+use sqlx::{self};
 
 use super::*;
-
-use crate::handlers::nft::{AttributeFilter, NFTListOrder, NFTListOrderField};
-
+use crate::db::queries::Queries;
 use crate::db::query_params::nft::NftSearchParams;
+use crate::db::{NftDetails, NftMimetype};
+use crate::handlers::nft::{AttributeFilter, NFTListOrder, NFTListOrderField};
 use crate::handlers::requests::OrderDirection;
-use sqlx::{self};
 
 impl Queries {
     pub async fn search_all(&self, search_str: &String) -> sqlx::Result<Vec<SearchResult>> {

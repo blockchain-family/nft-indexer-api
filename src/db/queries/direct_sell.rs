@@ -1,8 +1,7 @@
-use crate::db::queries::Queries;
+use sqlx::{self};
 
 use super::*;
-
-use sqlx::{self};
+use crate::db::queries::Queries;
 
 impl Queries {
     pub async fn get_direct_sell(&self, address: &String) -> sqlx::Result<Option<NftDirectSell>> {

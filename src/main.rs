@@ -1,3 +1,6 @@
+use std::sync::Arc;
+use std::time::Duration;
+
 use api::cfg::ApiConfig;
 use api::db::queries::Queries;
 use api::handlers;
@@ -16,14 +19,10 @@ use api::handlers::user::*;
 use api::services::auth::AuthService;
 use api::token::TokenDict;
 use api::usd_price::CurrencyClient;
-use axum::{
-    Router,
-    http::{Method, StatusCode},
-    routing::{get, post},
-};
+use axum::Router;
+use axum::http::{Method, StatusCode};
+use axum::routing::{get, post};
 use moka::future::Cache;
-use std::sync::Arc;
-use std::time::Duration;
 use tower_http::cors::{Any, CorsLayer};
 
 #[tokio::main(flavor = "multi_thread", worker_threads = 16)]

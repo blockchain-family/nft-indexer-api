@@ -1,9 +1,8 @@
-use crate::db::queries::Queries;
+use sqlx::{self};
 
 use super::*;
-
+use crate::db::queries::Queries;
 use crate::handlers::auction::AuctionsSortOrder;
-use sqlx::{self};
 
 impl Queries {
     pub async fn collect_auctions(&self, ids: &[String]) -> sqlx::Result<Vec<NftAuction>> {

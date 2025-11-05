@@ -1,7 +1,10 @@
-use crate::db::Address;
+use std::collections::HashMap;
+use std::sync::Arc;
+
 use bigdecimal::BigDecimal;
 use serde::Deserialize;
-use std::{collections::HashMap, sync::Arc};
+
+use crate::db::Address;
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Manifest {
@@ -49,22 +52,22 @@ impl TokenDict {
 
     pub fn format_value(&self, _token: &str, val: &BigDecimal) -> String {
         val.round(0).to_string()
-        /*if let Some(t) = self.0.get(token) {
-            if s.len() > t.decimals {
-                s.insert(s.len() - t.decimals, '.')
-            } else if s.len() == t.decimals {
-                let mut prefix = "0.".to_string();
-                prefix.push_str(&s);
-                s = prefix;
-            }
-            s = s.trim_end_matches('0')
-                .trim_end_matches('.')
-                .to_string();
-            if s.len() == 0 {
-                s = "0".to_string();
-            }
-        }
-        s*/
+        // if let Some(t) = self.0.get(token) {
+        // if s.len() > t.decimals {
+        // s.insert(s.len() - t.decimals, '.')
+        // } else if s.len() == t.decimals {
+        // let mut prefix = "0.".to_string();
+        // prefix.push_str(&s);
+        // s = prefix;
+        // }
+        // s = s.trim_end_matches('0')
+        // .trim_end_matches('.')
+        // .to_string();
+        // if s.len() == 0 {
+        // s = "0".to_string();
+        // }
+        // }
+        // s
     }
 
     pub fn addresses(&self) -> Vec<String> {

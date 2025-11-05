@@ -1,11 +1,13 @@
-use crate::handlers::HttpState;
-use crate::model::LoginData;
-use crate::{catch_error_400, response};
+use std::sync::Arc;
+
 use axum::extract::{Json, State};
 use axum::response::IntoResponse;
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 use utoipa::ToSchema;
+
+use crate::handlers::HttpState;
+use crate::model::LoginData;
+use crate::{catch_error_400, response};
 
 #[derive(Debug, Clone, Deserialize, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]

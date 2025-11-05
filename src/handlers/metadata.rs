@@ -1,8 +1,9 @@
-use super::HttpState;
-use axum::extract::{Json, State};
-use axum::response::IntoResponse;
 use std::sync::Arc;
 
+use axum::extract::{Json, State};
+use axum::response::IntoResponse;
+
+use super::HttpState;
 use crate::handlers::requests::metadata::{UpdateMetadataParams, UpdateMetadataParamsExt};
 use crate::{catch_error_500, response};
 

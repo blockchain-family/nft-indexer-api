@@ -1,14 +1,16 @@
-use super::HttpState;
-use crate::db::NftEventType;
-use crate::handlers::calculate_hash;
-use crate::model::NftEvents;
-use crate::{catch_error_500, model::SearchResult, response};
+use std::sync::Arc;
+
 use axum::body::Bytes;
 use axum::extract::{Json, State};
 use axum::response::IntoResponse;
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 use utoipa::ToSchema;
+
+use super::HttpState;
+use crate::db::NftEventType;
+use crate::handlers::calculate_hash;
+use crate::model::{NftEvents, SearchResult};
+use crate::{catch_error_500, response};
 
 #[utoipa::path(
     post,

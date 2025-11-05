@@ -1,6 +1,7 @@
+use chrono::NaiveDateTime;
+
 use crate::db::Address;
 use crate::db::queries::Queries;
-use chrono::NaiveDateTime;
 
 impl Queries {
     #[allow(clippy::too_many_arguments)]

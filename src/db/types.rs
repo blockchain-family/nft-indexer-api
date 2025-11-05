@@ -1,10 +1,11 @@
-use super::*;
 use bigdecimal::BigDecimal;
 use chrono::NaiveDateTime;
 use log::error;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use utoipa::ToSchema;
+
+use super::*;
 pub type Address = String;
 
 #[derive(Debug, Clone, sqlx::FromRow)]

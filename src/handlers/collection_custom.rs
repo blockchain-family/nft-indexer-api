@@ -1,12 +1,14 @@
-use super::HttpState;
-use crate::db::{Address, Social};
-use crate::{catch_empty, catch_error_401, catch_error_403, catch_error_500, response};
+use std::sync::Arc;
+
 use axum::extract::{Json, State};
 use axum::http::{HeaderMap, HeaderValue};
 use axum::response::IntoResponse;
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 use utoipa::ToSchema;
+
+use super::HttpState;
+use crate::db::{Address, Social};
+use crate::{catch_empty, catch_error_401, catch_error_403, catch_error_500, response};
 
 #[derive(Debug, Clone, Deserialize, Serialize, ToSchema)]
 pub struct UpsertCollectionCustomPayload {

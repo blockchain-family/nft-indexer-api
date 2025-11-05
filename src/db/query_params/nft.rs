@@ -1,6 +1,7 @@
+use bigdecimal::BigDecimal;
+
 use crate::db::Address;
 use crate::handlers::nft::{AttributeFilter, NFTListOrder};
-use bigdecimal::BigDecimal;
 
 pub struct NftSearchParams<'a> {
     pub owners: &'a [Address],

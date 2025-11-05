@@ -1,24 +1,26 @@
-use super::HttpState;
-use crate::db::Address;
-use crate::db::query_params::collection::CollectionsListParams;
-use crate::handlers::requests::Period;
-use crate::handlers::{calculate_hash, requests::collections::ListCollectionsParams};
-use crate::model::{
-    Collection, CollectionDetails, CollectionEvaluation, CollectionEvaluationList,
-    CollectionSimple, VecWithTotal,
-};
-use crate::schema::VecCollectionSimpleWithTotal;
-use crate::schema::VecCollectionsWithTotal;
-use crate::{catch_empty, catch_error_500, response};
+use std::collections::HashMap;
+use std::hash::{Hash, Hasher};
+use std::sync::Arc;
+
 use axum::extract::{Json, State};
 use axum::response::IntoResponse;
 use bigdecimal::BigDecimal;
 use chrono::DateTime;
 use serde::Deserialize;
-use std::collections::HashMap;
-use std::hash::{Hash, Hasher};
-use std::sync::Arc;
 use utoipa::ToSchema;
+
+use super::HttpState;
+use crate::db::Address;
+use crate::db::query_params::collection::CollectionsListParams;
+use crate::handlers::calculate_hash;
+use crate::handlers::requests::Period;
+use crate::handlers::requests::collections::ListCollectionsParams;
+use crate::model::{
+    Collection, CollectionDetails, CollectionEvaluation, CollectionEvaluationList,
+    CollectionSimple, VecWithTotal,
+};
+use crate::schema::{VecCollectionSimpleWithTotal, VecCollectionsWithTotal};
+use crate::{catch_empty, catch_error_500, response};
 
 #[utoipa::path(
     post,

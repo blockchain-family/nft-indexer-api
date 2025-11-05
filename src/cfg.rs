@@ -1,10 +1,9 @@
+use std::net::SocketAddr;
+
 use config::{self};
 use serde::Deserialize;
-use sqlx::{
-    Error,
-    postgres::{PgPool, PgPoolOptions},
-};
-use std::net::SocketAddr;
+use sqlx::Error;
+use sqlx::postgres::{PgPool, PgPoolOptions};
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct DatabaseConfig {

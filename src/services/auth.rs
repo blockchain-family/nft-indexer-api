@@ -1,16 +1,17 @@
-use crate::model::{JwtClaims, LoginData};
-use crate::services::error::Error;
+use std::borrow::Cow;
+use std::str::FromStr;
+use std::time::SystemTime;
+
 use axum::http::{HeaderMap, HeaderValue};
 use base64::Engine;
 use base64::engine::general_purpose;
 use ed25519_dalek::{PublicKey, Verifier};
-use nekoton::core::ton_wallet::WalletType;
-use nekoton::core::ton_wallet::compute_address;
+use nekoton::core::ton_wallet::{WalletType, compute_address};
 use sha2::Digest;
-use std::borrow::Cow;
-use std::str::FromStr;
-use std::time::SystemTime;
 use ton_block::MsgAddressInt;
+
+use crate::model::{JwtClaims, LoginData};
+use crate::services::error::Error;
 
 pub struct AuthService {
     access_token_lifetime: u32,

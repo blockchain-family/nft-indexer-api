@@ -1,10 +1,13 @@
 pub mod collections;
 pub mod metadata;
 
-use crate::handlers::requests::collections::CollectionOrderingFields;
+use std::fmt::Display;
+use std::hash::Hash;
+
 use serde::{Deserialize, Serialize};
-use std::{fmt::Display, hash::Hash};
 use utoipa::ToSchema;
+
+use crate::handlers::requests::collections::CollectionOrderingFields;
 
 #[derive(Clone, Deserialize, Serialize, Hash, ToSchema)]
 pub enum OrderDirection {

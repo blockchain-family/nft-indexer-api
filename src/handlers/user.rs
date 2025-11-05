@@ -1,13 +1,14 @@
 use std::sync::Arc;
 
-use super::HttpState;
-use crate::db::Address;
-use crate::model::UserDto;
-use crate::{catch_error_500, response};
 use axum::extract::{Json, Path, State};
 use axum::response::IntoResponse;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
+
+use super::HttpState;
+use crate::db::Address;
+use crate::model::UserDto;
+use crate::{catch_error_500, response};
 
 #[utoipa::path(
     get,

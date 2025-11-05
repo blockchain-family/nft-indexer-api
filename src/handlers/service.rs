@@ -1,11 +1,11 @@
-use crate::{
-    catch_error_500,
-    handlers::HttpState,
-    model::{Root, Roots},
-    response,
-};
-use axum::{extract::State, response::IntoResponse};
 use std::sync::Arc;
+
+use axum::extract::State;
+use axum::response::IntoResponse;
+
+use crate::handlers::HttpState;
+use crate::model::{Root, Roots};
+use crate::{catch_error_500, response};
 
 #[utoipa::path(
     get,

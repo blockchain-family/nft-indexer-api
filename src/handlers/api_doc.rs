@@ -1,16 +1,25 @@
+use utoipa::OpenApi;
+
 use crate::db::{
     AuctionStatus, DirectBuyState, DirectSellState, MetaRoyalty, NftEventType, NftForBanner,
     RootType, Social,
 };
+use crate::handlers::auction::*;
+use crate::handlers::auth::*;
+use crate::handlers::collection::*;
+use crate::handlers::collection_custom::*;
+use crate::handlers::events::*;
+use crate::handlers::metadata::*;
+use crate::handlers::metrics::*;
+use crate::handlers::nft::*;
+use crate::handlers::owner::*;
+use crate::handlers::requests::collections::*;
+use crate::handlers::requests::metadata::*;
 use crate::handlers::requests::*;
-use crate::handlers::requests::{collections::*, metadata::*};
-use crate::handlers::{
-    auction::*, auth::*, collection::*, collection_custom::*, events::*, metadata::*, metrics::*,
-    nft::*, owner::*, service::*, user::*,
-};
+use crate::handlers::service::*;
+use crate::handlers::user::*;
 use crate::model::*;
 use crate::schema::*;
-use utoipa::OpenApi;
 
 #[derive(OpenApi)]
 #[openapi(

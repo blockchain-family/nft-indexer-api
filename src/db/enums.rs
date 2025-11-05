@@ -46,20 +46,22 @@ pub enum EventCategory {
     Collection,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type, ToSchema)]
+#[derive(Default, Clone, Debug, Serialize, Deserialize, sqlx::Type, ToSchema)]
 #[sqlx(type_name = "auction_status", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum AuctionStatus {
+    #[default]
     Active = 0,
     Cancelled = 1,
     Completed = 2,
     Expired = 3,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type, ToSchema)]
+#[derive(Default, Clone, Debug, Serialize, Deserialize, sqlx::Type, ToSchema)]
 #[sqlx(type_name = "direct_sell_state", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum DirectSellState {
+    #[default]
     Create = 0,
     AwaitNft = 1,
     Active = 2,
@@ -68,10 +70,11 @@ pub enum DirectSellState {
     Expired = 5,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, sqlx::Type, ToSchema, Eq, PartialEq)]
+#[derive(Default, Clone, Debug, Serialize, Deserialize, sqlx::Type, ToSchema, Eq, PartialEq)]
 #[sqlx(type_name = "direct_buy_state", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum DirectBuyState {
+    #[default]
     Create = 0,
     AwaitTokens = 1,
     Active = 2,
@@ -142,24 +145,6 @@ impl Display for NftEventType {
             NftEventType::Mint => f.write_str("mint"),
             NftEventType::Transfer => f.write_str("transfer"),
         }
-    }
-}
-
-impl Default for AuctionStatus {
-    fn default() -> Self {
-        Self::Active
-    }
-}
-
-impl Default for DirectBuyState {
-    fn default() -> Self {
-        Self::Create
-    }
-}
-
-impl Default for DirectSellState {
-    fn default() -> Self {
-        Self::Create
     }
 }
 

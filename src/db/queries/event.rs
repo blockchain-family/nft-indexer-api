@@ -1,6 +1,6 @@
-use super::*;
-
 use sqlx::{self};
+
+use super::*;
 
 impl Queries {
     #[allow(clippy::too_many_arguments)]

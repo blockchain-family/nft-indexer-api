@@ -1,8 +1,10 @@
-use super::*;
-use bigdecimal::BigDecimal;
 use std::collections::HashMap;
 
-use crate::db::{queries::Queries, query_params::collection::CollectionsListParams};
+use bigdecimal::BigDecimal;
+
+use super::*;
+use crate::db::queries::Queries;
+use crate::db::query_params::collection::CollectionsListParams;
 
 impl Queries {
     pub async fn get_collection(
@@ -235,7 +237,7 @@ impl Queries {
         let public_mint_prices: Vec<BigDecimal> = mint_prices.values().cloned().collect();
         let wrapped_coin = self.get_wrapped_coin();
 
-        //TODO get rid of hardcode
+        // TODO get rid of hardcode
         sqlx::query_as!(
             NftCollectionEvaluation,
             r#"

@@ -1,14 +1,15 @@
-use super::HttpState;
-use crate::handlers::calculate_hash;
-use crate::model::MetricsSummaryBase;
-use crate::{catch_error_500, response};
+use std::sync::Arc;
+
 use axum::extract::{Query, State};
 use axum::response::IntoResponse;
 use chrono::DateTime;
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
-use utoipa::IntoParams;
-use utoipa::ToSchema;
+use utoipa::{IntoParams, ToSchema};
+
+use super::HttpState;
+use crate::handlers::calculate_hash;
+use crate::model::MetricsSummaryBase;
+use crate::{catch_error_500, response};
 
 #[derive(Debug, Clone, Deserialize, Serialize, IntoParams, ToSchema, Hash)]
 #[into_params(parameter_in = Query)]

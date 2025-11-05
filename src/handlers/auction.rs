@@ -1,17 +1,19 @@
+use std::collections::HashMap;
+use std::sync::Arc;
+
+use axum::Json;
+use axum::extract::State;
+use axum::response::IntoResponse;
+use schema::*;
+use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
+
 use super::HttpState;
 use crate::db::Address;
 use crate::db::queries::Queries;
 use crate::handlers::nft::collect_nft_and_collection;
 use crate::model::{Auction, AuctionBid, Collection, NFT, VecWith};
 use crate::{catch_empty, catch_error_500, response, schema};
-use axum::Json;
-use axum::extract::State;
-use axum::response::IntoResponse;
-use schema::*;
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::sync::Arc;
-use utoipa::ToSchema;
 
 #[utoipa::path(
     post,

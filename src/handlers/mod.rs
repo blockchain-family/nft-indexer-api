@@ -13,12 +13,14 @@ pub mod service;
 pub mod swagger;
 pub mod user;
 
-use crate::db::queries::Queries;
-use crate::services::auth::AuthService;
-use moka::future::Cache;
-use serde_json::Value;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
+
+use moka::future::Cache;
+use serde_json::Value;
+
+use crate::db::queries::Queries;
+use crate::services::auth::AuthService;
 
 #[macro_export]
 macro_rules! catch_error_500 {

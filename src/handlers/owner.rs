@@ -1,23 +1,17 @@
-use super::HttpState;
-use crate::db::RootType;
-use crate::handlers::auction::collect_auctions_nfts_collections;
-use crate::handlers::nft::collect_nft_and_collection;
-use crate::model::OwnerFee;
-use crate::schema::VecWithAuctionBids;
-use crate::schema::VecWithDirectBuy;
-use crate::schema::VecWithDirectSell;
-use crate::{
-    catch_error_500,
-    db::{Address, DirectBuyState, DirectSellState},
-    model::{AuctionBid, DirectBuy, DirectSell, VecWith},
-    response,
-};
+use std::sync::Arc;
+
 use axum::extract::{Json, Query, State};
 use axum::response::IntoResponse;
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
-use utoipa::IntoParams;
-use utoipa::ToSchema;
+use utoipa::{IntoParams, ToSchema};
+
+use super::HttpState;
+use crate::db::{Address, DirectBuyState, DirectSellState, RootType};
+use crate::handlers::auction::collect_auctions_nfts_collections;
+use crate::handlers::nft::collect_nft_and_collection;
+use crate::model::{AuctionBid, DirectBuy, DirectSell, OwnerFee, VecWith};
+use crate::schema::{VecWithAuctionBids, VecWithDirectBuy, VecWithDirectSell};
+use crate::{catch_error_500, response};
 
 #[utoipa::path(
     post,

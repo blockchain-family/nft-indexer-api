@@ -1,17 +1,16 @@
-use crate::db::{
-    MetaRoyalty, MetricsSummaryRecord, NftEventType, NftTraitRecord, NftsPriceRangeRecord,
-    OwnerFeeRecord, RootRecord, Social, UserRecord,
-};
-use crate::{
-    db::{Address, AuctionStatus, DirectBuyState, DirectSellState, EventCategory, EventType},
-    token::TokenDict,
-};
+use std::collections::HashMap;
+
 use bigdecimal::BigDecimal;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::collections::HashMap;
-
 use utoipa::ToSchema;
+
+use crate::db::{
+    Address, AuctionStatus, DirectBuyState, DirectSellState, EventCategory, EventType, MetaRoyalty,
+    MetricsSummaryRecord, NftEventType, NftTraitRecord, NftsPriceRangeRecord, OwnerFeeRecord,
+    RootRecord, Social, UserRecord,
+};
+use crate::token::TokenDict;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VecWithTotal<T> {

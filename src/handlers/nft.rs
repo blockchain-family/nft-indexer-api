@@ -1,14 +1,8 @@
-use super::HttpState;
-use crate::db::{NftDetails, NftForBanner};
-use crate::handlers::calculate_hash;
-use crate::handlers::requests::OrderDirection;
-use crate::model::{DirectBuy, NFT, NFTPrice, NftTrait, NftsPriceRange, VecWith};
-use crate::{
-    catch_empty, catch_error_401, catch_error_500,
-    db::{Address, DirectBuyState},
-    model::{Auction, Collection, DirectSell},
-    response,
-};
+use std::collections::HashMap;
+use std::fmt::{Display, Formatter};
+use std::hash::Hash;
+use std::str::FromStr;
+use std::sync::Arc;
 
 use anyhow::Context;
 use axum::extract::{Json, Query, State};
@@ -17,20 +11,21 @@ use axum::response::IntoResponse;
 use bigdecimal::BigDecimal;
 use chrono::DateTime;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::fmt::{Display, Formatter};
-use std::hash::Hash;
-use std::str::FromStr;
-use std::sync::Arc;
 use tokio::join;
+use utoipa::{IntoParams, ToSchema};
 
+use super::HttpState;
 use crate::db::query_params::nft::NftSearchParams;
+use crate::db::{Address, DirectBuyState, NftDetails, NftForBanner};
 use crate::handlers::auction::collect_auctions;
+use crate::handlers::calculate_hash;
 use crate::handlers::collection::collect_collections;
-use crate::schema::VecWithDirectBuy;
-use crate::schema::VecWithNFT;
-use utoipa::IntoParams;
-use utoipa::ToSchema;
+use crate::handlers::requests::OrderDirection;
+use crate::model::{
+    Auction, Collection, DirectBuy, DirectSell, NFT, NFTPrice, NftTrait, NftsPriceRange, VecWith,
+};
+use crate::schema::{VecWithDirectBuy, VecWithNFT};
+use crate::{catch_empty, catch_error_401, catch_error_500, response};
 
 #[utoipa::path(
     post,
@@ -76,13 +71,13 @@ pub async fn get_nft(
 
     let mut direct_buy = HashMap::default();
 
-    if let Some(best_offer) = nft.best_offer.as_ref() {
-        if let Some(offer) = catch_error_500!(s.db.get_direct_buy(best_offer).await) {
-            direct_buy.insert(
-                offer.address.clone(),
-                DirectBuy::from_db(&offer, &s.db.tokens),
-            );
-        }
+    if let Some(best_offer) = nft.best_offer.as_ref()
+        && let Some(offer) = catch_error_500!(s.db.get_direct_buy(best_offer).await)
+    {
+        direct_buy.insert(
+            offer.address.clone(),
+            DirectBuy::from_db(&offer, &s.db.tokens),
+        );
     }
 
     let nft_addr = nft.address.clone().unwrap_or_default();
@@ -594,11 +589,12 @@ pub struct NFTListOrder {
     pub direction: OrderDirection,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, ToSchema)]
+#[derive(Default, Debug, Clone, Deserialize, Serialize, ToSchema)]
 pub enum PriceHistoryScale {
     #[serde(rename = "h")]
     Hours,
     #[serde(rename = "d")]
+    #[default]
     Days,
 }
 
@@ -608,12 +604,6 @@ impl Display for PriceHistoryScale {
             PriceHistoryScale::Days => write!(f, "day"),
             PriceHistoryScale::Hours => write!(f, "hour"),
         }
-    }
-}
-
-impl Default for PriceHistoryScale {
-    fn default() -> Self {
-        Self::Days
     }
 }
 

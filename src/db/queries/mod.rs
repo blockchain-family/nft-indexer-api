@@ -7,13 +7,14 @@ mod event;
 mod nft;
 mod user;
 
-use super::*;
-
-use crate::token::{Token, TokenDict};
-use chrono::NaiveDateTime;
-use sqlx::{self, postgres::PgPool};
-
 use std::sync::Arc;
+
+use chrono::NaiveDateTime;
+use sqlx::postgres::PgPool;
+use sqlx::{self};
+
+use super::*;
+use crate::token::{Token, TokenDict};
 
 #[derive(Debug, Clone)]
 pub struct Queries {

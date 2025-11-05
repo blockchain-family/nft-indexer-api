@@ -1,10 +1,14 @@
-use crate::db::TokenUsdPrice;
-use crate::db::queries::Queries;
+use std::collections::HashMap;
+use std::str::FromStr;
+use std::time::Duration;
+
 use bigdecimal::BigDecimal;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::types::chrono::Local;
-use std::{collections::HashMap, str::FromStr, time::Duration};
+
+use crate::db::TokenUsdPrice;
+use crate::db::queries::Queries;
 
 #[derive(Debug, Clone)]
 pub struct CurrencyClient {

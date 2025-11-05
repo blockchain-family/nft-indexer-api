@@ -1,6 +1,7 @@
-use crate::handlers::requests::CollectionListOrder;
 use serde::Deserialize;
 use utoipa::ToSchema;
+
+use crate::handlers::requests::CollectionListOrder;
 
 #[derive(Clone, Deserialize, Hash, ToSchema)]
 pub enum CollectionOrderingFields {

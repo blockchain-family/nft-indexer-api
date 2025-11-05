@@ -1,10 +1,12 @@
+use std::collections::HashMap;
+
+use serde::Serialize;
+use utoipa::ToSchema;
+
 use crate::model::{
     Auction, AuctionBid, Collection, CollectionDetails, CollectionSimple, DirectBuy, DirectSell,
     NFT,
 };
-use serde::Serialize;
-use std::collections::HashMap;
-use utoipa::ToSchema;
 #[derive(ToSchema, Serialize)]
 pub struct Address(String);
 
