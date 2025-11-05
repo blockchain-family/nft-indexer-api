@@ -10,6 +10,7 @@ RUN RUSTFLAGS=-g cargo build --release
 
 # Build App
 COPY . .
+RUN touch src/lib.rs
 RUN RUSTFLAGS=-g cargo build --release
 
 FROM europe-west1-docker.pkg.dev/broxus-infrastructure/docker/rust-runtime:stable
