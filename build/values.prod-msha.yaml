@@ -10,7 +10,7 @@ env:
   BASE_URL: nft-api.sharia.io
   DEX_URL: https://api-test-tycho.flatqube.io
   MAIN_TOKEN: 0:6b3355b19c6aedc65be291c00abbf6e5061c07e1926a3fd543863c7a8d06cc79
-  INDEXER_API_URL: nft-nft-indexer-msha:3001
+  INDEXER_API_URL: http://nft-nft-indexer-msha:3001
   TOKEN_MANIFEST_PATH: https://raw.githubusercontent.com/broxus/ton-assets/refs/heads/tychotestnet/manifest.json
   SERVICE_NAME: Tokstock
 
