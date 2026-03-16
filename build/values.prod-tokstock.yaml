@@ -1,0 +1,69 @@
+env:
+  RUST_LOG: "info"
+  RUST_BACKTRACE: "1"
+  indexer_api_http_address: "0.0.0.0:8080"
+  indexer_api_database_max_connections: "3"
+
+controller: statefulset
+
+service:
+  port: 8080
+
+containerCommand:
+  - /bin/sh
+  - -ec
+
+containerArguments:
+  - |
+    . /vault/secrets/config
+    export DATABASE_URL="postgresql://${DATABASE_USER}:${DATABASE_PASSWORD}@10.163.10.14:5432/nft-indexer-tokstock"
+    exec /app/entrypoint.sh
+
+vault:
+  enabled: true
+  role: "nft-nft-indexer-api-tokstock"
+  file:
+    name: config
+    path: kubernetes/data/broxus/main/nft-tokstock/nft-indexer-api
+    template: |
+      {{- with secret "kubernetes/data/broxus/main/nft-tokstock/nft-indexer-api" -}}
+      {{- range $k, $v := .Data.data }}
+      export {{ $k }}={{ printf "%q" $v }}
+      {{- end }}
+      {{- end -}}
+
+podSecurityContext:
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  runAsNonRoot: true
+  capabilities:
+    drop:
+      - ALL
+
+gateway:
+  hosts:
+    - host: api.tokstock.io
+      paths:
+        - path: /
+          pathType: PathPrefix
+          port: 8080
+
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: 8080
+  initialDelaySeconds: 5
+  periodSeconds: 10
+
+readinessProbe:
+  httpGet:
+    path: /healthz
+    port: 8080
+  initialDelaySeconds: 5
+  periodSeconds: 10

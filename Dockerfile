@@ -1,15 +1,20 @@
-FROM europe-west1-docker.pkg.dev/broxus-infrastructure/docker/rust-builder:stable AS builder
+FROM hub.broxus.com/broxus/infrastructure/docker/rust-builder:stable AS builder
 
 WORKDIR /build
 
-# Build App
 COPY . .
 RUN RUSTFLAGS=-g cargo build --release
 
-FROM europe-west1-docker.pkg.dev/broxus-infrastructure/docker/rust-runtime:stable
+
+FROM hub.broxus.com/broxus/infrastructure/docker/rust-runtime:stable AS runtime
 COPY --from=builder /build/openapi.yml /app/openapi.yml
 COPY --from=builder /build/target/release/api /app/application
 COPY --from=builder /build/entrypoint.sh /app/entrypoint.sh
-USER runuser
-EXPOSE 9000
+
+RUN groupadd -g 10001 app \
+    && useradd -u 10001 -g 10001 -d /app -s /usr/sbin/nologin app \
+    && chown -R 10001:10001 /app
+
+USER 10001:10001
+EXPOSE 8080
 ENTRYPOINT ["/app/entrypoint.sh"]

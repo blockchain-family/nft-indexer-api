@@ -1,5 +1,4 @@
 #!/bin/bash
+set -e
 
-# sqlx migrate run &&
-
-/app/application $1
+exec /app/application "$@"
