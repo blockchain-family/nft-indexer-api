@@ -16,7 +16,7 @@ containerCommand:
 containerArguments:
   - |
     . /vault/secrets/config
-    export DATABASE_URL="postgresql://${DATABASE_USER}:${DATABASE_PASSWORD}@10.163.10.14:5432/nft-indexer-tokstock"
+    export indexer_api_database_url="postgresql://${DATABASE_USER}:${DATABASE_PASSWORD}@10.163.10.14:5432/nft-indexer-tokstock"
     exec /app/entrypoint.sh
 
 vault:
