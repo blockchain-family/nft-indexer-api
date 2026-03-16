@@ -28,7 +28,7 @@ containerArguments:
 
 vault:
   enabled: true
-  role: "nft-indexer-api-tycho-testnet"
+  role: "nft-nft-indexer-api-tycho-testnet"
   file:
     name: config
     path: kubernetes/data/broxus/main/nft-tycho-testnet/nft-indexer-api

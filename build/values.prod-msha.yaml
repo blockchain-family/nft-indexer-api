@@ -28,7 +28,7 @@ containerArguments:
 
 vault:
   enabled: true
-  role: "nft-indexer-api-msha"
+  role: "nft-nft-indexer-api-msha"
   file:
     name: config
     path: kubernetes/data/broxus/main/nft-msha/nft-indexer-api
